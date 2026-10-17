@@ -1,0 +1,52 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { text } from "node:stream/consumers"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { FileStorageService } from "./file-storage.service"
+
+let dir: string
+let storage: FileStorageService
+
+beforeEach(async () => {
+  dir = await mkdtemp(join(tmpdir(), "life-board-files-"))
+  storage = new FileStorageService(join(dir, "uploads"))
+})
+afterEach(() => rm(dir, { recursive: true, force: true }))
+
+describe("FileStorageService", () => {
+  it("saves, measures, streams and removes files", async () => {
+    const blob = await storage.save(Buffer.from("hello"), "My Receipt (1).PNG")
+
+    expect(blob.sizeBytes).toBe(5)
+    expect(blob.storagePath).toMatch(/^\w{26}-My_Receipt__1_\.png$/)
+    expect(await readFile(join(dir, "uploads", blob.storagePath), "utf8")).toBe("hello")
+    expect(await storage.size(blob.storagePath)).toBe(5)
+    expect(await text(storage.stream(blob.storagePath))).toBe("hello")
+
+    await storage.remove(blob.storagePath)
+    await expect(storage.size(blob.storagePath)).rejects.toThrow()
+    // Removing a file that's already gone is fine.
+    await expect(storage.remove(blob.storagePath)).resolves.toBeUndefined()
+  })
+
+  it("sanitizes hostile names and falls back when nothing is left", async () => {
+    const blob = await storage.save(Buffer.from("x"), "../../etc/passwd")
+    expect(blob.storagePath).toMatch(/^\w{26}-passwd$/)
+
+    const unnamed = await storage.save(Buffer.from("x"), "")
+    expect(unnamed.storagePath).toMatch(/^\w{26}-upload$/)
+  })
+
+  it("refuses storage paths outside the root", async () => {
+    await expect(storage.size("../secret.key")).rejects.toThrow("Invalid storage path.")
+    expect(() => storage.stream("/etc/passwd")).toThrow("Invalid storage path.")
+    await expect(storage.remove("..")).rejects.toThrow("Invalid storage path.")
+  })
+
+  it("rethrows unexpected errors when removing", async () => {
+    const blob = await storage.save(Buffer.from("x"), "a.txt")
+    // Removing the uploads directory itself as a file fails with EISDIR/EPERM, not ENOENT.
+    await expect(storage.remove(`${blob.storagePath}/..`)).rejects.toThrow()
+  })
+})

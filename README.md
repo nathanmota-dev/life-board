@@ -25,8 +25,9 @@ de contexto continua habilitado; o app empacotado mantém o sandbox padrão.
 - `desktop/src/main.ts`: janela e ciclo de vida do Electron.
 - `desktop/src/preload.ts`: APIs disponibilizadas para o React via `contextBridge`.
 - `desktop/src/backend-process.ts`: processo Node iniciado com `utilityProcess`.
-  É o ponto de entrada para futuros serviços; inicialmente responde a `ping`
-  enviado pelo processo principal e encerra junto com o app.
+  Sobe a API de `api/` numa porta livre em `127.0.0.1`, avisa o processo
+  principal quando está pronta e encerra junto com o app.
+- `api/`: backend em Fastify + Drizzle + SQLite (veja "Backend" abaixo).
 - `web/src/main.tsx`: entrada React e layout compartilhado com sidebar e cabeçalho.
 - `web/src/router.ts`: TanStack Router, layout `sidebar` e rota `/dashboard`.
 - `web/src/routes/dashboard.tsx`: conteúdo da página Dashboard.
@@ -44,16 +45,58 @@ O React não acessa o Node diretamente. Para novas funcionalidades, exponha
 métodos específicos no preload e registre os handlers no processo principal.
 Como exemplo, `window.desktop.getVersion()` retorna a versão do app.
 
+## Backend
+
+A API fica em `api/` (workspace npm) e segue uma MVC reduzida:
+
+- `src/dto/`: schemas Zod de body, query e params de cada módulo.
+- `src/controllers/`: rotas Fastify; validam a entrada com o DTO e chamam o service.
+- `src/services/`: regras de negócio e acesso ao banco com Drizzle.
+- `src/db/schema/`: tabelas SQLite; `api/drizzle/` guarda as migrations geradas.
+- `src/plugins/`: tratamento de erros e o hook de autenticação.
+
+Módulos: tasks, thoughts, links, goals (com milestones), calendar, mood,
+habits, stats, github e file-boards. Todas as rotas usam o prefixo `/api`.
+
+O banco `life-board.db`, os uploads e a chave `secret.key` (que cifra o token
+do GitHub) ficam na pasta de dados do Electron (`~/.config/life-board-app/` no
+Linux). As migrations rodam sempre que a API inicia.
+
+Ainda não há login. Só `/api/health` é pública; as demais rotas passam pelo
+hook `authenticate` de `src/plugins/auth.ts`, que hoje libera tudo. Quando a
+autenticação chegar, basta implementar esse hook.
+
+O React recebe a URL da API com `window.desktop.getApiBaseUrl()`.
+
+Para alterar o banco, edite `api/src/db/schema/` e gere uma migration:
+
+```bash
+npm run db:generate --workspace api
+```
+
 ## Comandos
 
 ```bash
-npm run typecheck  # Verifica os tipos do desktop e frontend
+npm run typecheck  # Verifica os tipos do desktop, frontend e backend
 npm run build      # Compila o app para out/
 npm start          # Abre a versão compilada (execute build antes)
 npm run package    # Gera um instalador para o sistema atual em release/
 ```
 
 O empacotamento usa AppImage no Linux, NSIS no Windows e DMG no macOS.
+
+## Testes do backend
+
+Os testes de `api/` usam Vitest com SQLite real (um arquivo temporário por
+teste). Os services são testados direto contra o banco e os controllers via
+`app.inject()`. A cobertura mínima é 80% em linhas, funções, branches e
+statements; abaixo disso o comando falha.
+
+```bash
+npm run test:coverage  # Testes do backend com relatório de cobertura
+```
+
+`npm test` na raiz roda os testes do frontend e do backend.
 
 ## Testes unitários do frontend
 
