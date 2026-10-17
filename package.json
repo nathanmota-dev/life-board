@@ -18,12 +18,13 @@
   "scripts": {
     "dev": "electron-vite dev --watch --noSandbox",
     "start": "electron-vite preview --skipBuild --noSandbox",
-    "test": "npm run test --workspace web",
+    "test": "npm run test --workspaces",
     "test:watch": "npm run test:watch --workspace web",
-    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p web/tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p web/tsconfig.json && tsc --noEmit -p api/tsconfig.json",
     "build": "npm run typecheck && electron-vite build",
     "package": "npm run build && electron-builder --config desktop/electron-builder.yml",
-    "postinstall": "install-electron"
+    "postinstall": "install-electron",
+    "test:coverage": "npm run test:coverage --workspace api"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -43,6 +44,10 @@
     "vite": "^7.3.7"
   },
   "workspaces": [
-    "web"
-  ]
+    "web",
+    "api"
+  ],
+  "dependencies": {
+    "@libsql/client": "^0.18.0"
+  }
 }

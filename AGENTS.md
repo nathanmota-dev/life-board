@@ -12,9 +12,8 @@ Life Board is a personal Electron desktop app for organizing and tracking everyt
 
 - Desktop shell: Electron, built with electron-vite.
 - Frontend: Vite, React, Tailwind CSS, shadcn/ui components, and TanStack Router.
-- Tests: Vitest, with jsdom and Testing Library for frontend tests.
-
-There is no backend yet.
+- Backend (`api/`): Node, Fastify, Drizzle ORM with SQLite (`@libsql/client`) and Zod, organized as DTOs, controllers and services. It runs inside Electron's `utilityProcess` and listens on 127.0.0.1.
+- Tests: Vitest, with jsdom and Testing Library for frontend tests. The backend requires at least 80% coverage.
 
 ## Agent instructions
 

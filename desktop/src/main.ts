@@ -4,6 +4,7 @@ import type { UtilityProcess } from "electron"
 import backendPath from "./backend-process?modulePath"
 
 let backend: UtilityProcess | null = null
+let apiBaseUrl: Promise<string> | null = null
 
 function createWindow() {
   const window = new BrowserWindow({
@@ -38,16 +39,38 @@ function createWindow() {
   })
 }
 
-void app.whenReady().then(() => {
-  ipcMain.handle("app:get-version", () => app.getVersion())
+function startBackend() {
+  const migrationsDir = app.isPackaged
+    ? join(process.resourcesPath, "migrations")
+    : join(app.getAppPath(), "api/drizzle")
 
   backend = utilityProcess.fork(backendPath, [], {
     serviceName: "Life Board Backend",
+    env: {
+      ...process.env,
+      LIFE_BOARD_DATA_DIR: app.getPath("userData"),
+      LIFE_BOARD_MIGRATIONS_DIR: migrationsDir,
+    },
   })
-  backend.on("exit", (code) => {
-    backend = null
-    if (code !== 0) console.error(`O backend encerrou com código ${code}.`)
+
+  return new Promise<string>((resolve, reject) => {
+    backend?.on("message", (message: { type?: string; url?: string }) => {
+      if (message?.type === "ready" && message.url) resolve(message.url)
+    })
+    backend?.on("exit", (code) => {
+      backend = null
+      if (code !== 0) console.error(`O backend encerrou com código ${code}.`)
+      reject(new Error("O backend encerrou antes de ficar pronto."))
+    })
   })
+}
+
+void app.whenReady().then(() => {
+  ipcMain.handle("app:get-version", () => app.getVersion())
+
+  ipcMain.handle("api:get-base-url", () => apiBaseUrl)
+  apiBaseUrl = startBackend()
+  apiBaseUrl.catch((error: unknown) => console.error(error))
 
   createWindow()
 

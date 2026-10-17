@@ -3,5 +3,6 @@
 interface Window {
   desktop: {
     getVersion: () => Promise<string>
+    getApiBaseUrl: () => Promise<string>
   }
 }
