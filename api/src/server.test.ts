@@ -8,7 +8,7 @@ import { migrationsFolder } from "./test/create-test-app"
 describe("startServer", () => {
   it("creates the database, listens on a free port and shuts down cleanly", async () => {
     const dataDir = join(await mkdtemp(join(tmpdir(), "life-board-server-")), "data")
-    const server = await startServer({ dataDir, migrationsFolder, logger: false })
+    const server = await startServer({ dataDir, migrationsFolder, secretKey: Buffer.alloc(32, 3), logger: false })
 
     try {
       expect(server.port).toBeGreaterThan(0)

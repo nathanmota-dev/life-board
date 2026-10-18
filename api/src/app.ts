@@ -19,7 +19,7 @@ import { MAX_UPLOAD_BYTES } from "./dto/file-boards.dto"
 import { registerAuth, registerProtected, type Authenticate } from "./plugins/auth"
 import { registerErrorHandler } from "./plugins/error-handler"
 import { CalendarService } from "./services/calendar.service"
-import { CryptoService } from "./services/crypto.service"
+import type { CryptoService } from "./services/crypto.service"
 import { FileBoardsService } from "./services/file-boards.service"
 import { FileStorageService } from "./services/file-storage.service"
 import { GithubClient } from "./services/github-client.service"
@@ -40,7 +40,7 @@ export type AppOptions = {
   dataDir: string
   logger?: FastifyServerOptions["logger"]
   githubClient?: GithubClient
-  crypto?: CryptoService
+  crypto: CryptoService
   authenticate?: Authenticate
 }
 
@@ -66,7 +66,7 @@ export async function buildApp({ db, dataDir, logger = false, githubClient, cryp
     github: new GithubService(
       db,
       githubClient ?? new GithubClient(),
-      crypto ?? CryptoService.fromEnvOrFile(dataDir),
+      crypto,
       app.log,
     ),
     fileBoards: new FileBoardsService(db, new FileStorageService(join(dataDir, "uploads"))),

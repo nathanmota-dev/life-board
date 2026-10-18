@@ -14,6 +14,24 @@ beforeEach(async () => {
     if (path.endsWith("/graphql")) {
       return json({ data: { user: { contributionsCollection: { contributionCalendar: { totalContributions: 0, weeks: [] } } } } })
     }
+    if (path.includes("/search/issues") && path.includes("is%3Aissue%20author")) {
+      return json({
+        items: [
+          {
+            number: 7,
+            title: "Broken",
+            state: "open",
+            html_url: "https://github.com/me/app/issues/7",
+            user: { login: "me", avatar_url: null },
+            repository_url: "https://api.github.com/repos/me/app",
+            created_at: "2026-10-01T00:00:00Z",
+            updated_at: "2026-10-03T00:00:00Z",
+            labels: [{ name: "bug" }],
+            comments: 2,
+          },
+        ],
+      })
+    }
     if (path.includes("/search/issues")) return json({ items: [] })
     if (path.includes("/repos?")) return json([{ name: "app", owner: { login: "me" } }])
     return json([
@@ -41,10 +59,14 @@ describe("github controller", () => {
     const connect = await ctx.app.inject({ method: "POST", url: "/api/github/connect", payload: { token: "ghp_0123456789abcdefghij" } })
     expect(connect.json()).toEqual({ connected: true, login: "me" })
 
-    expect((await ctx.app.inject({ method: "POST", url: "/api/github/sync" })).json()).toEqual({ ok: true, count: 1, login: "me" })
+    expect((await ctx.app.inject({ method: "POST", url: "/api/github/sync" })).json()).toEqual({ ok: true, count: 1, issues: 1, login: "me" })
 
     const prs = await ctx.app.inject({ method: "GET", url: "/api/github/prs?kind=in_my_repos" })
     expect(prs.json().items).toEqual([expect.objectContaining({ id: "me/app#1", headBranch: "fix" })])
+
+    const issues = await ctx.app.inject({ method: "GET", url: "/api/github/issues?kind=authored" })
+    expect(issues.json().items).toEqual([expect.objectContaining({ id: "me/app#7", labels: ["bug"], comments: 2 })])
+    expect((await ctx.app.inject({ method: "GET", url: "/api/github/issues?kind=review_requested" })).statusCode).toBe(400)
 
     expect((await ctx.app.inject({ method: "GET", url: "/api/github/contributions" })).json()).toEqual({ login: "me", total: 0, days: [] })
     expect((await ctx.app.inject({ method: "GET", url: "/api/github/status" })).json().connected).toBe(true)

@@ -1,15 +1,5 @@
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest"
 import { CryptoService } from "./crypto.service"
-
-let dir: string
-
-beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "life-board-crypto-"))
-})
-afterEach(() => rm(dir, { recursive: true, force: true }))
 
 describe("CryptoService", () => {
   it("round-trips secrets with a fresh IV each time", () => {
@@ -34,25 +24,4 @@ describe("CryptoService", () => {
     expect(() => new CryptoService(Buffer.alloc(32, 2)).open(sealed)).toThrow()
   })
 
-  it("accepts base64, hex or any other env key consistently", () => {
-    const key = Buffer.alloc(32, 9)
-    const sealed = new CryptoService(key).seal("value")
-
-    expect(CryptoService.fromEnvOrFile(dir, key.toString("base64")).open(sealed)).toBe("value")
-    expect(CryptoService.fromEnvOrFile(dir, key.toString("hex")).open(sealed)).toBe("value")
-
-    const fromPhrase = CryptoService.fromEnvOrFile(dir, "correct horse battery staple")
-    const phraseSealed = fromPhrase.seal("value")
-    expect(CryptoService.fromEnvOrFile(dir, "correct horse battery staple").open(phraseSealed)).toBe("value")
-  })
-
-  it("generates a private key file once and reuses it", async () => {
-    const keyDir = join(dir, "nested")
-    const sealed = CryptoService.fromEnvOrFile(keyDir, "").seal("value")
-    const keyPath = join(keyDir, "secret.key")
-
-    expect((await stat(keyPath)).mode & 0o777).toBe(0o600)
-    expect(Buffer.from(await readFile(keyPath, "utf8"), "base64")).toHaveLength(32)
-    expect(CryptoService.fromEnvOrFile(keyDir, "").open(sealed)).toBe("value")
-  })
 })

@@ -58,9 +58,16 @@ A API fica em `api/` (workspace npm) e segue uma MVC reduzida:
 Módulos: tasks, thoughts, links, goals (com milestones), calendar, mood,
 habits, stats, github e file-boards. Todas as rotas usam o prefixo `/api`.
 
-O banco `life-board.db`, os uploads e a chave `secret.key` (que cifra o token
-do GitHub) ficam na pasta de dados do Electron (`~/.config/life-board-app/` no
-Linux). As migrations rodam sempre que a API inicia.
+O banco `life-board.db` e os uploads ficam na pasta de dados do Electron
+(`~/.config/life-board-app/` no Linux). As migrations rodam sempre que a API
+inicia.
+
+O token do GitHub é salvo cifrado com AES-256-GCM. A chave fica em
+`secret.key.enc`, protegida pelo chaveiro do sistema via `safeStorage` do
+Electron (libsecret/KWallet no Linux, Keychain no macOS, DPAPI no Windows). O
+processo principal abre a chave e a envia ao backend pelo `parentPort`. No
+Linux, o app não inicia sem um chaveiro de verdade, para não cair no modo
+`basic_text`.
 
 Ainda não há login. Só `/api/health` é pública; as demais rotas passam pelo
 hook `authenticate` de `src/plugins/auth.ts`, que hoje libera tudo. Quando a

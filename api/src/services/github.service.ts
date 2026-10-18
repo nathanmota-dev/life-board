@@ -1,13 +1,23 @@
 import { and, asc, desc, eq, notInArray, type SQL } from "drizzle-orm"
 import type { Db } from "../db/client"
-import { githubPrs, githubSettings, type GithubKind, type GithubSettings, type NewGithubPr } from "../db/schema"
-import type { ConnectGithubBody, ListPrsQuery } from "../dto/github.dto"
+import {
+  githubIssues,
+  githubPrs,
+  githubSettings,
+  type GithubIssueKind,
+  type GithubKind,
+  type GithubSettings,
+  type NewGithubIssue,
+  type NewGithubPr,
+} from "../db/schema"
+import type { ConnectGithubBody, ListIssuesQuery, ListPrsQuery } from "../dto/github.dto"
 import type { CryptoService } from "./crypto.service"
 import { BadRequestError, HttpError } from "./errors"
 import { CONTRIBUTION_LEVELS, type GithubClient, type RawPull, type RawSearchItem, type RepoRef } from "./github-client.service"
 
 const SETTINGS_ID = "default"
 const MAX_SYNCED_PRS = 60
+const MAX_SYNCED_ISSUES = 60
 
 // When a PR matches several categories, keep the one most specific to the user.
 const KIND_PRIORITY: Record<GithubKind, number> = {
@@ -25,13 +35,27 @@ const SEARCHES: { kind: GithubKind; qualifier: string }[] = [
   { kind: "assigned", qualifier: "assignee" },
 ]
 
+// `user:` matches issues in repos the user owns, like the PRs' "in my repos".
+const ISSUE_SEARCHES: { kind: GithubIssueKind; qualifier: string }[] = [
+  { kind: "authored", qualifier: "author" },
+  { kind: "mentioned", qualifier: "mentions" },
+  { kind: "assigned", qualifier: "assignee" },
+  { kind: "in_my_repos", qualifier: "user" },
+]
+
 type Bucket = { kind: GithubKind; triggeredByLogin: string | null; item: RawSearchItem | RawPull; repo: RepoRef }
+
+type IssueBucket = { kind: GithubIssueKind; item: RawSearchItem; repo: RepoRef }
 
 type Logger = { warn: (message: string) => void }
 
 export function repoFromUrl(url: string): RepoRef | null {
   const match = url.match(/\/repos\/([^/]+)\/([^/]+)/)
   return match ? { owner: match[1], name: match[2] } : null
+}
+
+function inOrg(repo: RepoRef, orgFilter: string | null) {
+  return !orgFilter || repo.owner.toLowerCase() === orgFilter.toLowerCase()
 }
 
 function isRawPull(item: RawSearchItem | RawPull): item is RawPull {
@@ -94,6 +118,7 @@ export class GithubService {
   async disconnect() {
     await this.db.delete(githubSettings)
     await this.db.delete(githubPrs)
+    await this.db.delete(githubIssues)
   }
 
   async sync() {
@@ -104,11 +129,12 @@ export class GithubService {
       const token = this.openToken(settings)
       const buckets = await this.collectPulls(token, settings.login, settings.orgFilter)
       const count = await this.store(token, buckets)
+      const issues = await this.syncIssues(token, settings.login, settings.orgFilter)
       await this.db
         .update(githubSettings)
         .set({ lastSyncAt: new Date(), lastSyncError: null, updatedAt: new Date() })
         .where(eq(githubSettings.id, SETTINGS_ID))
-      return { ok: true, count, login: settings.login }
+      return { ok: true, count, issues, login: settings.login }
     } catch (error) {
       // Keep the reason so the UI can show why the last sync failed.
       const message = (error as Error).message
@@ -155,6 +181,17 @@ export class GithubService {
       .limit(limit)
   }
 
+  listIssues({ kind, limit }: ListIssuesQuery) {
+    const conditions: SQL[] = []
+    if (kind) conditions.push(eq(githubIssues.kind, kind))
+    return this.db
+      .select()
+      .from(githubIssues)
+      .where(and(...conditions))
+      .orderBy(desc(githubIssues.updatedAt), asc(githubIssues.id))
+      .limit(limit)
+  }
+
   private openToken(settings: GithubSettings) {
     return this.crypto.open({ ciphertext: settings.tokenCiphertext, iv: settings.tokenIv, tag: settings.tokenTag })
   }
@@ -170,7 +207,7 @@ export class GithubService {
 
     for (const { kind, qualifier } of SEARCHES) {
       try {
-        const items = await this.client.searchPulls(token, `is:pr ${qualifier}:${login} is:open sort:updated-desc`)
+        const items = await this.client.searchIssues(token, `is:pr ${qualifier}:${login} is:open sort:updated-desc`)
         for (const item of items) {
           const repo = repoFromUrl(item.repository_url)
           if (repo) addToBucket(buckets, { kind, triggeredByLogin: item.user?.login ?? null, item, repo })
@@ -192,11 +229,8 @@ export class GithubService {
       }
     }
 
-    if (orgFilter) {
-      const owner = orgFilter.toLowerCase()
-      for (const [key, bucket] of buckets) {
-        if (bucket.repo.owner.toLowerCase() !== owner) buckets.delete(key)
-      }
+    for (const [key, bucket] of buckets) {
+      if (!inOrg(bucket.repo, orgFilter)) buckets.delete(key)
     }
     return buckets
   }
@@ -260,5 +294,65 @@ export class GithubService {
       createdAt: new Date(item.created_at),
       updatedAt: new Date(item.updated_at),
     }
+  }
+
+  /** Replaces the cached open issues that involve the user, unless every search failed. */
+  private async syncIssues(token: string, login: string, orgFilter: string | null) {
+    const buckets = new Map<string, IssueBucket>()
+    let failures = 0
+
+    for (const { kind, qualifier } of ISSUE_SEARCHES) {
+      try {
+        const items = await this.client.searchIssues(token, `is:issue ${qualifier}:${login} is:open sort:updated-desc`)
+        for (const item of items) {
+          const repo = repoFromUrl(item.repository_url)
+          if (!repo || !inOrg(repo, orgFilter)) continue
+          const key = `${repo.owner}/${repo.name}#${item.number}`
+          const existing = buckets.get(key)
+          if (!existing || KIND_PRIORITY[kind] > KIND_PRIORITY[existing.kind]) buckets.set(key, { kind, item, repo })
+        }
+      } catch (error) {
+        failures++
+        this.logger.warn(`[github] issue search failed (${kind}): ${(error as Error).message}`)
+      }
+    }
+    // With no answer at all from GitHub, keep the last known cache.
+    if (failures === ISSUE_SEARCHES.length) return 0
+
+    const rows = [...buckets.entries()]
+      .sort(([, a], [, b]) => Date.parse(b.item.updated_at) - Date.parse(a.item.updated_at))
+      .slice(0, MAX_SYNCED_ISSUES)
+      .map(([id, bucket]) => toIssueRow(id, bucket))
+
+    await this.db.transaction(async (tx) => {
+      await tx.delete(githubIssues).where(notInArray(githubIssues.id, rows.map((row) => row.id)))
+      for (const row of rows) {
+        const { id, ...rest } = row
+        await tx
+          .insert(githubIssues)
+          .values(row)
+          .onConflictDoUpdate({ target: githubIssues.id, set: { ...rest, syncedAt: new Date() } })
+      }
+    })
+    return rows.length
+  }
+}
+
+function toIssueRow(id: string, { item, kind, repo }: IssueBucket): NewGithubIssue {
+  return {
+    id,
+    number: item.number,
+    title: item.title,
+    state: item.state,
+    repoOwner: repo.owner,
+    repoName: repo.name,
+    authorLogin: item.user?.login ?? "",
+    authorAvatarUrl: item.user?.avatar_url ?? null,
+    url: item.html_url,
+    kind,
+    labels: (item.labels ?? []).map((label) => label.name),
+    comments: item.comments ?? 0,
+    createdAt: new Date(item.created_at),
+    updatedAt: new Date(item.updated_at),
   }
 }

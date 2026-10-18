@@ -1,7 +1,8 @@
 import { join } from "node:path"
-import { app, BrowserWindow, ipcMain, shell, utilityProcess } from "electron"
+import { app, BrowserWindow, dialog, ipcMain, shell, utilityProcess } from "electron"
 import type { UtilityProcess } from "electron"
 import backendPath from "./backend-process?modulePath"
+import { loadSecretKey } from "./secret-key"
 
 let backend: UtilityProcess | null = null
 let apiBaseUrl: Promise<string> | null = null
@@ -39,7 +40,7 @@ function createWindow() {
   })
 }
 
-function startBackend() {
+function startBackend(secretKey: Buffer) {
   const migrationsDir = app.isPackaged
     ? join(process.resourcesPath, "migrations")
     : join(app.getAppPath(), "api/drizzle")
@@ -52,6 +53,8 @@ function startBackend() {
       LIFE_BOARD_MIGRATIONS_DIR: migrationsDir,
     },
   })
+  // Sent over the message port rather than env, which other processes can read.
+  backend.postMessage({ type: "secret-key", key: secretKey.toString("base64") })
 
   return new Promise<string>((resolve, reject) => {
     backend?.on("message", (message: { type?: string; url?: string }) => {
@@ -73,7 +76,15 @@ void app.whenReady().then(() => {
   ipcMain.handle("app:open-external", (_event, url: string) => {
     if (typeof url === "string" && url.startsWith("https://github.com/")) return shell.openExternal(url)
   })
-  apiBaseUrl = startBackend()
+  let secretKey: Buffer
+  try {
+    secretKey = loadSecretKey(app.getPath("userData"))
+  } catch (error) {
+    dialog.showErrorBox("Life Board", (error as Error).message)
+    app.quit()
+    return
+  }
+  apiBaseUrl = startBackend(secretKey)
   apiBaseUrl.catch((error: unknown) => console.error(error))
 
   createWindow()

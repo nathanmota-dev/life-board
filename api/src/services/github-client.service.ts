@@ -13,6 +13,8 @@ export type RawSearchItem = {
   created_at: string
   updated_at: string
   pull_request?: { merged_at: string | null }
+  labels?: { name: string }[]
+  comments?: number
 }
 
 export type RawPull = {
@@ -71,7 +73,7 @@ export class GithubClient {
     return me.login
   }
 
-  async searchPulls(token: string, query: string) {
+  async searchIssues(token: string, query: string) {
     const result = await this.request<{ items: RawSearchItem[] }>(
       `/search/issues?q=${encodeURIComponent(query)}&per_page=30`,
       token,
