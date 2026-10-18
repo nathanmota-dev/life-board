@@ -22,7 +22,7 @@ describe("ContributionsCalendar", () => {
     const { container } = renderWithProviders(<ContributionsCalendar enabled />)
 
     expect(await screen.findByText(/7 contributions in the last year/)).toBeInTheDocument()
-    expect(container.querySelectorAll("rect[data-date]")).toHaveLength(3)
+    expect(container.querySelectorAll("[data-date]")).toHaveLength(3)
   })
 
   it("explains when GitHub can't be reached", async () => {
