@@ -3,7 +3,7 @@ export type QueryValue = string | number | boolean | null | undefined
 export type QueryParams = Record<string, QueryValue>
 
 export type RequestOptions = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE"
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
   query?: QueryParams
   body?: unknown
 }

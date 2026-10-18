@@ -7,6 +7,7 @@ import {
   Lightbulb,
   ListChecks,
   ListTodo,
+  Rocket,
   Smile,
   Tags,
   Target,
@@ -19,6 +20,7 @@ import { GoalsPage } from "@/routes/goals"
 import { HabitsPage } from "@/routes/habits"
 import { InboxPage } from "@/routes/inbox"
 import { MoodPage } from "@/routes/mood"
+import { ProjectsPage } from "@/routes/projects"
 import { TagsPage } from "@/routes/tags"
 import { TasksPage } from "@/routes/tasks"
 import { ThoughtsPage } from "@/routes/thoughts"
@@ -31,6 +33,7 @@ export const workspacePages = [
   { path: "tasks", title: "Tasks", icon: ListTodo, component: TasksPage },
   { path: "calendar", title: "Calendar", icon: CalendarDays, component: CalendarPage },
   { path: "goals", title: "Goals", icon: Target, component: GoalsPage },
+  { path: "projects", title: "Projects", icon: Rocket, component: ProjectsPage },
   { path: "habits", title: "Habits", icon: ListChecks, component: HabitsPage },
   { path: "github", title: "GitHub", icon: GitPullRequest, component: GitHubPage },
   { path: "file-board", title: "File Board", icon: FolderKanban, component: FileBoardPage },

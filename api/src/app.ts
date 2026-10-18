@@ -11,6 +11,7 @@ import { habitsController } from "./controllers/habits.controller"
 import { healthController } from "./controllers/health.controller"
 import { linksController } from "./controllers/links.controller"
 import { moodController } from "./controllers/mood.controller"
+import { projectsController } from "./controllers/projects.controller"
 import { statsController } from "./controllers/stats.controller"
 import { tasksController } from "./controllers/tasks.controller"
 import { thoughtsController } from "./controllers/thoughts.controller"
@@ -28,6 +29,7 @@ import { GoalsService } from "./services/goals.service"
 import { HabitsService } from "./services/habits.service"
 import { LinksService } from "./services/links.service"
 import { MoodService } from "./services/mood.service"
+import { ProjectsService } from "./services/projects.service"
 import { StatsService } from "./services/stats.service"
 import { TasksService } from "./services/tasks.service"
 import { ThoughtsService } from "./services/thoughts.service"
@@ -62,6 +64,7 @@ export async function buildApp({ db, dataDir, logger = false, githubClient, cryp
     calendar: new CalendarService(db),
     mood: new MoodService(db),
     habits: new HabitsService(db),
+    projects: new ProjectsService(db),
     stats: new StatsService(db),
     github: new GithubService(
       db,
@@ -85,6 +88,7 @@ export async function buildApp({ db, dataDir, logger = false, githubClient, cryp
       calendarController,
       moodController,
       habitsController,
+      projectsController,
       statsController,
       githubController,
       fileBoardsController,
@@ -104,6 +108,7 @@ export type Services = {
   calendar: CalendarService
   mood: MoodService
   habits: HabitsService
+  projects: ProjectsService
   stats: StatsService
   github: GithubService
   fileBoards: FileBoardsService
