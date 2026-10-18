@@ -1,18 +1,25 @@
 import { fromDayKey } from "@/lib/dates"
 import { humanize } from "@/lib/format"
-import { GITHUB_KINDS, type GithubPr } from "@/types/github"
+import { GITHUB_ISSUE_KINDS, GITHUB_KINDS, type GithubItemType, type GithubKind, type GithubPr } from "@/types/github"
 import type { StatusTone } from "@/types/ui"
 
-export const KIND_OPTIONS = GITHUB_KINDS.map((value) => ({ value, label: value === "in_my_repos" ? "My repos" : humanize(value) }))
+export function kindLabel(kind: GithubKind) {
+  return kind === "in_my_repos" ? "My repos" : humanize(kind)
+}
+
+export const KIND_OPTIONS = GITHUB_KINDS.map((value) => ({ value, label: kindLabel(value) }))
+
+export const ITEM_TYPE_OPTIONS: { value: GithubItemType; label: string }[] = [
+  { value: "prs", label: "Pull requests" },
+  { value: "issues", label: "Issues" },
+]
+
+export const ISSUE_KIND_OPTIONS = GITHUB_ISSUE_KINDS.map((value) => ({ value, label: kindLabel(value) }))
 
 export const PR_STATE_TONES: Record<GithubPr["state"], StatusTone> = { open: "success", merged: "brand", closed: "neutral" }
 
 export function prStateLabel(pr: GithubPr) {
   return pr.draft && pr.state === "open" ? "Draft" : humanize(pr.state)
-}
-
-export function kindLabel(kind: GithubPr["kind"]) {
-  return KIND_OPTIONS.find((option) => option.value === kind)?.label ?? humanize(kind)
 }
 
 export const CALENDAR_BLOCK_MARGIN = 3

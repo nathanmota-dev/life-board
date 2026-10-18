@@ -25,7 +25,7 @@ describe("GithubClient", () => {
 
   it("encodes search queries", async () => {
     const fetchMock = vi.fn(async (_url: string | URL | Request) => json({ items: [{ number: 1 }] }))
-    const items = await new GithubClient(fetchMock).searchPulls("t", "is:pr author:me")
+    const items = await new GithubClient(fetchMock).searchIssues("t", "is:pr author:me")
 
     expect(items).toEqual([{ number: 1 }])
     expect(String(fetchMock.mock.calls[0][0])).toContain("q=is%3Apr%20author%3Ame&per_page=30")

@@ -1,6 +1,15 @@
 import { api } from "@/services/api-client"
 import type { ListResponse, OkResponse } from "@/types/api"
-import type { Contributions, GithubConnectInput, GithubKind, GithubPr, GithubStatus, GithubSyncResult } from "@/types/github"
+import type {
+  Contributions,
+  GithubConnectInput,
+  GithubIssue,
+  GithubIssueKind,
+  GithubKind,
+  GithubPr,
+  GithubStatus,
+  GithubSyncResult,
+} from "@/types/github"
 
 export const githubService = {
   status: () => api.get<GithubStatus>("/github/status"),
@@ -8,5 +17,7 @@ export const githubService = {
   disconnect: () => api.delete<OkResponse>("/github/disconnect"),
   sync: () => api.post<GithubSyncResult>("/github/sync"),
   prs: async (kind?: GithubKind) => (await api.get<ListResponse<GithubPr>>("/github/prs", { kind, limit: 200 })).items,
+  issues: async (kind?: GithubIssueKind) =>
+    (await api.get<ListResponse<GithubIssue>>("/github/issues", { kind, limit: 200 })).items,
   contributions: () => api.get<Contributions>("/github/contributions"),
 }

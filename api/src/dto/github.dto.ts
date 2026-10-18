@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { GITHUB_KINDS } from "../db/schema"
+import { GITHUB_ISSUE_KINDS, GITHUB_KINDS } from "../db/schema"
 import { limit } from "./common.dto"
 
 export const connectGithubBody = z.object({
@@ -12,5 +12,11 @@ export const listPrsQuery = z.object({
   limit: limit(200, 100),
 })
 
+export const listIssuesQuery = z.object({
+  kind: z.enum(GITHUB_ISSUE_KINDS).optional(),
+  limit: limit(200, 100),
+})
+
 export type ConnectGithubBody = z.infer<typeof connectGithubBody>
 export type ListPrsQuery = z.infer<typeof listPrsQuery>
+export type ListIssuesQuery = z.infer<typeof listIssuesQuery>

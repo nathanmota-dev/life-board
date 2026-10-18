@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { githubPrs, githubSettings } from "../db/schema"
+import { githubIssues, githubPrs, githubSettings } from "../db/schema"
 import { createTestDb } from "../test/create-test-app"
 import { CryptoService } from "./crypto.service"
 import { BadRequestError, HttpError } from "./errors"
@@ -53,7 +53,7 @@ function pull(number: number, extra: Partial<RawPull> = {}): RawPull {
 function fakeClient(overrides: Partial<Record<keyof GithubClient, unknown>> = {}) {
   return {
     getLogin: vi.fn(async () => "me"),
-    searchPulls: vi.fn(async () => []),
+    searchIssues: vi.fn(async () => []),
     listOwnedRepos: vi.fn(async () => []),
     listOpenPulls: vi.fn(async () => []),
     getPull: vi.fn(async (_token: string, _repo: unknown, number: number) => pull(number)),
@@ -114,7 +114,8 @@ describe("GithubService", () => {
 
   it("syncs PRs, keeping the strongest kind and the richest payload", async () => {
     const client = fakeClient({
-      searchPulls: vi.fn(async (_token: string, query: string) => {
+      searchIssues: vi.fn(async (_token: string, query: string) => {
+        if (query.startsWith("is:issue")) return []
         if (query.includes("author:me")) return [searchItem("me", 1, "2026-10-12T00:00:00Z", { pull_request: { merged_at: "2026-10-12T00:00:00Z" } })]
         if (query.includes("mentions:me")) return [searchItem("me", 1, "2026-10-12T00:00:00Z"), searchItem("other", 5, "2026-10-11T00:00:00Z", { draft: true, user: null })]
         if (query.includes("assignee:me")) throw new Error("rate limited")
@@ -132,7 +133,7 @@ describe("GithubService", () => {
     })
     const service = await connected(client)
 
-    expect(await service.sync()).toEqual({ ok: true, count: 3, login: "me" })
+    expect(await service.sync()).toEqual({ ok: true, count: 3, issues: 0, login: "me" })
 
     const prs = await service.listPrs({ limit: 10 })
     expect(prs.map((pr) => [pr.id, pr.kind])).toEqual([
@@ -151,8 +152,8 @@ describe("GithubService", () => {
 
   it("marks merged search hits and fills details from the PR endpoint", async () => {
     const client = fakeClient({
-      searchPulls: vi.fn(async (_token: string, query: string) =>
-        query.includes("author:me") ? [searchItem("me", 3, "2026-10-12T00:00:00Z")] : [],
+      searchIssues: vi.fn(async (_token: string, query: string) =>
+        query.startsWith("is:pr author:me") ? [searchItem("me", 3, "2026-10-12T00:00:00Z")] : [],
       ),
       getPull: vi.fn(async () => pull(3, { merged_at: "2026-10-12T00:00:00Z", additions: undefined, deletions: undefined, changed_files: undefined })),
     })
@@ -165,7 +166,7 @@ describe("GithubService", () => {
   it("drops stale PRs, applies the org filter and keeps the cache on empty results", async () => {
     let results = [searchItem("acme", 1, "2026-10-12T00:00:00Z"), searchItem("me", 2, "2026-10-12T00:00:00Z")]
     const client = fakeClient({
-      searchPulls: vi.fn(async (_token: string, query: string) => (query.includes("author:me") ? results : [])),
+      searchIssues: vi.fn(async (_token: string, query: string) => (query.startsWith("is:pr author:me") ? results : [])),
     })
     const service = await connected(client, "ACME")
     await ctx.db.insert(githubPrs).values({
@@ -188,6 +189,52 @@ describe("GithubService", () => {
     results = []
     expect((await service.sync()).count).toBe(0)
     expect(await service.listPrs({ limit: 10 })).toHaveLength(1)
+  })
+
+  it("syncs issues, keeping the strongest kind and the org filter", async () => {
+    const client = fakeClient({
+      searchIssues: vi.fn(async (_token: string, query: string) => {
+        if (!query.startsWith("is:issue")) return []
+        if (query.includes("author:me")) return [searchItem("acme", 1, "2026-10-12T00:00:00Z", { labels: [{ name: "bug" }], comments: 4 })]
+        if (query.includes("user:me")) return [searchItem("acme", 1, "2026-10-12T00:00:00Z"), searchItem("acme", 2, "2026-10-10T00:00:00Z", { user: null })]
+        if (query.includes("assignee:me")) throw new Error("rate limited")
+        return [searchItem("other", 3, "2026-10-11T00:00:00Z"), searchItem("x", 4, "2026-10-11T00:00:00Z", { repository_url: "bad" })]
+      }),
+    })
+    const service = await connected(client, "acme")
+
+    expect(await service.sync()).toMatchObject({ count: 0, issues: 2 })
+    const issues = await service.listIssues({ limit: 10 })
+    expect(issues.map((issue) => [issue.id, issue.kind])).toEqual([
+      ["acme/app#1", "authored"],
+      ["acme/app#2", "in_my_repos"],
+    ])
+    expect(issues[0]).toMatchObject({ labels: ["bug"], comments: 4, state: "open", authorLogin: "author" })
+    expect(issues[1]).toMatchObject({ labels: [], comments: 0, authorLogin: "", authorAvatarUrl: null })
+    expect(await service.listIssues({ kind: "in_my_repos", limit: 10 })).toHaveLength(1)
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("issue search failed (assigned)"))
+  })
+
+  it("clears closed issues but keeps the cache when every issue search fails", async () => {
+    let mode: "found" | "none" | "down" = "found"
+    const client = fakeClient({
+      searchIssues: vi.fn(async (_token: string, query: string) => {
+        if (!query.startsWith("is:issue")) return []
+        if (mode === "down") throw new Error("GitHub 503")
+        return mode === "found" && query.includes("author:me") ? [searchItem("me", 1, "2026-10-12T00:00:00Z")] : []
+      }),
+    })
+    const service = await connected(client)
+    await service.sync()
+    expect(await service.listIssues({ limit: 10 })).toHaveLength(1)
+
+    mode = "down"
+    expect((await service.sync()).issues).toBe(0)
+    expect(await ctx.db.select().from(githubIssues)).toHaveLength(1)
+
+    mode = "none"
+    await service.sync()
+    expect(await service.listIssues({ limit: 10 })).toEqual([])
   })
 
   it("records the error when a sync fails", async () => {
@@ -221,13 +268,15 @@ describe("GithubService", () => {
   })
 
   it("disconnects and clears the cache", async () => {
-    const client = fakeClient({ searchPulls: vi.fn(async () => [searchItem("me", 1, "2026-10-12T00:00:00Z")]) })
+    const client = fakeClient({ searchIssues: vi.fn(async () => [searchItem("me", 1, "2026-10-12T00:00:00Z")]) })
     const service = await connected(client)
     await service.sync()
+    expect(await service.listIssues({ limit: 10 })).toHaveLength(1)
 
     await service.disconnect()
 
     expect((await service.status()).connected).toBe(false)
     expect(await service.listPrs({ limit: 10 })).toEqual([])
+    expect(await service.listIssues({ limit: 10 })).toEqual([])
   })
 })
