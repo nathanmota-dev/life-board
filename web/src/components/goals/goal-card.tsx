@@ -1,12 +1,13 @@
+import { useTranslation } from "react-i18next"
 import { CalendarClock } from "lucide-react"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { Progress } from "@/components/ui/progress"
 import { formatDate } from "@/lib/dates"
-import { capitalize } from "@/lib/format"
 import { GOAL_STATUS_TONES } from "@/lib/goals"
 import type { GoalCardProps } from "@/types/goal"
 
 export function GoalCard({ goal, onOpen }: GoalCardProps) {
+  const { t } = useTranslation()
   return (
     <button
       type="button"
@@ -19,20 +20,20 @@ export function GoalCard({ goal, onOpen }: GoalCardProps) {
             <span className="size-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />
             <span className="truncate">{goal.title}</span>
           </p>
-          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{goal.why || "No motivation written yet."}</p>
+          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{goal.why || t("goals.noMotivation")}</p>
         </div>
-        <StatusBadge label={capitalize(goal.status)} tone={GOAL_STATUS_TONES[goal.status]} />
+        <StatusBadge label={t(`goalStatuses.${goal.status}`)} tone={GOAL_STATUS_TONES[goal.status]} />
       </div>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{capitalize(goal.domain)}</span>
+          <span>{t(`goalDomains.${goal.domain}`)}</span>
           <span className="font-medium text-foreground tabular-nums">{goal.progress}%</span>
         </div>
-        <Progress value={goal.progress} aria-label={`${goal.title} progress`} className="h-1.5" />
+        <Progress value={goal.progress} aria-label={t("common.itemProgress", { title: goal.title })} className="h-1.5" />
       </div>
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <CalendarClock className="size-3.5" />
-        {goal.targetAt ? `Target ${formatDate(goal.targetAt, { month: "short", day: "numeric", year: "numeric" })}` : "No target date"}
+        {goal.targetAt ? t("goals.targetOn", { date: formatDate(goal.targetAt, { month: "short", day: "numeric", year: "numeric" }) }) : t("goals.noTargetDate")}
       </p>
     </button>
   )

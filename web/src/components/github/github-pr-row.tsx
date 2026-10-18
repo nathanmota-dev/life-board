@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { ExternalLink } from "lucide-react"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { Button } from "@/components/ui/button"
@@ -8,6 +9,7 @@ import { kindLabel, PR_STATE_TONES, prStateLabel } from "@/lib/github"
 import type { GithubPrRowProps } from "@/types/github"
 
 export function GithubPrRow({ pr }: GithubPrRowProps) {
+  const { t } = useTranslation()
   return (
     <TableRow>
       <TableCell className="max-w-0 min-w-64 pl-4">
@@ -35,7 +37,7 @@ export function GithubPrRow({ pr }: GithubPrRowProps) {
       </TableCell>
       <TableCell className="text-sm whitespace-nowrap text-muted-foreground">{formatRelativeDay(pr.updatedAt)}</TableCell>
       <TableCell className="w-10 pr-3">
-        <Button variant="ghost" size="icon-sm" aria-label={`Open ${pr.title} on GitHub`} onClick={() => openExternal(pr.url)}>
+        <Button variant="ghost" size="icon-sm" aria-label={t("github.openItem", { title: pr.title })} onClick={() => openExternal(pr.url)}>
           <ExternalLink />
         </Button>
       </TableCell>

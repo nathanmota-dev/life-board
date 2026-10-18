@@ -1,13 +1,15 @@
+import { useTranslation } from "react-i18next"
 import { useTheme } from "@/components/theme-provider"
 import { Panel } from "@/components/workspace-ui"
 import { cn } from "@/lib/utils"
 
 export function AppearancePanel() {
+  const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
 
   return (
-    <Panel title="Appearance">
-      <p className="mb-4 text-sm text-muted-foreground">Choose the theme that works best for you.</p>
+    <Panel title={t("settings.appearance.title")}>
+      <p className="mb-4 text-sm text-muted-foreground">{t("settings.appearance.description")}</p>
       <div className="grid grid-cols-2 gap-3">
         {(["light", "dark"] as const).map((value) => (
           <button
@@ -27,7 +29,7 @@ export function AppearancePanel() {
                 <div className={cn("flex-1 rounded", value === "dark" ? "bg-zinc-800" : "bg-white")} />
               </div>
             </div>
-            <span className="text-sm capitalize">{value}</span>
+            <span className="text-sm">{t(`settings.appearance.${value}`)}</span>
           </button>
         ))}
       </div>

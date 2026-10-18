@@ -5,9 +5,9 @@ import {
   useEffect,
   useRef,
   useState,
-  type ReactNode,
 } from "react"
 import { useNavigate } from "@tanstack/react-router"
+import { useTranslation } from "react-i18next"
 import { ArrowDown, ArrowUp, CornerDownLeft } from "lucide-react"
 import {
   Command,
@@ -26,11 +26,7 @@ import {
 } from "@/components/ui/dialog"
 import { useSidebar } from "@/components/ui/sidebar"
 import { navigationItems } from "@/routes/navigation-items"
-
-type CommandPaletteContextValue = {
-  openSearch: () => void
-  shortcut: string
-}
+import type { CommandPaletteContextValue, WithChildren } from "@/types/ui"
 
 const CommandPaletteContext = createContext<CommandPaletteContextValue | null>(null)
 
@@ -42,7 +38,8 @@ export function useCommandPalette() {
   return context
 }
 
-export function CommandPaletteProvider({ children }: { children: ReactNode }) {
+export function CommandPaletteProvider({ children }: WithChildren) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const openerRef = useRef<HTMLElement | null>(null)
   const navigate = useNavigate()
@@ -87,31 +84,31 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
             else document.querySelector<HTMLElement>('header [data-sidebar="trigger"]')?.focus()
           }}
         >
-          <DialogTitle className="sr-only">Search pages</DialogTitle>
+          <DialogTitle className="sr-only">{t("search.title")}</DialogTitle>
           <DialogDescription className="sr-only">
-            Search for a page. Use the arrow keys to navigate and Enter to open it.
+            {t("search.description")}
           </DialogDescription>
           <Command loop className="**:data-[slot=command-input-wrapper]:h-12">
             <div className="relative">
               <CommandInput
-                aria-label="Search pages"
-                placeholder="Search pages..."
+                aria-label={t("search.title")}
+                placeholder={t("search.placeholder")}
                 className="h-12 pr-12"
               />
               <DialogClose
-                aria-label="Close search"
+                aria-label={t("search.close")}
                 className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer rounded border px-1 text-[10px] text-muted-foreground hover:bg-accent focus-visible:outline-ring"
               >
                 Esc
               </DialogClose>
             </div>
             <CommandList className="max-h-[min(360px,55dvh)] p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <CommandEmpty>No pages found.</CommandEmpty>
-              <CommandGroup heading="Go to">
+              <CommandEmpty>{t("search.empty")}</CommandEmpty>
+              <CommandGroup heading={t("search.goTo")}>
                 {navigationItems.map((item) => (
                   <CommandItem
                     key={item.to}
-                    value={item.title}
+                    value={t(item.titleKey)}
                     keywords={[item.to]}
                     className="h-10 cursor-pointer rounded-lg gap-3 px-2.5"
                     onSelect={() => {
@@ -120,7 +117,7 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
                     }}
                   >
                     <item.icon className="size-4" strokeWidth={1.7} />
-                    <span className="min-w-0 truncate">{item.title}</span>
+                    <span className="min-w-0 truncate">{t(item.titleKey)}</span>
                     <span aria-hidden="true" className="ml-auto shrink-0 font-mono text-xs tracking-wide text-muted-foreground">
                       {item.to}
                     </span>
@@ -132,11 +129,11 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
               <span className="flex items-center gap-1">
                 <kbd className="rounded border p-0.5"><ArrowUp className="size-3" /></kbd>
                 <kbd className="rounded border p-0.5"><ArrowDown className="size-3" /></kbd>
-                Navigate
+                {t("search.navigate")}
               </span>
               <span className="flex items-center gap-1">
                 <kbd className="rounded border p-0.5"><CornerDownLeft className="size-3" /></kbd>
-                Open
+                {t("search.open")}
               </span>
             </div>
           </Command>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { DialogForm } from "@/components/shared/dialog-form"
 import { FormField } from "@/components/shared/form-field"
@@ -11,6 +12,7 @@ import { emptyThoughtValues, thoughtToValues, valuesToThoughtInput } from "@/lib
 import type { ThoughtFormDialogProps, ThoughtFormValues } from "@/types/thought"
 
 export function ThoughtFormDialog({ open, thought, onOpenChange }: ThoughtFormDialogProps) {
+  const { t } = useTranslation()
   const [values, setValues] = useState(() => (thought ? thoughtToValues(thought) : emptyThoughtValues()))
   const create = useCreateThought()
   const update = useUpdateThought()
@@ -31,28 +33,28 @@ export function ThoughtFormDialog({ open, thought, onOpenChange }: ThoughtFormDi
     <DialogForm
       open={open}
       onOpenChange={onOpenChange}
-      title={thought ? "Edit thought" : "New thought"}
-      submitLabel={thought ? "Save" : "Save thought"}
+      title={thought ? t("thoughts.editThought") : t("thoughts.newThought")}
+      submitLabel={thought ? t("common.save") : t("thoughts.saveThought")}
       isPending={mutation.isPending}
       error={mutation.error}
       onSubmit={submit}
       footer={
         <div className="flex items-center gap-2">
           <Checkbox id="thought-pinned" checked={values.pinned} onCheckedChange={(checked) => set("pinned", checked === true)} />
-          <Label htmlFor="thought-pinned" className="font-normal">Pin to top</Label>
+          <Label htmlFor="thought-pinned" className="font-normal">{t("thoughts.pinToTop")}</Label>
         </div>
       }
     >
-      <FormField label="Title" htmlFor="thought-title">
-        <Input id="thought-title" autoFocus value={values.title} onChange={(event) => set("title", event.target.value)} placeholder="Optional" />
+      <FormField label={t("common.title")} htmlFor="thought-title">
+        <Input id="thought-title" autoFocus value={values.title} onChange={(event) => set("title", event.target.value)} placeholder={t("common.optional")} />
       </FormField>
-      <FormField label="Thought" htmlFor="thought-body">
-        <Textarea id="thought-body" rows={6} value={values.body} onChange={(event) => set("body", event.target.value)} placeholder="Write it down before it's gone…" />
+      <FormField label={t("inbox.thought")} htmlFor="thought-body">
+        <Textarea id="thought-body" rows={6} value={values.body} onChange={(event) => set("body", event.target.value)} placeholder={t("thoughts.bodyPlaceholder")} />
       </FormField>
-      <FormField label="Tags" htmlFor="thought-tags" hint="Separate with commas.">
-        <Input id="thought-tags" value={values.tags} onChange={(event) => set("tags", event.target.value)} placeholder="ideas, work" />
+      <FormField label={t("navigation.tags")} htmlFor="thought-tags" hint={t("common.commaSeparated")}>
+        <Input id="thought-tags" value={values.tags} onChange={(event) => set("tags", event.target.value)} placeholder={t("thoughts.tagsPlaceholder")} />
       </FormField>
-      <FormField label="Related tasks" htmlFor="thought-tasks">
+      <FormField label={t("goals.relatedTasks")} htmlFor="thought-tasks">
         <TaskPicker selected={values.linkedTaskIds} onChange={(ids) => set("linkedTaskIds", ids)} />
       </FormField>
     </DialogForm>

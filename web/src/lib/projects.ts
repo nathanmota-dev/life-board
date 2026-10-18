@@ -1,5 +1,5 @@
 import { arrayMove } from "@dnd-kit/sortable"
-import { humanize } from "@/lib/format"
+import { i18n } from "@/lib/i18n"
 import { PROJECT_STATUSES, type Project, type ProjectFormValues, type ProjectInput, type ProjectStatus } from "@/types/project"
 import type { SelectOption, StatusTone } from "@/types/ui"
 
@@ -11,7 +11,9 @@ export const PROJECT_STATUS_TONES: Record<ProjectStatus, StatusTone> = {
   done: "success",
 }
 
-export const PROJECT_STATUS_OPTIONS: SelectOption<ProjectStatus>[] = PROJECT_STATUSES.map((value) => ({ value, label: humanize(value) }))
+export function getProjectStatusOptions(): SelectOption<ProjectStatus>[] {
+  return PROJECT_STATUSES.map((value) => ({ value, label: i18n.t(`projectStatuses.${value}`) }))
+}
 
 export function emptyProjectValues(): ProjectFormValues {
   return { title: "", description: "", status: "idea" }

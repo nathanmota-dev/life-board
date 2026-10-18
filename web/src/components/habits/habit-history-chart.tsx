@@ -1,12 +1,13 @@
+import { useTranslation } from "react-i18next"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { lastDays } from "@/lib/dates"
 import { goalsMetPerDay } from "@/lib/habits"
 import type { HabitHistoryChartProps } from "@/types/habit"
 
-const chartConfig = { met: { label: "Goals met", color: "var(--chart-1)" } } satisfies ChartConfig
-
 export function HabitHistoryChart({ habits, logs }: HabitHistoryChartProps) {
+  const { t } = useTranslation()
+  const chartConfig = { met: { label: t("habits.goalsMet"), color: "var(--chart-1)" } } satisfies ChartConfig
   const data = goalsMetPerDay(habits, logs, lastDays(14))
 
   return (

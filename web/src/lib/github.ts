@@ -1,5 +1,5 @@
-import { fromDayKey } from "@/lib/dates"
-import { humanize } from "@/lib/format"
+import { formatDate, fromDayKey } from "@/lib/dates"
+import { i18n } from "@/lib/i18n"
 import {
   GITHUB_ISSUE_KINDS,
   GITHUB_KINDS,
@@ -10,25 +10,31 @@ import {
   type GithubKind,
   type GithubPr,
 } from "@/types/github"
-import type { StatusTone } from "@/types/ui"
+import type { SelectOption, StatusTone } from "@/types/ui"
 
 export function kindLabel(kind: GithubKind) {
-  return kind === "in_my_repos" ? "My repos" : humanize(kind)
+  return i18n.t(`githubKinds.${kind}`)
 }
 
-export const KIND_OPTIONS = GITHUB_KINDS.map((value) => ({ value, label: kindLabel(value) }))
+export function getGithubKindOptions() {
+  return GITHUB_KINDS.map((value) => ({ value, label: kindLabel(value) }))
+}
 
-export const ITEM_TYPE_OPTIONS: { value: GithubItemType; label: string }[] = [
-  { value: "prs", label: "Pull requests" },
-  { value: "issues", label: "Issues" },
-]
+export function getGithubItemTypeOptions(): SelectOption<GithubItemType>[] {
+  return [
+    { value: "prs", label: i18n.t("github.pullRequests") },
+    { value: "issues", label: i18n.t("github.issues") },
+  ]
+}
 
-export const ISSUE_KIND_OPTIONS = GITHUB_ISSUE_KINDS.map((value) => ({ value, label: kindLabel(value) }))
+export function getGithubIssueKindOptions() {
+  return GITHUB_ISSUE_KINDS.map((value) => ({ value, label: kindLabel(value) }))
+}
 
 export const PR_STATE_TONES: Record<GithubPr["state"], StatusTone> = { open: "success", merged: "brand", closed: "neutral" }
 
 export function prStateLabel(pr: GithubPr) {
-  return pr.draft && pr.state === "open" ? "Draft" : humanize(pr.state)
+  return pr.draft && pr.state === "open" ? i18n.t("github.draft") : i18n.t(`prStates.${pr.state}`)
 }
 
 export const CONTRIBUTION_LEVELS = [0, 1, 2, 3, 4]
@@ -62,7 +68,7 @@ export function contributionMonthLabels(weeks: ContributionWeek[]): Contribution
     const date = fromDayKey(first.date)
     if (date.getMonth() === previousMonth) return
     previousMonth = date.getMonth()
-    labels.push({ week: index, label: date.toLocaleDateString("en-US", { month: "short" }) })
+    labels.push({ week: index, label: formatDate(date, { month: "short" }) })
   })
   return labels.filter((label, index) => {
     const nextWeek = labels[index + 1]?.week ?? weeks.length

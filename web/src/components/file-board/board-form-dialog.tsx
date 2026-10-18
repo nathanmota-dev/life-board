@@ -1,13 +1,15 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { DialogForm } from "@/components/shared/dialog-form"
 import { FormField } from "@/components/shared/form-field"
 import { SelectField } from "@/components/shared/select-field"
 import { Input } from "@/components/ui/input"
 import { useCreateBoard } from "@/hooks/queries/use-file-boards"
-import { BOARD_KIND_OPTIONS } from "@/lib/file-board"
+import { getBoardKindOptions } from "@/lib/file-board"
 import type { BoardFormDialogProps, BoardKind, FileBoard } from "@/types/file-board"
 
 export function BoardFormDialog({ open, onOpenChange, onCreated }: BoardFormDialogProps) {
+  const { t } = useTranslation()
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [kind, setKind] = useState<BoardKind>("other")
@@ -17,9 +19,9 @@ export function BoardFormDialog({ open, onOpenChange, onCreated }: BoardFormDial
     <DialogForm
       open={open}
       onOpenChange={onOpenChange}
-      title="New board"
-      description="Group receipts, photos or documents together."
-      submitLabel="Create board"
+      title={t("fileBoard.newBoard")}
+      description={t("fileBoard.groupDescription")}
+      submitLabel={t("fileBoard.createBoard")}
       isPending={create.isPending}
       error={create.error}
       onSubmit={() => {
@@ -32,14 +34,14 @@ export function BoardFormDialog({ open, onOpenChange, onCreated }: BoardFormDial
         if (name.trim()) create.mutate({ name: name.trim(), description: description.trim() || null, kind }, created)
       }}
     >
-      <FormField label="Name" htmlFor="board-name">
-        <Input id="board-name" autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="Receipts 2026" />
+      <FormField label={t("common.name")} htmlFor="board-name">
+        <Input id="board-name" autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder={t("fileBoard.namePlaceholder")} />
       </FormField>
-      <FormField label="Description" htmlFor="board-description">
+      <FormField label={t("common.description")} htmlFor="board-description">
         <Input id="board-description" value={description} onChange={(event) => setDescription(event.target.value)} />
       </FormField>
-      <FormField label="Kind" htmlFor="board-kind">
-        <SelectField id="board-kind" value={kind} options={BOARD_KIND_OPTIONS} onChange={setKind} />
+      <FormField label={t("fileBoard.kind")} htmlFor="board-kind">
+        <SelectField id="board-kind" value={kind} options={getBoardKindOptions()} onChange={setKind} />
       </FormField>
     </DialogForm>
   )

@@ -1,9 +1,11 @@
+import { useTranslation } from "react-i18next"
 import { Link } from "@tanstack/react-router"
 import { ChevronRight } from "lucide-react"
 import { formatDate, formatTime } from "@/lib/dates"
 import type { UpcomingEventsListProps } from "@/types/dashboard"
 
 export function UpcomingEventsList({ events }: UpcomingEventsListProps) {
+  const { t } = useTranslation()
   return (
     <ul className="flex flex-col">
       {events.map((event) => (
@@ -19,7 +21,7 @@ export function UpcomingEventsList({ events }: UpcomingEventsListProps) {
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">{event.title}</span>
               <span className="block truncate text-xs text-muted-foreground">
-                {event.allDay ? "All day" : `${formatTime(event.startAt)} – ${formatTime(event.endAt)}`}
+                {event.allDay ? t("calendar.allDay") : `${formatTime(event.startAt)} – ${formatTime(event.endAt)}`}
                 {event.location ? ` · ${event.location}` : ""}
               </span>
             </span>

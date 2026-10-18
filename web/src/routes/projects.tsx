@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { Plus, Rocket } from "lucide-react"
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog"
@@ -10,6 +11,7 @@ import { useProjects } from "@/hooks/queries/use-projects"
 import type { Project, ProjectDialogState } from "@/types/project"
 
 export function ProjectsPage() {
+  const { t } = useTranslation()
   const [dialog, setDialog] = useState<ProjectDialogState>({ open: false, project: null })
   const projects = useProjects()
   const items = projects.data ?? []
@@ -17,12 +19,12 @@ export function ProjectsPage() {
 
   return (
     <Page
-      title="Projects"
-      description="Project ideas and things you started. Drag the cards to set their order."
+      title={t("navigation.projects")}
+      description={t("projects.description")}
       actions={
         <Button size="sm" onClick={() => openDialog(null)}>
           <Plus />
-          New project
+          {t("projects.newProject")}
         </Button>
       }
     >
@@ -31,7 +33,7 @@ export function ProjectsPage() {
           isLoading={projects.isLoading}
           error={projects.error}
           isEmpty={items.length === 0}
-          empty={<EmptyState icon={Rocket} title="No projects yet" description="Add a project idea to see it here." />}
+          empty={<EmptyState icon={Rocket} title={t("projects.empty")} description={t("projects.emptyDescription")} />}
         >
           <ProjectGrid projects={items} onEdit={openDialog} />
         </DataState>

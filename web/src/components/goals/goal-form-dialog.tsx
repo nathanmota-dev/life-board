@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { DialogForm } from "@/components/shared/dialog-form"
 import { FormField } from "@/components/shared/form-field"
@@ -6,10 +7,11 @@ import { TaskPicker } from "@/components/thoughts/task-picker"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useCreateGoal, useUpdateGoal } from "@/hooks/queries/use-goals"
-import { emptyGoalValues, GOAL_DOMAIN_OPTIONS, goalToValues, valuesToGoalInput } from "@/lib/goals"
+import { emptyGoalValues, getGoalDomainOptions, goalToValues, valuesToGoalInput } from "@/lib/goals"
 import type { GoalFormDialogProps, GoalFormValues } from "@/types/goal"
 
 export function GoalFormDialog({ open, goal, onOpenChange }: GoalFormDialogProps) {
+  const { t } = useTranslation()
   const [values, setValues] = useState(() => (goal ? goalToValues(goal) : emptyGoalValues()))
   const create = useCreateGoal()
   const update = useUpdateGoal()
@@ -30,33 +32,33 @@ export function GoalFormDialog({ open, goal, onOpenChange }: GoalFormDialogProps
     <DialogForm
       open={open}
       onOpenChange={onOpenChange}
-      title={goal ? "Edit goal" : "New goal"}
-      description="Something you want to get to, and why it matters."
-      submitLabel={goal ? "Save" : "Create goal"}
+      title={goal ? t("goals.editGoal") : t("goals.newGoal")}
+      description={t("goals.formDescription")}
+      submitLabel={goal ? t("common.save") : t("goals.createGoal")}
       isPending={mutation.isPending}
       error={mutation.error}
       onSubmit={submit}
     >
-      <FormField label="Goal" htmlFor="goal-title">
-        <Input id="goal-title" autoFocus value={values.title} onChange={(event) => set("title", event.target.value)} placeholder="Read 12 books this year" />
+      <FormField label={t("goals.goal")} htmlFor="goal-title">
+        <Input id="goal-title" autoFocus value={values.title} onChange={(event) => set("title", event.target.value)} placeholder={t("goals.titlePlaceholder")} />
       </FormField>
-      <FormField label="Why it matters" htmlFor="goal-why">
+      <FormField label={t("goals.whyItMatters")} htmlFor="goal-why">
         <Textarea id="goal-why" rows={2} value={values.why} onChange={(event) => set("why", event.target.value)} />
       </FormField>
       <div className="grid gap-3 sm:grid-cols-2">
-        <FormField label="Area" htmlFor="goal-domain">
-          <SelectField id="goal-domain" value={values.domain} options={GOAL_DOMAIN_OPTIONS} onChange={(domain) => set("domain", domain)} />
+        <FormField label={t("goals.area")} htmlFor="goal-domain">
+          <SelectField id="goal-domain" value={values.domain} options={getGoalDomainOptions()} onChange={(domain) => set("domain", domain)} />
         </FormField>
-        <FormField label="Target date" htmlFor="goal-target">
+        <FormField label={t("goals.targetDate")} htmlFor="goal-target">
           <Input id="goal-target" type="date" value={values.targetAt} onChange={(event) => set("targetAt", event.target.value)} />
         </FormField>
       </div>
       {goal ? null : (
-        <FormField label="Milestones" htmlFor="goal-milestones" hint="One per line.">
+        <FormField label={t("goals.milestones")} htmlFor="goal-milestones" hint={t("goals.onePerLine")}>
           <Textarea id="goal-milestones" rows={3} value={values.milestones} onChange={(event) => set("milestones", event.target.value)} />
         </FormField>
       )}
-      <FormField label="Related tasks" htmlFor="goal-tasks">
+      <FormField label={t("goals.relatedTasks")} htmlFor="goal-tasks">
         <TaskPicker selected={values.linkedTaskIds} onChange={(ids) => set("linkedTaskIds", ids)} />
       </FormField>
     </DialogForm>

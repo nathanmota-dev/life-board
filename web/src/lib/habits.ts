@@ -1,5 +1,10 @@
 import { formatDate, fromDayKey, lastDays } from "@/lib/dates"
+import { i18n } from "@/lib/i18n"
 import type { Habit, HabitChartPoint, HabitDay, HabitLog } from "@/types/habit"
+
+export function habitUnit(unit: string) {
+  return unit === "times" ? i18n.t("habits.times") : unit
+}
 
 function countOn(logs: HabitLog[], habitId: string, day: string) {
   return logs.find((log) => log.habitId === habitId && log.day === day)?.count ?? 0

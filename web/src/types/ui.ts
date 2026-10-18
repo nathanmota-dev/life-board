@@ -5,6 +5,11 @@ export type WithChildren = { children: ReactNode }
 
 export type AccentProviderProps = WithChildren
 
+export type CommandPaletteContextValue = {
+  openSearch: () => void
+  shortcut: string
+}
+
 export type PageProps = {
   title: string
   description?: string

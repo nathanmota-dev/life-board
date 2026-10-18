@@ -1,10 +1,12 @@
+import { useTranslation } from "react-i18next"
 import { EventBlock } from "@/components/calendar/event-block"
 import { HOUR_HEIGHT, HOURS, minuteToOffset, START_HOUR } from "@/lib/calendar"
-import { isSameDay, minutesSinceMidnight } from "@/lib/dates"
+import { formatTime, isSameDay, minutesSinceMidnight } from "@/lib/dates"
 import { cn } from "@/lib/utils"
 import type { DayColumnProps } from "@/types/calendar"
 
 export function DayColumn({ day, events, onCreate, onOpen }: DayColumnProps) {
+  const { t } = useTranslation()
   const now = new Date()
   const isToday = isSameDay(day, now)
   const nowMinute = minutesSinceMidnight(now)
@@ -15,7 +17,7 @@ export function DayColumn({ day, events, onCreate, onOpen }: DayColumnProps) {
         <button
           key={hour}
           type="button"
-          aria-label={`New event at ${hour}:00`}
+          aria-label={t("calendar.newEventAt", { time: formatTime(new Date(new Date(day).setHours(hour, 0, 0, 0))) })}
           className="block w-full cursor-pointer border-b border-dashed border-border/70 hover:bg-muted/50"
           style={{ height: HOUR_HEIGHT }}
           onClick={() => {

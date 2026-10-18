@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { RefreshCw } from "lucide-react"
 import { ContributionsCalendar } from "@/components/github/contributions-calendar"
@@ -9,30 +10,31 @@ import { PageSection, Panel } from "@/components/workspace-ui"
 import { useAutoSyncGithub } from "@/hooks/queries/use-github"
 import { formatRelativeDay } from "@/lib/dates"
 import { errorMessage } from "@/lib/format"
-import { ITEM_TYPE_OPTIONS } from "@/lib/github"
+import { getGithubItemTypeOptions } from "@/lib/github"
 import type { GithubDashboardProps, GithubItemType } from "@/types/github"
 
 export function GithubDashboard({ status }: GithubDashboardProps) {
+  const { t } = useTranslation()
   const [type, setType] = useState<GithubItemType>("prs")
   const sync = useAutoSyncGithub()
 
   return (
     <>
       <PageSection>
-        <Panel title={`@${status.login}`} action={<span className="text-xs text-muted-foreground">Contributions</span>}>
+        <Panel title={`@${status.login}`} action={<span className="text-xs text-muted-foreground">{t("github.contributions")}</span>}>
           <ContributionsCalendar enabled />
         </Panel>
       </PageSection>
       <PageSection>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <SegmentedControl label="GitHub item type" value={type} onChange={setType} options={ITEM_TYPE_OPTIONS} />
+          <SegmentedControl label={t("github.itemType")} value={type} onChange={setType} options={getGithubItemTypeOptions()} />
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground">
-              {sync.isPending ? "Syncing…" : status.lastSyncAt ? `Synced ${formatRelativeDay(status.lastSyncAt)}` : "Never synced"}
+              {sync.isPending ? t("github.syncing") : status.lastSyncAt ? t("github.syncedOn", { date: formatRelativeDay(status.lastSyncAt) }) : t("github.neverSynced")}
             </span>
             <Button size="sm" variant="outline" disabled={sync.isPending} onClick={() => sync.mutate(undefined)}>
               <RefreshCw className={sync.isPending ? "animate-spin" : undefined} />
-              Sync
+              {t("github.sync")}
             </Button>
           </div>
         </div>

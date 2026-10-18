@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Link } from "@tanstack/react-router"
 import { ChevronRight, Lightbulb } from "lucide-react"
 import { formatRelativeDay } from "@/lib/dates"
@@ -5,6 +6,7 @@ import { stripHtml, thoughtTitle } from "@/lib/thoughts"
 import type { RecentThoughtsProps } from "@/types/inbox"
 
 export function RecentThoughts({ thoughts }: RecentThoughtsProps) {
+  const { t } = useTranslation()
   return (
     <ul className="flex flex-col">
       {thoughts.map((thought) => (
@@ -16,7 +18,7 @@ export function RecentThoughts({ thoughts }: RecentThoughtsProps) {
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">{thoughtTitle(thought)}</span>
               <span className="block truncate text-xs text-muted-foreground">
-                {formatRelativeDay(thought.createdAt)} · {stripHtml(thought.body).slice(0, 80) || "No details"}
+                {formatRelativeDay(thought.createdAt)} · {stripHtml(thought.body).slice(0, 80) || t("common.noDetails")}
               </span>
             </span>
             <ChevronRight className="size-4 text-muted-foreground" />

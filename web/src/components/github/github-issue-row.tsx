@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { ExternalLink } from "lucide-react"
 import { Status } from "@/components/workspace-ui"
 import { Button } from "@/components/ui/button"
@@ -10,6 +11,7 @@ import type { GithubIssueRowProps } from "@/types/github"
 const MAX_LABELS = 3
 
 export function GithubIssueRow({ issue }: GithubIssueRowProps) {
+  const { t } = useTranslation()
   return (
     <TableRow>
       <TableCell className="max-w-0 min-w-64 pl-4">
@@ -38,7 +40,7 @@ export function GithubIssueRow({ issue }: GithubIssueRowProps) {
       <TableCell className="text-sm text-muted-foreground tabular-nums">{issue.comments}</TableCell>
       <TableCell className="text-sm whitespace-nowrap text-muted-foreground">{formatRelativeDay(issue.updatedAt)}</TableCell>
       <TableCell className="w-10 pr-3">
-        <Button variant="ghost" size="icon-sm" aria-label={`Open ${issue.title} on GitHub`} onClick={() => openExternal(issue.url)}>
+        <Button variant="ghost" size="icon-sm" aria-label={t("github.openItem", { title: issue.title })} onClick={() => openExternal(issue.url)}>
           <ExternalLink />
         </Button>
       </TableCell>

@@ -1,16 +1,20 @@
 import { formatDate, fromDayKey, lastDays } from "@/lib/dates"
+import { i18n } from "@/lib/i18n"
 import type { MoodChartPoint, MoodEntry, MoodOption } from "@/types/mood"
 
-export const MOOD_OPTIONS: MoodOption[] = [
-  { score: 1, label: "Awful", emoji: "😞" },
-  { score: 2, label: "Bad", emoji: "🙁" },
-  { score: 3, label: "Okay", emoji: "😐" },
-  { score: 4, label: "Good", emoji: "🙂" },
-  { score: 5, label: "Great", emoji: "😄" },
-]
+export function getMoodOptions(): MoodOption[] {
+  return [
+    { score: 1, label: i18n.t("mood.awful"), emoji: "😞" },
+    { score: 2, label: i18n.t("mood.bad"), emoji: "🙁" },
+    { score: 3, label: i18n.t("mood.okay"), emoji: "😐" },
+    { score: 4, label: i18n.t("mood.good"), emoji: "🙂" },
+    { score: 5, label: i18n.t("mood.great"), emoji: "😄" },
+  ]
+}
 
 export function moodOption(score: number) {
-  return MOOD_OPTIONS.find((option) => option.score === score) ?? MOOD_OPTIONS[2]
+  const options = getMoodOptions()
+  return options.find((option) => option.score === score) ?? options[2]
 }
 
 /** Average score over the last `days` days, or null with no entries in that window. */

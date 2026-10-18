@@ -1,15 +1,16 @@
+import { useTranslation } from "react-i18next"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, Pencil, Trash2 } from "lucide-react"
 import { RowActions } from "@/components/shared/row-actions"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { useRemoveProject } from "@/hooks/queries/use-projects"
-import { humanize } from "@/lib/format"
 import { PROJECT_STATUS_TONES } from "@/lib/projects"
 import { cn } from "@/lib/utils"
 import type { ProjectCardProps } from "@/types/project"
 
 export function ProjectCard({ project, position, onEdit }: ProjectCardProps) {
+  const { t } = useTranslation()
   const remove = useRemoveProject()
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: project.id })
 
@@ -25,7 +26,7 @@ export function ProjectCard({ project, position, onEdit }: ProjectCardProps) {
             <button
               type="button"
               ref={setActivatorNodeRef}
-              aria-label={`Reorder ${project.title}`}
+              aria-label={t("projects.reorder", { title: project.title })}
               className="-ml-1 flex size-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
               {...attributes}
               {...listeners}
@@ -37,24 +38,24 @@ export function ProjectCard({ project, position, onEdit }: ProjectCardProps) {
             </button>
           </div>
           <RowActions
-            label={`${project.title} actions`}
+            label={t("common.itemActions", { title: project.title })}
             actions={[
-              { label: "Edit", icon: Pencil, onSelect: () => onEdit(project) },
-              { label: "Delete", icon: Trash2, destructive: true, onSelect: () => remove.mutate(project.id) },
+              { label: t("common.edit"), icon: Pencil, onSelect: () => onEdit(project) },
+              { label: t("common.delete"), icon: Trash2, destructive: true, onSelect: () => remove.mutate(project.id) },
             ]}
           />
         </div>
-        <p className="line-clamp-3 text-sm whitespace-pre-line text-muted-foreground">{project.description || "No description yet."}</p>
+        <p className="line-clamp-3 text-sm whitespace-pre-line text-muted-foreground">{project.description || t("projects.noDescription")}</p>
       </div>
       <dl className="flex flex-col gap-2.5 rounded-xl border bg-card px-3 py-3 text-sm">
         <div className="flex items-center justify-between gap-2">
-          <dt className="text-muted-foreground">Status</dt>
+          <dt className="text-muted-foreground">{t("common.status")}</dt>
           <dd>
-            <StatusBadge label={humanize(project.status)} tone={PROJECT_STATUS_TONES[project.status]} />
+            <StatusBadge label={t(`projectStatuses.${project.status}`)} tone={PROJECT_STATUS_TONES[project.status]} />
           </dd>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <dt className="text-muted-foreground">Order</dt>
+          <dt className="text-muted-foreground">{t("projects.order")}</dt>
           <dd className="rounded-md border px-2 py-0.5 text-xs tabular-nums">#{position}</dd>
         </div>
       </dl>

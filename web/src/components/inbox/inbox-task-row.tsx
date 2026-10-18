@@ -1,13 +1,14 @@
+import { useTranslation } from "react-i18next"
 import { Check, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRemoveTask, useUpdateTask } from "@/hooks/queries/use-tasks"
 import { formatRelativeDay } from "@/lib/dates"
-import { STATUS_OPTIONS } from "@/lib/tasks"
+import { getTaskStatusOptions } from "@/lib/tasks"
 import type { InboxTaskRowProps } from "@/types/inbox"
 
-const TRIAGE = STATUS_OPTIONS.filter((option) => option.value !== "inbox" && option.value !== "done")
-
 export function InboxTaskRow({ task }: InboxTaskRowProps) {
+  const { t } = useTranslation()
+  const triage = getTaskStatusOptions().filter((option) => option.value !== "inbox" && option.value !== "done")
   const update = useUpdateTask()
   const remove = useRemoveTask()
 
@@ -15,10 +16,10 @@ export function InboxTaskRow({ task }: InboxTaskRowProps) {
     <li className="flex flex-wrap items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{task.title}</p>
-        <p className="text-xs text-muted-foreground">Captured {formatRelativeDay(task.createdAt)}</p>
+        <p className="text-xs text-muted-foreground">{t("inbox.capturedOn", { date: formatRelativeDay(task.createdAt) })}</p>
       </div>
       <div className="flex flex-wrap items-center gap-1">
-        {TRIAGE.map((option) => (
+        {triage.map((option) => (
           <Button
             key={option.value}
             variant="outline"
@@ -32,12 +33,12 @@ export function InboxTaskRow({ task }: InboxTaskRowProps) {
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label={`Complete ${task.title}`}
+          aria-label={t("common.complete", { title: task.title })}
           onClick={() => update.mutate({ id: task.id, input: { status: "done" } })}
         >
           <Check />
         </Button>
-        <Button variant="ghost" size="icon-sm" aria-label={`Delete ${task.title}`} onClick={() => remove.mutate(task.id)}>
+        <Button variant="ghost" size="icon-sm" aria-label={t("common.deleteItem", { title: task.title })} onClick={() => remove.mutate(task.id)}>
           <Trash2 />
         </Button>
       </div>

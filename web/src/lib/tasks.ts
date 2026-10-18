@@ -1,27 +1,35 @@
 import { formatRelativeDay, fromDateInput, startOfDay, toDateInput } from "@/lib/dates"
 import { parseTags } from "@/lib/format"
+import { i18n } from "@/lib/i18n"
 import type { Task, TaskFormValues, TaskInput, TaskPriority, TaskStatus } from "@/types/task"
 import type { SelectOption, StatusTone } from "@/types/ui"
 
-export const STATUS_LABELS: Record<TaskStatus, string> = {
-  inbox: "Inbox",
-  today: "Today",
-  upcoming: "Upcoming",
-  someday: "Someday",
-  done: "Done",
+export function getTaskStatusLabels(): Record<TaskStatus, string> {
+  return {
+    inbox: i18n.t("taskStatuses.inbox"),
+    today: i18n.t("taskStatuses.today"),
+    upcoming: i18n.t("taskStatuses.upcoming"),
+    someday: i18n.t("taskStatuses.someday"),
+    done: i18n.t("taskStatuses.done"),
+  }
 }
 
-export const PRIORITY_LABELS: Record<TaskPriority, string> = { none: "No priority", low: "Low", medium: "Medium", high: "High" }
+export function getTaskPriorityLabels(): Record<TaskPriority, string> {
+  return {
+    none: i18n.t("priorities.none"),
+    low: i18n.t("priorities.low"),
+    medium: i18n.t("priorities.medium"),
+    high: i18n.t("priorities.high"),
+  }
+}
 
-export const STATUS_OPTIONS: SelectOption<TaskStatus>[] = Object.entries(STATUS_LABELS).map(([value, label]) => ({
-  value: value as TaskStatus,
-  label,
-}))
+export function getTaskStatusOptions(): SelectOption<TaskStatus>[] {
+  return Object.entries(getTaskStatusLabels()).map(([value, label]) => ({ value: value as TaskStatus, label }))
+}
 
-export const PRIORITY_OPTIONS: SelectOption<TaskPriority>[] = Object.entries(PRIORITY_LABELS).map(([value, label]) => ({
-  value: value as TaskPriority,
-  label,
-}))
+export function getTaskPriorityOptions(): SelectOption<TaskPriority>[] {
+  return Object.entries(getTaskPriorityLabels()).map(([value, label]) => ({ value: value as TaskPriority, label }))
+}
 
 export const STATUS_TONES: Record<TaskStatus, StatusTone> = {
   inbox: "neutral",

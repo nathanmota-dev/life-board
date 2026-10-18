@@ -31,7 +31,7 @@ describe("HabitsPage", () => {
     renderWithProviders(<HabitsPage />)
 
     expect(await screen.findByText("Drink water")).toBeInTheDocument()
-    expect(screen.getByText(/3 \/ 8 glasses · 4 days streak/)).toBeInTheDocument()
+    expect(screen.getByText(/3 \/ 8 glasses · 4 day streak/)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "Log Drink water" }))
 
@@ -60,6 +60,6 @@ describe("HabitsPage", () => {
     mockApi({ "GET /habits": () => [500, { error: "internal_error", message: "Database is locked" }], "GET /habits/logs": () => ({ items: [] }) })
     renderWithProviders(<HabitsPage />)
 
-    expect(await screen.findByText("Database is locked")).toBeInTheDocument()
+    expect(await screen.findByText("Something went wrong.")).toBeInTheDocument()
   })
 })

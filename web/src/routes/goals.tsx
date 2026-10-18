@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { Plus, Target } from "lucide-react"
 import { GoalDetailSheet } from "@/components/goals/goal-detail-sheet"
@@ -10,10 +11,11 @@ import { SegmentedControl } from "@/components/shared/segmented-control"
 import { Button } from "@/components/ui/button"
 import { Page, PageSection } from "@/components/workspace-ui"
 import { useGoals } from "@/hooks/queries/use-goals"
-import { countGoals, GOAL_STATUS_OPTIONS } from "@/lib/goals"
+import { countGoals, getGoalStatusOptions } from "@/lib/goals"
 import type { GoalDialogState, GoalView } from "@/types/goal"
 
 export function GoalsPage() {
+  const { t } = useTranslation()
   const [view, setView] = useState<GoalView>("all")
   const [openGoalId, setOpenGoalId] = useState<string | null>(null)
   const [dialog, setDialog] = useState<GoalDialogState>({ open: false, goal: null })
@@ -24,32 +26,32 @@ export function GoalsPage() {
 
   return (
     <Page
-      title="Goals"
-      description="Short and long-term goals, broken into milestones."
+      title={t("navigation.goals")}
+      description={t("goals.description")}
       actions={
         <Button size="sm" onClick={() => setDialog({ open: true, goal: null })}>
           <Plus />
-          New goal
+          {t("goals.newGoal")}
         </Button>
       }
       toolbar={
         <SegmentedControl
-          label="Goal views"
+          label={t("goals.views")}
           value={view}
           onChange={setView}
-          options={[{ value: "all", label: "All", count: items.length }, ...GOAL_STATUS_OPTIONS.map((option) => ({ ...option, count: counts[option.value] }))]}
+          options={[{ value: "all", label: t("common.all"), count: items.length }, ...getGoalStatusOptions().map((option) => ({ ...option, count: counts[option.value] }))]}
         />
       }
     >
       <PageSection>
         <GoalStats goals={items} />
       </PageSection>
-      <PageSection title="Goals">
+      <PageSection title={t("navigation.goals")}>
         <DataState
           isLoading={goals.isLoading}
           error={goals.error}
           isEmpty={visible.length === 0}
-          empty={<EmptyState icon={Target} title="No goals here" description="Set a goal and break it into milestones." />}
+          empty={<EmptyState icon={Target} title={t("goals.empty")} description={t("goals.emptyDescription")} />}
         >
           <GoalGrid goals={visible} onOpen={(goal) => setOpenGoalId(goal.id)} />
         </DataState>

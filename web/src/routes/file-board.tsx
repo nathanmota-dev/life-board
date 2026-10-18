@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { FolderKanban, Layers, Plus } from "lucide-react"
 import { BoardFiles } from "@/components/file-board/board-files"
@@ -10,6 +11,7 @@ import { Page, PageSection, Panel } from "@/components/workspace-ui"
 import { useFileBoards } from "@/hooks/queries/use-file-boards"
 
 export function FileBoardPage() {
+  const { t } = useTranslation()
   const boards = useFileBoards()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -18,12 +20,12 @@ export function FileBoardPage() {
 
   return (
     <Page
-      title="File Board"
-      description="Receipts, photos and documents, organized in boards."
+      title={t("navigation.file-board")}
+      description={t("fileBoard.description")}
       actions={
         <Button size="sm" onClick={() => setCreating(true)}>
           <Plus />
-          New board
+          {t("fileBoard.newBoard")}
         </Button>
       }
     >
@@ -35,14 +37,14 @@ export function FileBoardPage() {
           empty={
             <EmptyState
               icon={FolderKanban}
-              title="No boards yet"
-              description="Create a board to start uploading files."
-              action={<Button size="sm" onClick={() => setCreating(true)}>Create a board</Button>}
+              title={t("fileBoard.noBoards")}
+              description={t("fileBoard.noBoardsDescription")}
+              action={<Button size="sm" onClick={() => setCreating(true)}>{t("fileBoard.createABoard")}</Button>}
             />
           }
         >
           <div className="grid gap-4 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,3fr)]">
-            <Panel title="Boards" icon={Layers} contentClassName="pb-2">
+            <Panel title={t("fileBoard.boards")} icon={Layers} contentClassName="pb-2">
               <BoardList boards={items} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
             </Panel>
             {selected ? <BoardFiles key={selected.id} board={selected} onDeleted={() => setSelectedId(null)} /> : null}

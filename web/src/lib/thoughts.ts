@@ -1,8 +1,9 @@
 import { parseTags } from "@/lib/format"
+import { i18n } from "@/lib/i18n"
 import type { Thought, ThoughtFormValues, ThoughtInput } from "@/types/thought"
 
 export function thoughtTitle(thought: Thought) {
-  return thought.title || stripHtml(thought.body).slice(0, 60) || "Untitled thought"
+  return thought.title || stripHtml(thought.body).slice(0, 60) || i18n.t("thoughts.untitled")
 }
 
 export function stripHtml(value: string) {

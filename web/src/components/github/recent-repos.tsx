@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { FolderGit2 } from "lucide-react"
 import { RecentRepoCard } from "@/components/github/recent-repo-card"
 import { DataState } from "@/components/shared/data-state"
@@ -16,6 +17,7 @@ const loading = (
 
 /** The repositories the connected account contributed to most recently, as a 2×2 grid of cards. */
 export function RecentRepos({ enabled }: RecentReposProps) {
+  const { t } = useTranslation()
   const repos = useRecentRepos(enabled)
 
   return (
@@ -23,7 +25,7 @@ export function RecentRepos({ enabled }: RecentReposProps) {
       isLoading={repos.isLoading}
       error={repos.error}
       isEmpty={repos.data?.length === 0}
-      empty={<EmptyState icon={FolderGit2} title="No recent repositories" className="py-6" />}
+      empty={<EmptyState icon={FolderGit2} title={t("github.noRecentRepos")} className="py-6" />}
       loading={loading}
     >
       <div className="grid h-full grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-2">

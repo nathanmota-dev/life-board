@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useDeferredValue, useState } from "react"
 import { Lightbulb, Plus } from "lucide-react"
 import { DataState } from "@/components/shared/data-state"
@@ -12,6 +13,7 @@ import { useThoughts } from "@/hooks/queries/use-thoughts"
 import type { Thought, ThoughtDialogState, ThoughtView } from "@/types/thought"
 
 export function ThoughtsPage() {
+  const { t } = useTranslation()
   const [view, setView] = useState<ThoughtView>("all")
   const [search, setSearch] = useState("")
   const [dialog, setDialog] = useState<ThoughtDialogState>({ open: false, thought: null })
@@ -21,26 +23,26 @@ export function ThoughtsPage() {
 
   return (
     <Page
-      title="Thoughts"
-      description="Ideas, notes and anything worth remembering."
+      title={t("navigation.thoughts")}
+      description={t("thoughts.description")}
       actions={
         <Button size="sm" onClick={() => openDialog(null)}>
           <Plus />
-          New thought
+          {t("thoughts.newThought")}
         </Button>
       }
       toolbar={
         <>
           <SegmentedControl
-            label="Thought views"
+            label={t("thoughts.views")}
             value={view}
             onChange={setView}
             options={[
-              { value: "all", label: "All" },
-              { value: "pinned", label: "Pinned" },
+              { value: "all", label: t("common.all") },
+              { value: "pinned", label: t("thoughts.pinned") },
             ]}
           />
-          <SearchInput value={search} onChange={setSearch} placeholder="Search thoughts" />
+          <SearchInput value={search} onChange={setSearch} placeholder={t("thoughts.search")} />
         </>
       }
     >
@@ -49,13 +51,13 @@ export function ThoughtsPage() {
           isLoading={thoughts.isLoading}
           error={thoughts.error}
           isEmpty={items.length === 0}
-          empty={<EmptyState icon={Lightbulb} title="No thoughts yet" description="Capture an idea to see it here." />}
+          empty={<EmptyState icon={Lightbulb} title={t("thoughts.empty")} description={t("thoughts.emptyDescription")} />}
         >
           <ThoughtGrid thoughts={items} onEdit={openDialog} />
           {thoughts.hasNextPage ? (
             <div className="mt-4 flex justify-center">
               <Button variant="outline" size="sm" disabled={thoughts.isFetchingNextPage} onClick={() => thoughts.fetchNextPage()}>
-                Load more
+                {t("common.loadMore")}
               </Button>
             </div>
           ) : null}

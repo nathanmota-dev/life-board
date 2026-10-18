@@ -29,6 +29,6 @@ describe("ContributionsCalendar", () => {
     mockApi({ "GET /github/contributions": () => [502, { error: "github_unavailable", message: "GitHub 401 Unauthorized" }] })
     renderWithProviders(<ContributionsCalendar enabled />)
 
-    expect(await screen.findByText("GitHub 401 Unauthorized")).toBeInTheDocument()
+    expect(await screen.findByText("GitHub is unavailable. Try again later.")).toBeInTheDocument()
   })
 })

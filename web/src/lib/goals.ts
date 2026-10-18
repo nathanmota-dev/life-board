@@ -1,5 +1,5 @@
 import { fromDateInput, toDateInput } from "@/lib/dates"
-import { capitalize } from "@/lib/format"
+import { i18n } from "@/lib/i18n"
 import { GOAL_DOMAINS, GOAL_STATUSES, type Goal, type GoalFormValues, type GoalInput, type GoalStatus, type Milestone } from "@/types/goal"
 import type { SelectOption, StatusTone } from "@/types/ui"
 
@@ -10,9 +10,13 @@ export const GOAL_STATUS_TONES: Record<GoalStatus, StatusTone> = {
   abandoned: "neutral",
 }
 
-export const GOAL_STATUS_OPTIONS: SelectOption<GoalStatus>[] = GOAL_STATUSES.map((value) => ({ value, label: capitalize(value) }))
+export function getGoalStatusOptions(): SelectOption<GoalStatus>[] {
+  return GOAL_STATUSES.map((value) => ({ value, label: i18n.t(`goalStatuses.${value}`) }))
+}
 
-export const GOAL_DOMAIN_OPTIONS = GOAL_DOMAINS.map((value) => ({ value, label: capitalize(value) }))
+export function getGoalDomainOptions() {
+  return GOAL_DOMAINS.map((value) => ({ value, label: i18n.t(`goalDomains.${value}`) }))
+}
 
 export function milestoneProgress(milestones: Milestone[]) {
   if (milestones.length === 0) return 0

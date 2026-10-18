@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -7,6 +8,7 @@ import { moodOption } from "@/lib/mood"
 import type { MoodEntriesProps } from "@/types/mood"
 
 export function MoodEntries({ entries }: MoodEntriesProps) {
+  const { t } = useTranslation()
   const remove = useRemoveMood()
 
   return (
@@ -14,11 +16,11 @@ export function MoodEntries({ entries }: MoodEntriesProps) {
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow className="hover:bg-transparent">
-            <TableHead className="pl-4">Day</TableHead>
-            <TableHead>Mood</TableHead>
-            <TableHead>Note</TableHead>
+            <TableHead className="pl-4">{t("mood.day")}</TableHead>
+            <TableHead>{t("navigation.mood")}</TableHead>
+            <TableHead>{t("common.note")}</TableHead>
             <TableHead className="w-10">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t("common.actions")}</span>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -33,7 +35,7 @@ export function MoodEntries({ entries }: MoodEntriesProps) {
               </TableCell>
               <TableCell className="max-w-0 truncate text-sm text-muted-foreground">{entry.note || "—"}</TableCell>
               <TableCell className="pr-3">
-                <Button variant="ghost" size="icon-sm" aria-label={`Delete entry for ${entry.day}`} onClick={() => remove.mutate(entry.id)}>
+                <Button variant="ghost" size="icon-sm" aria-label={t("mood.deleteEntry", { date: formatDate(fromDayKey(entry.day)) })} onClick={() => remove.mutate(entry.id)}>
                   <Trash2 />
                 </Button>
               </TableCell>
