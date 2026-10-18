@@ -7,6 +7,7 @@ import type {
   GithubIssueKind,
   GithubKind,
   GithubPr,
+  GithubRepo,
   GithubStatus,
   GithubSyncResult,
 } from "@/types/github"
@@ -20,4 +21,5 @@ export const githubService = {
   issues: async (kind?: GithubIssueKind) =>
     (await api.get<ListResponse<GithubIssue>>("/github/issues", { kind, limit: 200 })).items,
   contributions: () => api.get<Contributions>("/github/contributions"),
+  recentRepos: async () => (await api.get<ListResponse<GithubRepo>>("/github/repos/recent", { limit: 4 })).items,
 }

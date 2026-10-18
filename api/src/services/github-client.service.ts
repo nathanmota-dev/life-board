@@ -54,6 +54,44 @@ const CONTRIBUTIONS_QUERY = `query ($login: String!) {
   }
 }`
 
+export type RawContributedRepo = {
+  nameWithOwner: string
+  url: string
+  description: string | null
+  isPrivate: boolean
+  stargazerCount: number
+  primaryLanguage: { name: string; color: string | null } | null
+}
+
+/** A repo plus the date of the user's own latest contribution to it. */
+export type RawRepoContribution = { repository: RawContributedRepo; lastContributedAt: string }
+
+type RawContributionsByRepo = { repository: RawContributedRepo; contributions: { nodes: { occurredAt: string }[] } }
+
+// Commits take `CommitContributionOrder`, which requires a field; the other kinds only take a direction.
+const CONTRIBUTION_ORDERS = {
+  commitContributionsByRepository: "{ field: OCCURRED_AT, direction: DESC }",
+  pullRequestContributionsByRepository: "{ direction: DESC }",
+  pullRequestReviewContributionsByRepository: "{ direction: DESC }",
+  issueContributionsByRepository: "{ direction: DESC }",
+} as const
+
+const CONTRIBUTION_KINDS = Object.keys(CONTRIBUTION_ORDERS) as (keyof typeof CONTRIBUTION_ORDERS)[]
+
+// Only the user's own contributions from the last year, newest first within each repo.
+const CONTRIBUTED_REPOS_QUERY = `query ($login: String!) {
+  user(login: $login) {
+    contributionsCollection {
+${CONTRIBUTION_KINDS.map(
+  (kind) => `      ${kind}(maxRepositories: 100) {
+        repository { nameWithOwner url description isPrivate stargazerCount primaryLanguage { name color } }
+        contributions(first: 1, orderBy: ${CONTRIBUTION_ORDERS[kind]}) { nodes { occurredAt } }
+      }`,
+).join("\n")}
+    }
+  }
+}`
+
 export class GithubApiError extends Error {
   constructor(
     readonly status: number,
@@ -115,6 +153,25 @@ export class GithubClient {
     const calendar = result.data?.user?.contributionsCollection.contributionCalendar
     if (!calendar) throw new GithubApiError(200, result.errors?.[0]?.message ?? "GitHub returned no contributions.")
     return calendar
+  }
+
+  /** Repos `login` contributed to in the last year (commits, PRs, reviews or issues), latest contribution first. */
+  async getContributedRepos(token: string, login: string, first: number) {
+    const result = await this.request<{
+      data?: { user: { contributionsCollection: Record<(typeof CONTRIBUTION_KINDS)[number], RawContributionsByRepo[]> } | null }
+      errors?: { message: string }[]
+    }>("/graphql", token, { method: "POST", body: JSON.stringify({ query: CONTRIBUTED_REPOS_QUERY, variables: { login } }) })
+    const collection = result.data?.user?.contributionsCollection
+    if (!collection) throw new GithubApiError(200, result.errors?.[0]?.message ?? "GitHub returned no repositories.")
+
+    const latest = new Map<string, RawRepoContribution>()
+    for (const { repository, contributions } of CONTRIBUTION_KINDS.flatMap((kind) => collection[kind] ?? [])) {
+      const occurredAt = contributions.nodes[0]?.occurredAt
+      if (!occurredAt) continue
+      const current = latest.get(repository.nameWithOwner)
+      if (!current || occurredAt > current.lastContributedAt) latest.set(repository.nameWithOwner, { repository, lastContributedAt: occurredAt })
+    }
+    return [...latest.values()].sort((a, b) => b.lastContributedAt.localeCompare(a.lastContributedAt)).slice(0, first)
   }
 
   private async request<T>(path: string, token: string, init: { method?: string; body?: string } = {}): Promise<T> {

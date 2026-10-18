@@ -17,6 +17,11 @@ export const listIssuesQuery = z.object({
   limit: limit(200, 100),
 })
 
+export const recentReposQuery = z.object({
+  limit: limit(20, 4),
+})
+
 export type ConnectGithubBody = z.infer<typeof connectGithubBody>
 export type ListPrsQuery = z.infer<typeof listPrsQuery>
 export type ListIssuesQuery = z.infer<typeof listIssuesQuery>
+export type RecentReposQuery = z.infer<typeof recentReposQuery>

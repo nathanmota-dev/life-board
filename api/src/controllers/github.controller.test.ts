@@ -12,7 +12,19 @@ beforeEach(async () => {
     const path = String(url)
     if (path.endsWith("/user")) return json({ login: "me" })
     if (path.endsWith("/graphql")) {
-      return json({ data: { user: { contributionsCollection: { contributionCalendar: { totalContributions: 0, weeks: [] } } } } })
+      return json({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: { totalContributions: 0, weeks: [] },
+              commitContributionsByRepository: [],
+              pullRequestContributionsByRepository: [],
+              pullRequestReviewContributionsByRepository: [],
+              issueContributionsByRepository: [],
+            },
+          },
+        },
+      })
     }
     if (path.includes("/search/issues") && path.includes("is%3Aissue%20author")) {
       return json({
@@ -69,6 +81,8 @@ describe("github controller", () => {
     expect((await ctx.app.inject({ method: "GET", url: "/api/github/issues?kind=review_requested" })).statusCode).toBe(400)
 
     expect((await ctx.app.inject({ method: "GET", url: "/api/github/contributions" })).json()).toEqual({ login: "me", total: 0, days: [] })
+    expect((await ctx.app.inject({ method: "GET", url: "/api/github/repos/recent?limit=4" })).json()).toEqual({ items: [] })
+    expect((await ctx.app.inject({ method: "GET", url: "/api/github/repos/recent?limit=50" })).statusCode).toBe(400)
     expect((await ctx.app.inject({ method: "GET", url: "/api/github/status" })).json().connected).toBe(true)
     expect((await ctx.app.inject({ method: "DELETE", url: "/api/github/disconnect" })).json()).toEqual({ ok: true })
     expect((await ctx.app.inject({ method: "GET", url: "/api/github/status" })).json().connected).toBe(false)

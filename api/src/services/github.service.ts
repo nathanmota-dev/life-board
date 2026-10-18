@@ -10,7 +10,7 @@ import {
   type NewGithubIssue,
   type NewGithubPr,
 } from "../db/schema"
-import type { ConnectGithubBody, ListIssuesQuery, ListPrsQuery } from "../dto/github.dto"
+import type { ConnectGithubBody, ListIssuesQuery, ListPrsQuery, RecentReposQuery } from "../dto/github.dto"
 import type { CryptoService } from "./crypto.service"
 import { BadRequestError, HttpError } from "./errors"
 import { CONTRIBUTION_LEVELS, type GithubClient, type RawPull, type RawSearchItem, type RepoRef } from "./github-client.service"
@@ -168,6 +168,29 @@ export class GithubService {
         })),
       ),
     }
+  }
+
+  /** Repos the connected account recently contributed to, for the dashboard. */
+  async recentRepos({ limit }: RecentReposQuery) {
+    const settings = await this.findSettings()
+    if (!settings) throw new BadRequestError("not_connected", "GitHub is not connected.")
+
+    let repos
+    try {
+      repos = await this.client.getContributedRepos(this.openToken(settings), settings.login, limit)
+    } catch (error) {
+      throw new HttpError(502, "github_unavailable", (error as Error).message)
+    }
+    return repos.map(({ repository: repo, lastContributedAt }) => ({
+      fullName: repo.nameWithOwner,
+      url: repo.url,
+      description: repo.description,
+      private: repo.isPrivate,
+      lastContributedAt,
+      stars: repo.stargazerCount,
+      language: repo.primaryLanguage?.name ?? null,
+      languageColor: repo.primaryLanguage?.color ?? null,
+    }))
   }
 
   listPrs({ kind, limit }: ListPrsQuery) {

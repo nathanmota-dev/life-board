@@ -1,6 +1,15 @@
 import { fromDayKey } from "@/lib/dates"
 import { humanize } from "@/lib/format"
-import { GITHUB_ISSUE_KINDS, GITHUB_KINDS, type GithubItemType, type GithubKind, type GithubPr } from "@/types/github"
+import {
+  GITHUB_ISSUE_KINDS,
+  GITHUB_KINDS,
+  type ContributionDay,
+  type ContributionMonthLabel,
+  type ContributionWeek,
+  type GithubItemType,
+  type GithubKind,
+  type GithubPr,
+} from "@/types/github"
 import type { StatusTone } from "@/types/ui"
 
 export function kindLabel(kind: GithubKind) {
@@ -22,9 +31,11 @@ export function prStateLabel(pr: GithubPr) {
   return pr.draft && pr.state === "open" ? "Draft" : humanize(pr.state)
 }
 
-export const CALENDAR_BLOCK_MARGIN = 3
-const CALENDAR_MIN_BLOCK = 8
-const CALENDAR_MAX_BLOCK = 20
+export const CONTRIBUTION_LEVELS = [0, 1, 2, 3, 4]
+// Empty days use the muted surface; active days blend toward the accent so Settings recolors the grid.
+const LEVEL_ACCENT_PERCENT = [0, 30, 55, 80, 100]
+// Months closer than this many weeks to the next one are skipped so labels never overlap.
+const MIN_MONTH_LABEL_WEEKS = 3
 
 /** Number of week columns the contributions grid draws for `days` (weeks start on Sunday). */
 export function contributionWeeks(days: { date: string }[]) {
@@ -32,9 +43,34 @@ export function contributionWeeks(days: { date: string }[]) {
   return Math.ceil((fromDayKey(days[0].date).getDay() + days.length) / 7)
 }
 
-/** Largest block size that fits every week column into `width`, clamped to stay readable. */
-export function contributionBlockSize(width: number, weeks: number) {
-  if (width <= 0) return 11
-  const size = Math.floor(width / weeks) - CALENDAR_BLOCK_MARGIN
-  return Math.min(CALENDAR_MAX_BLOCK, Math.max(CALENDAR_MIN_BLOCK, size))
+/** Splits consecutive `days` into Sunday-first week columns, padding the first and last week with `null`. */
+export function contributionGrid(days: ContributionDay[]): ContributionWeek[] {
+  if (days.length === 0) return []
+  const cells: (ContributionDay | null)[] = [...Array<null>(fromDayKey(days[0].date).getDay()).fill(null), ...days]
+  return Array.from({ length: Math.ceil(cells.length / 7) }, (_, week) =>
+    Array.from({ length: 7 }, (_, weekday) => cells[week * 7 + weekday] ?? null),
+  )
+}
+
+/** Short month names placed on the first week column of each month. */
+export function contributionMonthLabels(weeks: ContributionWeek[]): ContributionMonthLabel[] {
+  const labels: ContributionMonthLabel[] = []
+  let previousMonth = -1
+  weeks.forEach((week, index) => {
+    const first = week.find((day) => day !== null)
+    if (!first) return
+    const date = fromDayKey(first.date)
+    if (date.getMonth() === previousMonth) return
+    previousMonth = date.getMonth()
+    labels.push({ week: index, label: date.toLocaleDateString("en-US", { month: "short" }) })
+  })
+  return labels.filter((label, index) => {
+    const nextWeek = labels[index + 1]?.week ?? weeks.length
+    return nextWeek - label.week >= MIN_MONTH_LABEL_WEEKS
+  })
+}
+
+export function contributionLevelColor(level: number) {
+  const percent = LEVEL_ACCENT_PERCENT[Math.min(Math.max(level, 0), LEVEL_ACCENT_PERCENT.length - 1)]
+  return percent === 0 ? "var(--muted)" : `color-mix(in oklab, var(--primary) ${percent}%, var(--muted))`
 }

@@ -3,15 +3,17 @@ import { app, BrowserWindow, dialog, ipcMain, shell, utilityProcess } from "elec
 import type { UtilityProcess } from "electron"
 import backendPath from "./backend-process?modulePath"
 import { loadSecretKey } from "./secret-key"
+import { defaultBounds, loadWindowState, trackWindowState } from "./window-state"
 
 let backend: UtilityProcess | null = null
 let apiBaseUrl: Promise<string> | null = null
 
 function createWindow() {
+  const dataDir = app.getPath("userData")
+  const state = loadWindowState(dataDir)
   const window = new BrowserWindow({
     title: "Life Board",
-    width: 1200,
-    height: 800,
+    ...(state.bounds ?? defaultBounds()),
     minWidth: 640,
     minHeight: 480,
     show: false,
@@ -25,7 +27,12 @@ function createWindow() {
     },
   })
 
-  window.once("ready-to-show", () => window.show())
+  window.once("ready-to-show", () => {
+    if (state.fullScreen) window.setFullScreen(true)
+    else if (state.maximized) window.maximize()
+    window.show()
+    trackWindowState(window, dataDir)
+  })
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }))
   window.webContents.on("will-navigate", (event) => event.preventDefault())
 

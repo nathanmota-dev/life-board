@@ -26,6 +26,15 @@ export function useContributions(enabled: boolean) {
   })
 }
 
+export function useRecentRepos(enabled: boolean) {
+  return useQuery({
+    queryKey: [...queryKeys.github, "recent-repos"],
+    queryFn: githubService.recentRepos,
+    enabled,
+    staleTime: 15 * 60 * 1000,
+  })
+}
+
 export function useConnectGithub() {
   return useInvalidatingMutation(githubService.connect, [queryKeys.github])
 }

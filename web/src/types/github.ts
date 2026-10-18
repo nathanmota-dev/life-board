@@ -51,7 +51,24 @@ export type GithubIssue = {
 
 export type ContributionDay = { date: string; count: number; level: number }
 
+export type ContributionWeek = (ContributionDay | null)[]
+
+export type ContributionMonthLabel = { week: number; label: string }
+
+export type ContributionTooltip = { day: ContributionDay; left: number; top: number }
+
 export type Contributions = { login: string; total: number; days: ContributionDay[] }
+
+export type GithubRepo = {
+  fullName: string
+  url: string
+  description: string | null
+  private: boolean
+  lastContributedAt: string
+  stars: number
+  language: string | null
+  languageColor: string | null
+}
 
 export type GithubConnectInput = { token: string; orgFilter?: string | null }
 
@@ -77,3 +94,9 @@ export type GithubDashboardProps = { status: GithubStatus }
 
 
 export type ContributionsCalendarProps = { enabled: boolean }
+
+export type RecentReposProps = { enabled: boolean }
+
+export type RecentRepoCardProps = { repo: GithubRepo }
+
+export type ContributionsGridProps = { contributions: Contributions }
