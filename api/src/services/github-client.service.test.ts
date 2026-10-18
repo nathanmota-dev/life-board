@@ -53,6 +53,28 @@ describe("GithubClient", () => {
     expect(await client.getPull("t", repo, 7)).toEqual({ number: 7 })
   })
 
+  it("posts the contributions query to GraphQL", async () => {
+    const calendar = { totalContributions: 3, weeks: [] }
+    const fetchMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) =>
+      json({ data: { user: { contributionsCollection: { contributionCalendar: calendar } } } }),
+    )
+
+    expect(await new GithubClient(fetchMock).getContributions("t", "me")).toEqual(calendar)
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toBe("https://api.github.com/graphql")
+    expect(init?.method).toBe("POST")
+    expect(JSON.parse(String(init?.body)).variables).toEqual({ login: "me" })
+  })
+
+  it("raises when GraphQL returns no calendar", async () => {
+    await expect(
+      new GithubClient(async () => json({ errors: [{ message: "Could not resolve to a User" }] })).getContributions("t", "me"),
+    ).rejects.toThrow("Could not resolve to a User")
+    await expect(new GithubClient(async () => json({ data: { user: null } })).getContributions("t", "me")).rejects.toThrow(
+      "GitHub returned no contributions.",
+    )
+  })
+
   it("uses the global fetch by default", async () => {
     const original = globalThis.fetch
     globalThis.fetch = vi.fn(async () => json({ login: "global" }))

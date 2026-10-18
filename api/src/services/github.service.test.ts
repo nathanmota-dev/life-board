@@ -57,6 +57,17 @@ function fakeClient(overrides: Partial<Record<keyof GithubClient, unknown>> = {}
     listOwnedRepos: vi.fn(async () => []),
     listOpenPulls: vi.fn(async () => []),
     getPull: vi.fn(async (_token: string, _repo: unknown, number: number) => pull(number)),
+    getContributions: vi.fn(async () => ({
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [
+            { date: "2026-10-11", contributionCount: 0, contributionLevel: "NONE" },
+            { date: "2026-10-12", contributionCount: 5, contributionLevel: "FOURTH_QUARTILE" },
+          ],
+        },
+      ],
+    })),
     ...overrides,
   } as unknown as GithubClient
 }
@@ -186,6 +197,27 @@ describe("GithubService", () => {
     await expect(service.sync()).rejects.toMatchObject({ statusCode: 502, code: "sync_failed" })
     await expect(service.sync()).rejects.toBeInstanceOf(HttpError)
     expect((await service.status()).lastSyncError).toBe("GitHub 401")
+  })
+
+  it("returns the contributions calendar with numeric levels", async () => {
+    const client = fakeClient()
+    await expect(new GithubService(ctx.db, client, crypto, logger).contributions()).rejects.toMatchObject({ code: "not_connected" })
+
+    const service = await connected(client)
+    expect(await service.contributions()).toEqual({
+      login: "me",
+      total: 5,
+      days: [
+        { date: "2026-10-11", count: 0, level: 0 },
+        { date: "2026-10-12", count: 5, level: 4 },
+      ],
+    })
+    expect(client.getContributions).toHaveBeenCalledWith("ghp_0123456789abcdefghij", "me")
+  })
+
+  it("reports GitHub failures when loading contributions", async () => {
+    const service = await connected(fakeClient({ getContributions: vi.fn(async () => Promise.reject(new Error("GitHub 502"))) }))
+    await expect(service.contributions()).rejects.toMatchObject({ statusCode: 502, code: "github_unavailable" })
   })
 
   it("disconnects and clears the cache", async () => {

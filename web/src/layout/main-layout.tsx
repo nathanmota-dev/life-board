@@ -1,4 +1,5 @@
 import { Outlet } from "@tanstack/react-router"
+import { AccentProvider } from "@/components/accent-provider"
 import { AppSidebar } from "@/components/app-sidebar"
 import { CommandPaletteProvider } from "@/components/command-palette"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -36,17 +37,19 @@ function WorkspaceHeader() {
 export function MainLayout() {
   return (
     <ThemeProvider>
-      <SidebarProvider className="h-svh min-h-0 overflow-hidden bg-background">
-        <CommandPaletteProvider>
-          <AppSidebar />
-          <SidebarInset className="min-h-0 min-w-0 overflow-hidden border border-border shadow-xs">
-            <WorkspaceHeader />
-            <div className="flex min-h-0 flex-1 overflow-auto">
-              <Outlet />
-            </div>
-          </SidebarInset>
-        </CommandPaletteProvider>
-      </SidebarProvider>
+      <AccentProvider>
+        <SidebarProvider className="h-svh min-h-0 overflow-hidden bg-background">
+          <CommandPaletteProvider>
+            <AppSidebar />
+            <SidebarInset className="min-h-0 min-w-0 overflow-hidden border border-border shadow-xs">
+              <WorkspaceHeader />
+              <div className="flex min-h-0 flex-1 overflow-auto">
+                <Outlet />
+              </div>
+            </SidebarInset>
+          </CommandPaletteProvider>
+        </SidebarProvider>
+      </AccentProvider>
     </ThemeProvider>
   )
 }

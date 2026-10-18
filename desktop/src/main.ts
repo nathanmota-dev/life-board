@@ -1,5 +1,5 @@
 import { join } from "node:path"
-import { app, BrowserWindow, ipcMain, utilityProcess } from "electron"
+import { app, BrowserWindow, ipcMain, shell, utilityProcess } from "electron"
 import type { UtilityProcess } from "electron"
 import backendPath from "./backend-process?modulePath"
 
@@ -69,6 +69,10 @@ void app.whenReady().then(() => {
   ipcMain.handle("app:get-version", () => app.getVersion())
 
   ipcMain.handle("api:get-base-url", () => apiBaseUrl)
+  // Only GitHub links leave the app (PRs, profiles); everything else is refused.
+  ipcMain.handle("app:open-external", (_event, url: string) => {
+    if (typeof url === "string" && url.startsWith("https://github.com/")) return shell.openExternal(url)
+  })
   apiBaseUrl = startBackend()
   apiBaseUrl.catch((error: unknown) => console.error(error))
 

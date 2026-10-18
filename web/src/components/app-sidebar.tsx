@@ -1,8 +1,7 @@
 import { Link, useMatchRoute } from "@tanstack/react-router"
-import { Search, Settings } from "lucide-react"
+import { LayoutDashboard, Search, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCommandPalette } from "@/components/command-palette"
-import logo from "@/public/logo.png"
 import { navigationItems } from "@/routes/navigation-items"
 import {
   Sidebar,
@@ -30,7 +29,9 @@ export function AppSidebar() {
       <SidebarHeader className="gap-4 px-0 pb-0 pt-2">
         <div className="flex h-8 items-center gap-2 px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <div className="flex min-w-0 flex-1 items-center gap-2 group-data-[collapsible=icon]:flex-none">
-            <img src={logo} alt="Logo" className="size-5 shrink-0" />
+            <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <LayoutDashboard className="size-3.5" strokeWidth={2.2} />
+            </span>
             <span className="truncate text-sm font-medium group-data-[collapsible=icon]:hidden">LifeBoard</span>
           </div>
           <SidebarTrigger
