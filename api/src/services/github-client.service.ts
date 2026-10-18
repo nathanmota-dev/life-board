@@ -34,6 +34,24 @@ export type RawPull = {
 
 export type RepoRef = { owner: string; name: string }
 
+export const CONTRIBUTION_LEVELS = ["NONE", "FIRST_QUARTILE", "SECOND_QUARTILE", "THIRD_QUARTILE", "FOURTH_QUARTILE"] as const
+
+export type RawContributionCalendar = {
+  totalContributions: number
+  weeks: { contributionDays: { date: string; contributionCount: number; contributionLevel: (typeof CONTRIBUTION_LEVELS)[number] }[] }[]
+}
+
+const CONTRIBUTIONS_QUERY = `query ($login: String!) {
+  user(login: $login) {
+    contributionsCollection {
+      contributionCalendar {
+        totalContributions
+        weeks { contributionDays { date contributionCount contributionLevel } }
+      }
+    }
+  }
+}`
+
 export class GithubApiError extends Error {
   constructor(
     readonly status: number,
@@ -86,8 +104,20 @@ export class GithubClient {
     return this.request<RawPull>(`/repos/${repo.owner}/${repo.name}/pulls/${number}`, token)
   }
 
-  private async request<T>(path: string, token: string): Promise<T> {
+  /** The last year of the contributions graph shown on the user's GitHub profile. */
+  async getContributions(token: string, login: string) {
+    const result = await this.request<{
+      data?: { user: { contributionsCollection: { contributionCalendar: RawContributionCalendar } } | null }
+      errors?: { message: string }[]
+    }>("/graphql", token, { method: "POST", body: JSON.stringify({ query: CONTRIBUTIONS_QUERY, variables: { login } }) })
+    const calendar = result.data?.user?.contributionsCollection.contributionCalendar
+    if (!calendar) throw new GithubApiError(200, result.errors?.[0]?.message ?? "GitHub returned no contributions.")
+    return calendar
+  }
+
+  private async request<T>(path: string, token: string, init: { method?: string; body?: string } = {}): Promise<T> {
     const response = await this.fetchImpl(`${GITHUB_API}${path}`, {
+      ...init,
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",

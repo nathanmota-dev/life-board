@@ -1,10 +1,10 @@
 import { and, asc, desc, eq, notInArray, type SQL } from "drizzle-orm"
 import type { Db } from "../db/client"
-import { githubPrs, githubSettings, type GithubKind, type NewGithubPr } from "../db/schema"
+import { githubPrs, githubSettings, type GithubKind, type GithubSettings, type NewGithubPr } from "../db/schema"
 import type { ConnectGithubBody, ListPrsQuery } from "../dto/github.dto"
 import type { CryptoService } from "./crypto.service"
 import { BadRequestError, HttpError } from "./errors"
-import type { GithubClient, RawPull, RawSearchItem, RepoRef } from "./github-client.service"
+import { CONTRIBUTION_LEVELS, type GithubClient, type RawPull, type RawSearchItem, type RepoRef } from "./github-client.service"
 
 const SETTINGS_ID = "default"
 const MAX_SYNCED_PRS = 60
@@ -101,11 +101,7 @@ export class GithubService {
     if (!settings) throw new BadRequestError("not_connected", "GitHub is not connected.")
 
     try {
-      const token = this.crypto.open({
-        ciphertext: settings.tokenCiphertext,
-        iv: settings.tokenIv,
-        tag: settings.tokenTag,
-      })
+      const token = this.openToken(settings)
       const buckets = await this.collectPulls(token, settings.login, settings.orgFilter)
       const count = await this.store(token, buckets)
       await this.db
@@ -124,6 +120,30 @@ export class GithubService {
     }
   }
 
+  /** Daily contribution counts for the connected account, with GitHub's 0-4 intensity level. */
+  async contributions() {
+    const settings = await this.findSettings()
+    if (!settings) throw new BadRequestError("not_connected", "GitHub is not connected.")
+
+    let calendar
+    try {
+      calendar = await this.client.getContributions(this.openToken(settings), settings.login)
+    } catch (error) {
+      throw new HttpError(502, "github_unavailable", (error as Error).message)
+    }
+    return {
+      login: settings.login,
+      total: calendar.totalContributions,
+      days: calendar.weeks.flatMap((week) =>
+        week.contributionDays.map((day) => ({
+          date: day.date,
+          count: day.contributionCount,
+          level: Math.max(0, CONTRIBUTION_LEVELS.indexOf(day.contributionLevel)),
+        })),
+      ),
+    }
+  }
+
   listPrs({ kind, limit }: ListPrsQuery) {
     const conditions: SQL[] = []
     if (kind) conditions.push(eq(githubPrs.kind, kind))
@@ -133,6 +153,10 @@ export class GithubService {
       .where(and(...conditions))
       .orderBy(desc(githubPrs.updatedAt), asc(githubPrs.id))
       .limit(limit)
+  }
+
+  private openToken(settings: GithubSettings) {
+    return this.crypto.open({ ciphertext: settings.tokenCiphertext, iv: settings.tokenIv, tag: settings.tokenTag })
   }
 
   private async findSettings() {

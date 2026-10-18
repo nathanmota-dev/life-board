@@ -1,9 +1,11 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { MainLayout } from "@/layout/main-layout"
 import { createAppRouter } from "@/router"
 import { navigationItems } from "@/routes/navigation-items"
+import { mockApi } from "@/test/mock-api"
 
 const originalScrollIntoView = HTMLElement.prototype.scrollIntoView
 
@@ -20,6 +22,8 @@ beforeEach(() => {
     disconnect() {}
   })
   HTMLElement.prototype.scrollIntoView = vi.fn()
+  // Pages fetch data as they open; every request just gets an empty 404.
+  mockApi({})
 })
 
 afterEach(() => {
@@ -32,7 +36,12 @@ afterEach(() => {
 async function renderApp() {
   const router = createAppRouter(MainLayout)
   router.update({ history: createMemoryHistory({ initialEntries: ["/dashboard"] }) })
-  render(<RouterProvider router={router} />)
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  )
   await screen.findByRole("button", { name: "Buscar na navegação" })
   return router
 }

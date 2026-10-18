@@ -1,58 +1,58 @@
-import type { ReactNode } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+import type { PageProps, PageSectionProps, PanelProps, StatusProps } from "@/types/ui"
 
-export function Page({
-  title,
-  description,
-  actions,
-  children,
-}: {
-  title: string
-  description: string
-  actions?: ReactNode
-  children: ReactNode
-}) {
+export function Page({ title, description, actions, toolbar, children }: PageProps) {
   return (
-    <section className="flex min-w-0 flex-1 flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-base font-medium">{title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+    <section className="flex min-w-0 flex-1 flex-col">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
+        <div className="min-w-0">
+          <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
+          {description ? <p className="mt-0.5 text-sm text-muted-foreground">{description}</p> : null}
         </div>
-        <div className="flex flex-wrap gap-2">{actions}</div>
+        <div className="flex flex-wrap items-center gap-2">{actions}</div>
       </header>
-      {children}
+      {toolbar ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-3">{toolbar}</div>
+      ) : null}
+      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
     </section>
   )
 }
 
-export function Panel({
-  title,
-  children,
-  action,
-}: {
-  title: string
-  children: ReactNode
-  action?: ReactNode
-}) {
+/** A full-width band of the page, separated from the next one by a rule. */
+export function PageSection({ title, action, className, children }: PageSectionProps) {
   return (
-    <Card className="min-w-0 gap-4 rounded-2xl py-4 shadow-none">
-      <div className="flex items-center justify-between gap-3 px-4">
-        <h2 className="text-sm font-medium">{title}</h2>
-        {action}
-      </div>
-      <CardContent className="min-w-0 px-4">{children}</CardContent>
-    </Card>
+    <div className={cn("min-w-0 border-b px-6 py-5 last:border-b-0", className)}>
+      {title || action ? (
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-base font-medium">{title}</h2>
+          {action}
+        </div>
+      ) : null}
+      {children}
+    </div>
   )
 }
 
-export function Status({ value }: { value: string }) {
+export function Panel({ title, icon: Icon, action, className, contentClassName, children }: PanelProps) {
   return (
-    <Badge
-      variant="outline"
-      className="max-w-full rounded-md bg-muted/30 font-normal"
-    >
+    <div className={cn("flex min-w-0 flex-col rounded-2xl border bg-card shadow-xs", className)}>
+      <div className="flex min-h-14 items-center justify-between gap-3 px-5 py-3">
+        <h2 className="flex items-center gap-2 text-base font-medium">
+          {Icon ? <Icon className="size-4 text-muted-foreground" strokeWidth={1.7} /> : null}
+          {title}
+        </h2>
+        {action}
+      </div>
+      <div className={cn("min-w-0 flex-1 px-5 pb-5", contentClassName)}>{children}</div>
+    </div>
+  )
+}
+
+export function Status({ value }: StatusProps) {
+  return (
+    <Badge variant="outline" className="max-w-full rounded-md bg-muted/30 font-normal">
       {value}
     </Badge>
   )

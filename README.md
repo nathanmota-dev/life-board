@@ -68,6 +68,22 @@ autenticação chegar, basta implementar esse hook.
 
 O React recebe a URL da API com `window.desktop.getApiBaseUrl()`.
 
+## Frontend
+
+Cada rota de `web/src/routes/` é uma view curta que monta componentes de
+`web/src/components/<módulo>/`. O resto fica separado:
+
+- `web/src/types/`: tipos do domínio e das props dos componentes (nada de tipos nas views).
+- `web/src/services/`: chamadas HTTP por módulo, todas via `api-client.ts`.
+- `web/src/hooks/queries/`: hooks do TanStack Query; mutations invalidam o cache do módulo.
+- `web/src/lib/`: funções puras reaproveitáveis (datas, layout do calendário, hábitos…).
+- `web/src/components/shared/`: peças comuns (stat card, badges, estados vazios, dialogs).
+
+A cor de destaque (Settings → General) muda `--brand` no `:root`; botões, anéis
+de foco e gráficos (`--chart-1…5`) derivam dela. O padrão é `#FF892B`.
+O token do GitHub é configurado em Settings → GitHub e alimenta o gráfico de
+contribuições do Dashboard pela rota `/api/github/contributions`.
+
 Para alterar o banco, edite `api/src/db/schema/` e gere uma migration:
 
 ```bash

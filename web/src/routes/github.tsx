@@ -1,5 +1,17 @@
-import { WorkspacePage } from "@/components/workspace-page"
+import { GithubConnectPrompt } from "@/components/github/github-connect-prompt"
+import { GithubDashboard } from "@/components/github/github-dashboard"
+import { DataState } from "@/components/shared/data-state"
+import { Page, PageSection } from "@/components/workspace-ui"
+import { useGithubStatus } from "@/hooks/queries/use-github"
 
 export function GitHubPage() {
-  return <WorkspacePage title="GitHub" />
+  const status = useGithubStatus()
+
+  return (
+    <Page title="GitHub" description="Pull requests to follow up on and your contributions.">
+      <DataState isLoading={status.isLoading} error={status.error} loading={<PageSection>Loading…</PageSection>}>
+        {status.data?.connected ? <GithubDashboard status={status.data} /> : <GithubConnectPrompt />}
+      </DataState>
+    </Page>
+  )
 }

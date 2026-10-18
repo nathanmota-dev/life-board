@@ -18,6 +18,8 @@ export const githubController: FastifyPluginAsyncZod = async (app) => {
 
   app.post("/github/sync", () => github.sync())
 
+  app.get("/github/contributions", () => github.contributions())
+
   app.get("/github/prs", { schema: { querystring: listPrsQuery } }, async (request) => ({
     items: await github.listPrs(request.query),
   }))

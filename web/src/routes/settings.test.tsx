@@ -1,35 +1,68 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
-import { ThemeProvider } from "@/components/theme-provider"
 import { SettingsPage } from "@/routes/settings"
-
-function renderSettings() {
-  return render(
-    <ThemeProvider>
-      <SettingsPage />
-    </ThemeProvider>,
-  )
-}
+import { mockApi, resetApiMock } from "@/test/mock-api"
+import { renderWithProviders } from "@/test/render-with-providers"
 
 afterEach(() => {
+  resetApiMock()
   localStorage.clear()
   document.documentElement.classList.remove("light", "dark")
+  document.documentElement.removeAttribute("style")
 })
 
 describe("SettingsPage", () => {
-  it("shows the General and Profile views", () => {
-    renderSettings()
-    expect(screen.getByRole("tab", { name: "General" })).toHaveAttribute("aria-selected", "true")
+  it("shows the General, Profile and GitHub views", async () => {
+    renderWithProviders(<SettingsPage />)
+    expect(await screen.findByRole("tab", { name: "General" })).toHaveAttribute("aria-selected", "true")
     expect(screen.getByRole("tab", { name: "Profile" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "GitHub" })).toBeInTheDocument()
   })
 
-  it("switches the theme from the appearance panel", () => {
-    renderSettings()
-    const dark = screen.getByRole("button", { name: /dark/i })
+  it("switches the theme from the appearance panel", async () => {
+    renderWithProviders(<SettingsPage />)
+    const dark = await screen.findByRole("button", { name: /dark/i })
     fireEvent.click(dark)
     expect(dark).toHaveAttribute("aria-pressed", "true")
     expect(screen.getByRole("button", { name: /light/i })).toHaveAttribute("aria-pressed", "false")
     expect(document.documentElement).toHaveClass("dark")
     expect(localStorage.getItem("life-board-theme")).toBe("dark")
+  })
+
+  it("defaults the accent to orange and applies a new one everywhere", async () => {
+    renderWithProviders(<SettingsPage />)
+    expect(await screen.findByRole("button", { name: "Use #FF892B" })).toHaveAttribute("aria-pressed", "true")
+    expect(document.documentElement.style.getPropertyValue("--brand")).toBe("#FF892B")
+
+    fireEvent.click(screen.getByRole("button", { name: "Use #8B5CF6" }))
+    expect(document.documentElement.style.getPropertyValue("--brand")).toBe("#8B5CF6")
+    expect(localStorage.getItem("life-board-accent")).toBe("#8B5CF6")
+
+    fireEvent.change(screen.getByLabelText("Accent hex code"), { target: { value: "#10B981" } })
+    expect(document.documentElement.style.getPropertyValue("--brand")).toBe("#10B981")
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }))
+    expect(document.documentElement.style.getPropertyValue("--brand")).toBe("#FF892B")
+  })
+
+  it("connects a GitHub token from the GitHub view", async () => {
+    let connected = false
+    const { calls } = mockApi({
+      "GET /github/status": () => ({ connected, login: connected ? "octocat" : null, lastSyncAt: null, lastSyncError: null }),
+      "POST /github/connect": () => {
+        connected = true
+        return { connected: true, login: "octocat" }
+      },
+    })
+    renderWithProviders(<SettingsPage />)
+
+    const tab = await screen.findByRole("tab", { name: "GitHub" })
+    fireEvent.mouseDown(tab)
+    fireEvent.change(await screen.findByLabelText("Personal access token"), { target: { value: "ghp_0123456789abcdefghij" } })
+    fireEvent.click(screen.getByRole("button", { name: "Connect GitHub" }))
+
+    expect(await screen.findByText("@octocat")).toBeInTheDocument()
+    expect(calls.find((call) => call.method === "POST")?.body).toEqual({ token: "ghp_0123456789abcdefghij", orgFilter: null })
+    await waitFor(() => expect(screen.getByRole("button", { name: "Sync now" })).toBeEnabled())
   })
 })

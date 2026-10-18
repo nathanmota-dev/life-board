@@ -11,6 +11,9 @@ beforeEach(async () => {
   fetchMock = vi.fn<typeof fetch>(async (url) => {
     const path = String(url)
     if (path.endsWith("/user")) return json({ login: "me" })
+    if (path.endsWith("/graphql")) {
+      return json({ data: { user: { contributionsCollection: { contributionCalendar: { totalContributions: 0, weeks: [] } } } } })
+    }
     if (path.includes("/search/issues")) return json({ items: [] })
     if (path.includes("/repos?")) return json([{ name: "app", owner: { login: "me" } }])
     return json([
@@ -43,6 +46,7 @@ describe("github controller", () => {
     const prs = await ctx.app.inject({ method: "GET", url: "/api/github/prs?kind=in_my_repos" })
     expect(prs.json().items).toEqual([expect.objectContaining({ id: "me/app#1", headBranch: "fix" })])
 
+    expect((await ctx.app.inject({ method: "GET", url: "/api/github/contributions" })).json()).toEqual({ login: "me", total: 0, days: [] })
     expect((await ctx.app.inject({ method: "GET", url: "/api/github/status" })).json().connected).toBe(true)
     expect((await ctx.app.inject({ method: "DELETE", url: "/api/github/disconnect" })).json()).toEqual({ ok: true })
     expect((await ctx.app.inject({ method: "GET", url: "/api/github/status" })).json().connected).toBe(false)
