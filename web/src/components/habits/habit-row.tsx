@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Minus, Pencil, Plus, Trash2 } from "lucide-react"
 import { HabitWeek } from "@/components/habits/habit-week"
 import { RowActions } from "@/components/shared/row-actions"
@@ -5,11 +6,11 @@ import { StatusBadge } from "@/components/shared/status-badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { useLogHabit, useRemoveHabit } from "@/hooks/queries/use-habits"
-import { habitProgress } from "@/lib/habits"
-import { pluralize } from "@/lib/format"
+import { habitProgress, habitUnit } from "@/lib/habits"
 import type { HabitRowProps } from "@/types/habit"
 
 export function HabitRow({ habit, week, onEdit }: HabitRowProps) {
+  const { t } = useTranslation()
   const log = useLogHabit()
   const remove = useRemoveHabit()
 
@@ -22,18 +23,18 @@ export function HabitRow({ habit, week, onEdit }: HabitRowProps) {
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{habit.name}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {habit.todayCount} / {habit.target} {habit.unit} · {pluralize(habit.streak, "day")} streak
+            {habit.todayCount} / {habit.target} {habitUnit(habit.unit)} · {t("habits.streakDays", { count: habit.streak })}
           </p>
         </div>
       </div>
       <div className="col-span-2 flex items-center gap-3 md:col-span-1">
         <Progress
           value={habitProgress(habit)}
-          aria-label={`${habit.name} progress`}
+          aria-label={t("common.itemProgress", { title: habit.name })}
           aria-valuenow={habit.todayCount}
           className="h-1.5"
         />
-        {habit.doneToday ? <StatusBadge label="Done" tone="success" /> : null}
+        {habit.doneToday ? <StatusBadge label={t("common.done")} tone="success" /> : null}
       </div>
       <div className="hidden lg:block">
         <HabitWeek week={week} />
@@ -42,7 +43,7 @@ export function HabitRow({ habit, week, onEdit }: HabitRowProps) {
         <Button
           variant="outline"
           size="icon-sm"
-          aria-label={`Undo ${habit.name}`}
+          aria-label={t("habits.undo", { name: habit.name })}
           disabled={habit.todayCount === 0 || log.isPending}
           onClick={() => log.mutate({ id: habit.id, input: { delta: -1 } })}
         >
@@ -50,17 +51,17 @@ export function HabitRow({ habit, week, onEdit }: HabitRowProps) {
         </Button>
         <Button
           size="icon-sm"
-          aria-label={`Log ${habit.name}`}
+          aria-label={t("habits.log", { name: habit.name })}
           disabled={log.isPending}
           onClick={() => log.mutate({ id: habit.id, input: { delta: 1 } })}
         >
           <Plus />
         </Button>
         <RowActions
-          label={`${habit.name} actions`}
+          label={t("common.itemActions", { title: habit.name })}
           actions={[
-            { label: "Edit", icon: Pencil, onSelect: () => onEdit(habit) },
-            { label: "Delete", icon: Trash2, destructive: true, onSelect: () => remove.mutate(habit.id) },
+            { label: t("common.edit"), icon: Pencil, onSelect: () => onEdit(habit) },
+            { label: t("common.delete"), icon: Trash2, destructive: true, onSelect: () => remove.mutate(habit.id) },
           ]}
         />
       </div>

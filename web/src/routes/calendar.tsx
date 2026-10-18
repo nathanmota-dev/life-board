@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { Plus } from "lucide-react"
 import { CalendarToolbar } from "@/components/calendar/calendar-toolbar"
@@ -13,6 +14,7 @@ import { startOfWeek } from "@/lib/dates"
 import type { EventDialogState } from "@/types/calendar"
 
 export function CalendarPage() {
+  const { t } = useTranslation()
   const [weekStart, setWeekStart] = useState(() => startOfWeek())
   const [dialog, setDialog] = useState<EventDialogState>({ open: false, event: null, start: null })
   const events = useCalendarEvents(weekRange(weekStart))
@@ -20,12 +22,12 @@ export function CalendarPage() {
 
   return (
     <Page
-      title="Calendar"
-      description="Your week at a glance."
+      title={t("navigation.calendar")}
+      description={t("calendar.description")}
       actions={
         <Button size="sm" onClick={() => setDialog({ open: true, event: null, start: null })}>
           <Plus />
-          New event
+          {t("calendar.newEvent")}
         </Button>
       }
       toolbar={<CalendarToolbar weekStart={weekStart} onChange={setWeekStart} />}

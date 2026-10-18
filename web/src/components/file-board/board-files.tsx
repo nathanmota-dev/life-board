@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { FolderOpen, Trash2 } from "lucide-react"
 import { FileItemDialog } from "@/components/file-board/file-item-dialog"
@@ -11,6 +12,7 @@ import { useFileItems, useRemoveBoard } from "@/hooks/queries/use-file-boards"
 import type { BoardFilesProps, FileItem } from "@/types/file-board"
 
 export function BoardFiles({ board, onDeleted }: BoardFilesProps) {
+  const { t } = useTranslation()
   const items = useFileItems(board.id)
   const removeBoard = useRemoveBoard()
   const [openItem, setOpenItem] = useState<FileItem | null>(null)
@@ -24,7 +26,7 @@ export function BoardFiles({ board, onDeleted }: BoardFilesProps) {
           <Button
             size="icon-sm"
             variant="ghost"
-            aria-label={`Delete ${board.name}`}
+            aria-label={t("common.deleteItem", { title: board.name })}
             onClick={() => removeBoard.mutate(board.id, { onSuccess: onDeleted })}
           >
             <Trash2 />
@@ -38,7 +40,7 @@ export function BoardFiles({ board, onDeleted }: BoardFilesProps) {
         isLoading={items.isLoading}
         error={items.error}
         isEmpty={files.length === 0}
-        empty={<EmptyState icon={FolderOpen} title="This board is empty" description="Upload photos, receipts or documents (up to 20 MB each)." />}
+        empty={<EmptyState icon={FolderOpen} title={t("fileBoard.empty")} description={t("fileBoard.uploadDescription")} />}
       >
         <FileItemGrid items={files} onOpen={setOpenItem} />
       </DataState>

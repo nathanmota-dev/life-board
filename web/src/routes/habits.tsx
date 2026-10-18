@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { ListChecks, Plus } from "lucide-react"
 import { HabitFormDialog } from "@/components/habits/habit-form-dialog"
@@ -15,6 +16,7 @@ import type { Habit, HabitDialogState } from "@/types/habit"
 const HISTORY_DAYS = lastDays(14)
 
 export function HabitsPage() {
+  const { t } = useTranslation()
   const habits = useHabits()
   const logs = useHabitLogs({ from: HISTORY_DAYS[0] })
   const [dialog, setDialog] = useState<HabitDialogState>({ open: false, habit: null })
@@ -24,12 +26,12 @@ export function HabitsPage() {
 
   return (
     <Page
-      title="Habits"
-      description="Daily goals you check off as you go."
+      title={t("navigation.habits")}
+      description={t("habits.description")}
       actions={
         <Button size="sm" onClick={() => openDialog(null)}>
           <Plus />
-          New habit
+          {t("habits.newHabit")}
         </Button>
       }
     >
@@ -41,9 +43,9 @@ export function HabitsPage() {
           <PageSection>
             <EmptyState
               icon={ListChecks}
-              title="No habits yet"
-              description="Track water, workouts, reading or anything you want to do every day."
-              action={<Button size="sm" onClick={() => openDialog(null)}>Add your first habit</Button>}
+              title={t("habits.empty")}
+              description={t("habits.emptyDescription")}
+              action={<Button size="sm" onClick={() => openDialog(null)}>{t("habits.addFirst")}</Button>}
             />
           </PageSection>
         }
@@ -51,11 +53,11 @@ export function HabitsPage() {
         <PageSection>
           <HabitStats habits={items} logs={logItems} />
         </PageSection>
-        <PageSection title="Today">
+        <PageSection title={t("common.today")}>
           <HabitList habits={items} logs={logItems} onEdit={openDialog} />
         </PageSection>
         <PageSection>
-          <Panel title="Goals met, last 14 days">
+          <Panel title={t("habits.last14Days")}>
             <HabitHistoryChart habits={items} logs={logItems} />
           </Panel>
         </PageSection>

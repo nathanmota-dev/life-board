@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { Trash2 } from "lucide-react"
 import { EventFormFields } from "@/components/calendar/event-form-fields"
@@ -8,6 +9,7 @@ import { emptyEventValues, eventToValues, valuesToEventInput } from "@/lib/calen
 import type { EventFormDialogProps } from "@/types/calendar"
 
 export function EventFormDialog({ open, event, start, onOpenChange }: EventFormDialogProps) {
+  const { t } = useTranslation()
   const [values, setValues] = useState(() => (event ? eventToValues(event) : emptyEventValues(start)))
   const create = useCreateEvent()
   const update = useUpdateEvent()
@@ -27,8 +29,8 @@ export function EventFormDialog({ open, event, start, onOpenChange }: EventFormD
     <DialogForm
       open={open}
       onOpenChange={onOpenChange}
-      title={event ? "Edit event" : "New event"}
-      submitLabel={event ? "Save" : "Create event"}
+      title={event ? t("calendar.editEvent") : t("calendar.newEvent")}
+      submitLabel={event ? t("common.save") : t("calendar.createEvent")}
       isPending={mutation.isPending}
       error={mutation.error ?? remove.error}
       onSubmit={submit}
@@ -36,7 +38,7 @@ export function EventFormDialog({ open, event, start, onOpenChange }: EventFormD
         event ? (
           <Button type="button" variant="ghost" className="text-destructive" onClick={() => remove.mutate(event.id, close)}>
             <Trash2 />
-            Delete
+            {t("common.delete")}
           </Button>
         ) : null
       }

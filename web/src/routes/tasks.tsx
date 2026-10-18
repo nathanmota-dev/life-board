@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useDeferredValue, useState } from "react"
 import { ListTodo, Plus } from "lucide-react"
 import { DataState } from "@/components/shared/data-state"
@@ -9,10 +10,11 @@ import { TaskTable } from "@/components/tasks/task-table"
 import { Button } from "@/components/ui/button"
 import { Page, PageSection } from "@/components/workspace-ui"
 import { useTasks } from "@/hooks/queries/use-tasks"
-import { countByStatus, STATUS_OPTIONS } from "@/lib/tasks"
+import { countByStatus, getTaskStatusOptions } from "@/lib/tasks"
 import type { Task, TaskDialogState, TaskView } from "@/types/task"
 
 export function TasksPage() {
+  const { t } = useTranslation()
   const [view, setView] = useState<TaskView>("all")
   const [search, setSearch] = useState("")
   const [dialog, setDialog] = useState<TaskDialogState>({ open: false, task: null })
@@ -24,23 +26,23 @@ export function TasksPage() {
 
   return (
     <Page
-      title="Tasks"
-      description="Everything you need to get done, by when it matters."
+      title={t("navigation.tasks")}
+      description={t("tasks.description")}
       actions={
         <Button size="sm" onClick={() => openDialog(null)}>
           <Plus />
-          New task
+          {t("tasks.newTask")}
         </Button>
       }
       toolbar={
         <>
           <SegmentedControl
-            label="Task views"
+            label={t("tasks.views")}
             value={view}
             onChange={setView}
-            options={[{ value: "all", label: "All", count: items.length }, ...STATUS_OPTIONS.map((option) => ({ ...option, count: counts[option.value] }))]}
+            options={[{ value: "all", label: t("common.all"), count: items.length }, ...getTaskStatusOptions().map((option) => ({ ...option, count: counts[option.value] }))]}
           />
-          <SearchInput value={search} onChange={setSearch} placeholder="Search tasks" />
+          <SearchInput value={search} onChange={setSearch} placeholder={t("tasks.search")} />
         </>
       }
     >
@@ -52,9 +54,9 @@ export function TasksPage() {
           empty={
             <EmptyState
               icon={ListTodo}
-              title={search ? "No tasks match your search" : "Nothing here"}
-              description="Create a task or pick another view."
-              action={<Button size="sm" variant="outline" onClick={() => openDialog(null)}>New task</Button>}
+              title={search ? t("tasks.noSearchResults") : t("tasks.empty")}
+              description={t("tasks.emptyDescription")}
+              action={<Button size="sm" variant="outline" onClick={() => openDialog(null)}>{t("tasks.newTask")}</Button>}
             />
           }
         >

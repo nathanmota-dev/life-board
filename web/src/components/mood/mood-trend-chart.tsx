@@ -1,11 +1,12 @@
+import { useTranslation } from "react-i18next"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { moodChartData } from "@/lib/mood"
 import type { MoodTrendChartProps } from "@/types/mood"
 
-const chartConfig = { score: { label: "Mood", color: "var(--chart-1)" } } satisfies ChartConfig
-
 export function MoodTrendChart({ entries }: MoodTrendChartProps) {
+  const { t } = useTranslation()
+  const chartConfig = { score: { label: t("navigation.mood"), color: "var(--chart-1)" } } satisfies ChartConfig
   const data = moodChartData(entries)
 
   return data.length > 1 ? (
@@ -25,6 +26,6 @@ export function MoodTrendChart({ entries }: MoodTrendChartProps) {
       </AreaChart>
     </ChartContainer>
   ) : (
-    <p className="py-10 text-center text-sm text-muted-foreground">Log your mood for a couple of days to see the trend.</p>
+    <p className="py-10 text-center text-sm text-muted-foreground">{t("mood.noTrend")}</p>
   )
 }

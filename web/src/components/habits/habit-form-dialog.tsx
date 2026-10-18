@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { DialogForm } from "@/components/shared/dialog-form"
 import { FormField } from "@/components/shared/form-field"
@@ -6,6 +7,7 @@ import { useCreateHabit, useUpdateHabit } from "@/hooks/queries/use-habits"
 import type { HabitFormDialogProps, HabitFormValues } from "@/types/habit"
 
 export function HabitFormDialog({ open, habit, onOpenChange }: HabitFormDialogProps) {
+  const { t } = useTranslation()
   const [values, setValues] = useState<HabitFormValues>({
     name: habit?.name ?? "",
     target: String(habit?.target ?? 1),
@@ -31,22 +33,22 @@ export function HabitFormDialog({ open, habit, onOpenChange }: HabitFormDialogPr
     <DialogForm
       open={open}
       onOpenChange={onOpenChange}
-      title={habit ? "Edit habit" : "New habit"}
-      description="Set a daily goal and log it as you go."
-      submitLabel={habit ? "Save" : "Add habit"}
+      title={habit ? t("habits.editHabit") : t("habits.newHabit")}
+      description={t("habits.formDescription")}
+      submitLabel={habit ? t("common.save") : t("habits.addHabit")}
       isPending={mutation.isPending}
       error={mutation.error}
       onSubmit={submit}
     >
-      <FormField label="Name" htmlFor="habit-name">
-        <Input id="habit-name" autoFocus value={values.name} onChange={set("name")} placeholder="Drink water, read, stretch…" />
+      <FormField label={t("common.name")} htmlFor="habit-name">
+        <Input id="habit-name" autoFocus value={values.name} onChange={set("name")} placeholder={t("habits.namePlaceholder")} />
       </FormField>
       <div className="grid grid-cols-2 gap-3">
-        <FormField label="Daily goal" htmlFor="habit-target">
+        <FormField label={t("habits.dailyGoal")} htmlFor="habit-target">
           <Input id="habit-target" type="number" min={1} value={values.target} onChange={set("target")} />
         </FormField>
-        <FormField label="Unit" htmlFor="habit-unit">
-          <Input id="habit-unit" value={values.unit} onChange={set("unit")} placeholder="glasses" />
+        <FormField label={t("habits.unit")} htmlFor="habit-unit">
+          <Input id="habit-unit" value={values.unit} onChange={set("unit")} placeholder={t("habits.unitPlaceholder")} />
         </FormField>
       </div>
     </DialogForm>

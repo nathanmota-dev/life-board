@@ -5,6 +5,7 @@ import { RouterProvider } from "@tanstack/react-router"
 import { MainLayout } from "@/layout/main-layout"
 import { createQueryClient } from "@/lib/query-client"
 import { createAppRouter } from "@/router"
+import "@/lib/i18n"
 import "./index.css"
 
 const router = createAppRouter(MainLayout)

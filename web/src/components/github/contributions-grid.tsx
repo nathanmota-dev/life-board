@@ -1,7 +1,7 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import type { CSSProperties, PointerEvent } from "react"
 import { formatDate, fromDayKey } from "@/lib/dates"
-import { pluralize } from "@/lib/format"
 import { CONTRIBUTION_LEVELS, contributionGrid, contributionLevelColor, contributionMonthLabels } from "@/lib/github"
 import type { ContributionDay, ContributionTooltip, ContributionsGridProps } from "@/types/github"
 
@@ -10,12 +10,13 @@ const MIN_CELL_PX = 8
 // Keeps the grid from getting too tall when it has a whole wide page to itself.
 const MAX_CELL_PX = 20
 
-function describe(day: ContributionDay) {
-  return `${pluralize(day.count, "contribution")} on ${formatDate(fromDayKey(day.date), { dateStyle: "medium" })}`
-}
-
 /** Yearly grid of square cells sized to fill the container width, between `MIN_CELL_PX` and `MAX_CELL_PX`. */
 export function ContributionsGrid({ contributions }: ContributionsGridProps) {
+  const { t } = useTranslation()
+  const describe = (day: ContributionDay) => t("github.contributionsOn", {
+    count: day.count,
+    date: formatDate(fromDayKey(day.date), { dateStyle: "medium" }),
+  })
   const [tooltip, setTooltip] = useState<ContributionTooltip | null>(null)
   const weeks = contributionGrid(contributions.days)
   const months = contributionMonthLabels(weeks)
@@ -66,13 +67,13 @@ export function ContributionsGrid({ contributions }: ContributionsGridProps) {
           )}
         </div>
         <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
-          <span>{pluralize(contributions.total, "contribution")} in the last year</span>
+          <span>{t("github.contributionsYear", { count: contributions.total })}</span>
           <span className="flex items-center gap-1">
-            Less
+            {t("github.less")}
             {CONTRIBUTION_LEVELS.map((level) => (
               <span key={level} className="size-2.5 rounded-[2px]" style={{ backgroundColor: contributionLevelColor(level) }} />
             ))}
-            More
+            {t("github.more")}
           </span>
         </div>
       </div>

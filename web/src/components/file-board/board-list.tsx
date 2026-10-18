@@ -1,10 +1,11 @@
+import { useTranslation } from "react-i18next"
 import { ChevronRight, Layers } from "lucide-react"
 import { formatRelativeDay } from "@/lib/dates"
-import { capitalize } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { BoardListProps } from "@/types/file-board"
 
 export function BoardList({ boards, selectedId, onSelect }: BoardListProps) {
+  const { t } = useTranslation()
   return (
     <ul className="flex flex-col divide-y">
       {boards.map((board) => (
@@ -24,7 +25,7 @@ export function BoardList({ boards, selectedId, onSelect }: BoardListProps) {
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">{board.name}</span>
               <span className="block truncate text-xs text-muted-foreground">
-                {capitalize(board.kind)} · updated {formatRelativeDay(board.updatedAt)}
+                {t("fileBoard.updatedOn", { kind: t(`boardKinds.${board.kind}`), date: formatRelativeDay(board.updatedAt) })}
               </span>
             </span>
             <ChevronRight className="size-4 text-muted-foreground" />

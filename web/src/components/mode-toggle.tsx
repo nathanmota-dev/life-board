@@ -1,10 +1,12 @@
+import { useTranslation } from "react-i18next"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 
 export function ModeToggle() {
+  const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
   const isDark = theme === "dark"
-  const label = isDark ? "Ativar tema claro" : "Ativar tema escuro"
+  const label = isDark ? t("settings.appearance.activateLight") : t("settings.appearance.activateDark")
 
   return (
     <Button

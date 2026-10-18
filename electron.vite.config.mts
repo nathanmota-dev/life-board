@@ -23,6 +23,7 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(root, "web"),
+    publicDir: resolve(root, "public"),
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: { "@": resolve(root, "web/src") },

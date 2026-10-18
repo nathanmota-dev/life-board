@@ -1,3 +1,5 @@
+import { getLocale } from "@/lib/i18n"
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /** Local calendar day as YYYY-MM-DD (the format the API uses for mood and habits). */
@@ -45,17 +47,17 @@ export function lastDays(count: number, today: Date = new Date()) {
 }
 
 export function formatDate(value: string | Date, options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }) {
-  return new Intl.DateTimeFormat(undefined, options).format(new Date(value))
+  return new Intl.DateTimeFormat(getLocale(), options).format(new Date(value))
 }
 
 export function formatTime(value: string | Date) {
-  return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(new Date(value))
+  return new Intl.DateTimeFormat(getLocale(), { hour: "2-digit", minute: "2-digit" }).format(new Date(value))
 }
 
 /** "today", "tomorrow", "3 days ago"… relative to the current local day. */
 export function formatRelativeDay(value: string | Date, now: Date = new Date()) {
   const days = Math.round((startOfDay(new Date(value)).getTime() - startOfDay(now).getTime()) / DAY_MS)
-  return new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(days, "day")
+  return new Intl.RelativeTimeFormat(getLocale(), { numeric: "auto" }).format(days, "day")
 }
 
 /** ISO timestamp → value for an `<input type="date">`. */

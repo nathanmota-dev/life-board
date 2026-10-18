@@ -1,8 +1,10 @@
+import { useTranslation } from "react-i18next"
 import { CircleCheck, Circle } from "lucide-react"
 import { useResolvedLinks } from "@/hooks/queries/use-links"
 import type { GoalLinkedTasksProps } from "@/types/goal"
 
 export function GoalLinkedTasks({ taskIds }: GoalLinkedTasksProps) {
+  const { t } = useTranslation()
   const links = useResolvedLinks({ taskIds })
   const tasks = (links.data ?? []).flatMap((link) => (link.moduleId === "tasks" ? [link.entity] : []))
 
@@ -16,6 +18,6 @@ export function GoalLinkedTasks({ taskIds }: GoalLinkedTasksProps) {
       ))}
     </ul>
   ) : (
-    <p className="text-sm text-muted-foreground">No linked tasks.</p>
+    <p className="text-sm text-muted-foreground">{t("goals.noLinkedTasks")}</p>
   )
 }

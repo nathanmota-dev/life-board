@@ -1,9 +1,11 @@
+import { useTranslation } from "react-i18next"
 import { CalendarDays, NotebookPen, Smile, TrendingUp } from "lucide-react"
 import { StatCard } from "@/components/shared/stat-card"
 import { averageMood, moodOption } from "@/lib/mood"
 import type { MoodStatsProps } from "@/types/mood"
 
 export function MoodStats({ entries, today }: MoodStatsProps) {
+  const { t } = useTranslation()
   const todayEntry = today?.entry
   const week = averageMood(entries, 7)
   const month = averageMood(entries, 30)
@@ -12,13 +14,13 @@ export function MoodStats({ entries, today }: MoodStatsProps) {
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
         icon={Smile}
-        label="Today"
-        value={todayEntry ? `${moodOption(todayEntry.score).emoji} ${moodOption(todayEntry.score).label}` : "Not logged"}
-        hint="Your check-in for today"
+        label={t("common.today")}
+        value={todayEntry ? `${moodOption(todayEntry.score).emoji} ${moodOption(todayEntry.score).label}` : t("dashboard.notLogged")}
+        hint={t("mood.todayCheckIn")}
       />
-      <StatCard icon={TrendingUp} label="Last 7 days" value={week ?? "—"} hint="Average score out of 5" />
-      <StatCard icon={CalendarDays} label="Last 30 days" value={month ?? "—"} hint="Average score out of 5" />
-      <StatCard icon={NotebookPen} label="Entries" value={entries.length} hint="Days you checked in" />
+      <StatCard icon={TrendingUp} label={t("common.last7Days")} value={week ?? "—"} hint={t("mood.averageScore")} />
+      <StatCard icon={CalendarDays} label={t("common.last30Days")} value={month ?? "—"} hint={t("mood.averageScore")} />
+      <StatCard icon={NotebookPen} label={t("mood.entries")} value={entries.length} hint={t("mood.daysCheckedIn")} />
     </div>
   )
 }

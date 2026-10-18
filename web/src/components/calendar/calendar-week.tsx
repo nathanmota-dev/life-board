@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { AllDayChip } from "@/components/calendar/all-day-chip"
 import { DayColumn } from "@/components/calendar/day-column"
 import { HOUR_HEIGHT, HOURS } from "@/lib/calendar"
@@ -8,6 +9,7 @@ import type { CalendarWeekProps } from "@/types/calendar"
 const GRID = "grid grid-cols-[4rem_repeat(7,minmax(7rem,1fr))]"
 
 export function CalendarWeek({ days, layout, onCreate, onOpen }: CalendarWeekProps) {
+  const { t } = useTranslation()
   const today = new Date()
 
   return (
@@ -28,7 +30,7 @@ export function CalendarWeek({ days, layout, onCreate, onOpen }: CalendarWeekPro
               ))}
             </div>
             <div className={cn(GRID, "border-b bg-muted/30")}>
-              <div className="px-2 py-1.5 text-right text-[11px] text-muted-foreground">All day</div>
+              <div className="px-2 py-1.5 text-right text-[11px] text-muted-foreground">{t("calendar.allDay")}</div>
               {layout.allDay.map((events, index) => (
                 <div key={index} className="flex min-h-8 flex-col gap-1 border-l p-1">
                   {events.map((event) => (

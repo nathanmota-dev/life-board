@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { DialogForm } from "@/components/shared/dialog-form"
 import { TaskBacklinks } from "@/components/tasks/task-backlinks"
@@ -7,6 +8,7 @@ import { emptyTaskValues, taskToValues, valuesToInput } from "@/lib/tasks"
 import type { TaskFormDialogProps } from "@/types/task"
 
 export function TaskFormDialog({ open, task, defaultStatus, onOpenChange }: TaskFormDialogProps) {
+  const { t } = useTranslation()
   const [values, setValues] = useState(() => (task ? taskToValues(task) : emptyTaskValues(defaultStatus)))
   const create = useCreateTask()
   const update = useUpdateTask()
@@ -25,8 +27,8 @@ export function TaskFormDialog({ open, task, defaultStatus, onOpenChange }: Task
     <DialogForm
       open={open}
       onOpenChange={onOpenChange}
-      title={task ? "Edit task" : "New task"}
-      submitLabel={task ? "Save" : "Create task"}
+      title={task ? t("tasks.editTask") : t("tasks.newTask")}
+      submitLabel={task ? t("common.save") : t("tasks.createTask")}
       isPending={mutation.isPending}
       error={mutation.error}
       onSubmit={submit}

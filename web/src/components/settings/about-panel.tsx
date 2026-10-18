@@ -1,14 +1,16 @@
+import { useTranslation } from "react-i18next"
 import { Panel, Status } from "@/components/workspace-ui"
 
 export function AboutPanel() {
+  const { t } = useTranslation()
+
   return (
-    <Panel title="About Life Board">
+    <Panel title={t("settings.about.title")}>
       <div className="mb-3">
-        <Status value="Local" />
+        <Status value={t("settings.about.local")} />
       </div>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        Life Board is your personal board for tasks, calendar, goals, GitHub, habits and everything else you want to keep
-        track of. Everything is stored on this computer.
+        {t("settings.about.description")}
       </p>
     </Panel>
   )

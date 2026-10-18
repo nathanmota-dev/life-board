@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Check, RotateCcw } from "lucide-react"
 import { useAccent } from "@/components/accent-provider"
 import { Button } from "@/components/ui/button"
@@ -8,6 +9,7 @@ import { ACCENT_PRESETS, DEFAULT_ACCENT, isHexColor } from "@/lib/accent"
 import { cn } from "@/lib/utils"
 
 export function AccentPanel() {
+  const { t } = useTranslation()
   const { accent, setAccent, resetAccent } = useAccent()
   const [draft, setDraft] = useState(accent)
 
@@ -15,21 +17,21 @@ export function AccentPanel() {
 
   return (
     <Panel
-      title="Accent color"
+      title={t("settings.accent.title")}
       action={
         <Button variant="ghost" size="sm" disabled={accent === DEFAULT_ACCENT} onClick={resetAccent}>
           <RotateCcw />
-          Reset
+          {t("settings.accent.reset")}
         </Button>
       }
     >
-      <p className="mb-4 text-sm text-muted-foreground">Used by buttons, highlights and charts across the app.</p>
+      <p className="mb-4 text-sm text-muted-foreground">{t("settings.accent.description")}</p>
       <div className="flex flex-wrap items-center gap-2">
         {ACCENT_PRESETS.map((color) => (
           <button
             key={color}
             type="button"
-            aria-label={`Use ${color}`}
+            aria-label={t("settings.accent.useColor", { color })}
             aria-pressed={accent.toLowerCase() === color.toLowerCase()}
             onClick={() => setAccent(color)}
             className="flex size-8 cursor-pointer items-center justify-center rounded-full border border-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -39,7 +41,7 @@ export function AccentPanel() {
           </button>
         ))}
         <label className="relative flex size-8 cursor-pointer items-center justify-center overflow-hidden rounded-full border bg-[conic-gradient(red,yellow,lime,aqua,blue,magenta,red)]">
-          <span className="sr-only">Pick a custom color</span>
+          <span className="sr-only">{t("settings.accent.customColor")}</span>
           <input
             type="color"
             value={accent}
@@ -48,7 +50,7 @@ export function AccentPanel() {
           />
         </label>
         <Input
-          aria-label="Accent hex code"
+          aria-label={t("settings.accent.hexCode")}
           value={draft}
           maxLength={7}
           onChange={(event) => {
@@ -60,7 +62,7 @@ export function AccentPanel() {
       </div>
       <div className="mt-5 flex items-end gap-3 rounded-xl border bg-muted/30 p-4" aria-hidden="true">
         <Button size="sm" tabIndex={-1}>
-          Primary button
+          {t("settings.accent.preview")}
         </Button>
         <div className="flex h-10 flex-1 items-end gap-1">
           {[40, 70, 55, 90, 65, 80, 50].map((height, index) => (

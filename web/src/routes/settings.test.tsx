@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
+import { LANGUAGE_STORAGE_KEY } from "@/lib/i18n"
 import { SettingsPage } from "@/routes/settings"
 import { mockApi, resetApiMock } from "@/test/mock-api"
 import { renderWithProviders } from "@/test/render-with-providers"
@@ -27,6 +28,34 @@ describe("SettingsPage", () => {
     expect(screen.getByRole("button", { name: /light/i })).toHaveAttribute("aria-pressed", "false")
     expect(document.documentElement).toHaveClass("dark")
     expect(localStorage.getItem("life-board-theme")).toBe("dark")
+  })
+
+  it("switches languages immediately and saves the preference", async () => {
+    renderWithProviders(<SettingsPage />)
+    expect(await screen.findByRole("tablist", { name: "App language" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "EN" })).toHaveAttribute("aria-selected", "true")
+
+    fireEvent.click(screen.getByRole("tab", { name: "PT" }))
+
+    expect(await screen.findByRole("heading", { name: "Configurações", level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "Geral" })).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByRole("heading", { name: "Aparência" })).toBeInTheDocument()
+    expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("pt")
+    expect(document.documentElement.lang).toBe("pt-BR")
+
+    fireEvent.click(screen.getByRole("tab", { name: "EN" }))
+
+    expect(await screen.findByRole("heading", { name: "Settings", level: 1 })).toBeInTheDocument()
+    expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("en")
+    expect(document.documentElement.lang).toBe("en")
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch language" }))
+    expect(await screen.findByRole("tab", { name: "PT" })).toHaveAttribute("aria-selected", "true")
+    expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("pt")
+
+    fireEvent.click(screen.getByRole("button", { name: "Trocar idioma" }))
+    expect(await screen.findByRole("tab", { name: "EN" })).toHaveAttribute("aria-selected", "true")
+    expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("en")
   })
 
   it("defaults the accent to orange and applies a new one everywhere", async () => {

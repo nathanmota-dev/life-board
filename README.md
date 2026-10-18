@@ -37,9 +37,9 @@ de contexto continua habilitado; o app empacotado mantém o sandbox padrão.
 - `electron.vite.config.mts`: configuração do main, preload e frontend Vite.
 
 As rotas usam hash history para funcionar também com `file://` no Electron
-compilado. A entrada `/` redireciona para `/dashboard`. Dashboard é a única
-página disponível; Settings permanece desabilitado no rodapé. A busca filtra
-os itens de navegação. Os novos arquivos React seguem kebab-case.
+compilado. A entrada `/` redireciona para `/dashboard`. Os módulos ficam na
+sidebar, com Settings no rodapé. A busca encontra as páginas pelo nome
+traduzido ou pelo caminho. Os novos arquivos React seguem kebab-case.
 
 O React não acessa o Node diretamente. Para novas funcionalidades, exponha
 métodos específicos no preload e registre os handlers no processo principal.
@@ -90,6 +90,20 @@ A cor de destaque (Settings → General) muda `--brand` no `:root`; botões, an�
 de foco e gráficos (`--chart-1…5`) derivam dela. O padrão é `#FF892B`.
 O token do GitHub é configurado em Settings → GitHub e alimenta o gráfico de
 contribuições do Dashboard pela rota `/api/github/contributions`.
+
+## Idiomas
+
+O app usa i18next e react-i18next, com os dicionários em `public/i18n/pt.json`
+e `public/i18n/en.json`. Na primeira abertura, detecta o idioma do navegador
+ou sistema; variantes como `pt-BR` e `en-US` usam `pt` e `en`. O fallback é inglês.
+Em Settings → General → Language, a escolha muda a interface imediatamente e
+fica salva em `localStorage` na chave `life-board-language`.
+
+Todas as páginas usam o idioma escolhido, incluindo datas, filtros e contagens.
+As URLs continuam iguais, sem prefixos de idioma. Os JSONs são incluídos no
+bundle para funcionar offline no Electron e copiados para `out/renderer/i18n/`.
+Para novos textos, adicione a mesma chave aos dois arquivos e use `useTranslation()`
+no componente. Opções traduzidas devem ser calculadas durante a renderização.
 
 Para alterar o banco, edite `api/src/db/schema/` e gere uma migration:
 

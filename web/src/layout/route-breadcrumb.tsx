@@ -1,17 +1,19 @@
 import { Link, useMatches } from "@tanstack/react-router"
+import { useTranslation } from "react-i18next"
 
 export function RouteBreadcrumb() {
+  const { t } = useTranslation()
   const breadcrumbs = useMatches({
     select: (matches) =>
       matches.flatMap((match) =>
-        match.staticData.title
-          ? [{ id: match.id, title: match.staticData.title, to: match.pathname }]
+        match.staticData.titleKey
+          ? [{ id: match.id, titleKey: match.staticData.titleKey, to: match.pathname }]
           : [],
       ),
   })
 
   return (
-    <nav aria-label="Caminho da página" className="min-w-0 overflow-x-auto">
+    <nav aria-label={t("navigation.breadcrumb")} className="min-w-0 overflow-x-auto">
       <ol className="flex items-center gap-2 whitespace-nowrap text-sm">
         {breadcrumbs.map((breadcrumb, index) => {
           const isCurrentPage = index === breadcrumbs.length - 1
@@ -25,7 +27,7 @@ export function RouteBreadcrumb() {
               )}
               {isCurrentPage ? (
                 <span aria-current="page" className="font-medium">
-                  {breadcrumb.title}
+                  {t(breadcrumb.titleKey)}
                 </span>
               ) : (
                 <Link
@@ -33,7 +35,7 @@ export function RouteBreadcrumb() {
                   activeOptions={{ exact: true }}
                   className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  {breadcrumb.title}
+                  {t(breadcrumb.titleKey)}
                 </Link>
               )}
             </li>

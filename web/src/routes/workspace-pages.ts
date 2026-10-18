@@ -26,16 +26,16 @@ import { TasksPage } from "@/routes/tasks"
 import { ThoughtsPage } from "@/routes/thoughts"
 
 export const workspacePages = [
-  { path: "inbox", title: "Inbox", icon: Inbox, component: InboxPage },
-  { path: "activity", title: "Activity", icon: Activity, component: ActivityPage },
-  { path: "tags", title: "Tags", icon: Tags, component: TagsPage },
-  { path: "thoughts", title: "Thoughts", icon: Lightbulb, component: ThoughtsPage },
-  { path: "tasks", title: "Tasks", icon: ListTodo, component: TasksPage },
-  { path: "calendar", title: "Calendar", icon: CalendarDays, component: CalendarPage },
-  { path: "goals", title: "Goals", icon: Target, component: GoalsPage },
-  { path: "projects", title: "Projects", icon: Rocket, component: ProjectsPage },
-  { path: "habits", title: "Habits", icon: ListChecks, component: HabitsPage },
-  { path: "github", title: "GitHub", icon: GitPullRequest, component: GitHubPage },
-  { path: "file-board", title: "File Board", icon: FolderKanban, component: FileBoardPage },
-  { path: "mood", title: "Mood", icon: Smile, component: MoodPage },
+  { path: "inbox", titleKey: "navigation.inbox", icon: Inbox, component: InboxPage },
+  { path: "activity", titleKey: "navigation.activity", icon: Activity, component: ActivityPage },
+  { path: "tags", titleKey: "navigation.tags", icon: Tags, component: TagsPage },
+  { path: "thoughts", titleKey: "navigation.thoughts", icon: Lightbulb, component: ThoughtsPage },
+  { path: "tasks", titleKey: "navigation.tasks", icon: ListTodo, component: TasksPage },
+  { path: "calendar", titleKey: "navigation.calendar", icon: CalendarDays, component: CalendarPage },
+  { path: "goals", titleKey: "navigation.goals", icon: Target, component: GoalsPage },
+  { path: "projects", titleKey: "navigation.projects", icon: Rocket, component: ProjectsPage },
+  { path: "habits", titleKey: "navigation.habits", icon: ListChecks, component: HabitsPage },
+  { path: "github", titleKey: "navigation.github", icon: GitPullRequest, component: GitHubPage },
+  { path: "file-board", titleKey: "navigation.file-board", icon: FolderKanban, component: FileBoardPage },
+  { path: "mood", titleKey: "navigation.mood", icon: Smile, component: MoodPage },
 ] as const

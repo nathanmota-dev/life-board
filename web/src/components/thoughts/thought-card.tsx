@@ -1,15 +1,16 @@
+import { useTranslation } from "react-i18next"
 import { Pencil, Pin, PinOff, Trash2 } from "lucide-react"
 import { RowActions } from "@/components/shared/row-actions"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { TagList } from "@/components/shared/tag-list"
 import { useRemoveThought, useUpdateThought } from "@/hooks/queries/use-thoughts"
 import { formatRelativeDay } from "@/lib/dates"
-import { pluralize } from "@/lib/format"
 import { stripHtml, thoughtTitle } from "@/lib/thoughts"
 import { cn } from "@/lib/utils"
 import type { ThoughtCardProps } from "@/types/thought"
 
 export function ThoughtCard({ thought, onEdit }: ThoughtCardProps) {
+  const { t } = useTranslation()
   const update = useUpdateThought()
   const remove = useRemoveThought()
 
@@ -22,33 +23,33 @@ export function ThoughtCard({ thought, onEdit }: ThoughtCardProps) {
             <h3 className="truncate text-sm font-medium hover:underline">{thoughtTitle(thought)}</h3>
           </button>
           <RowActions
-            label={`${thoughtTitle(thought)} actions`}
+            label={t("common.itemActions", { title: thoughtTitle(thought) })}
             actions={[
-              { label: "Edit", icon: Pencil, onSelect: () => onEdit(thought) },
+              { label: t("common.edit"), icon: Pencil, onSelect: () => onEdit(thought) },
               {
-                label: thought.pinned ? "Unpin" : "Pin",
+                label: thought.pinned ? t("thoughts.unpin") : t("thoughts.pin"),
                 icon: thought.pinned ? PinOff : Pin,
                 onSelect: () => update.mutate({ id: thought.id, input: { pinned: !thought.pinned } }),
               },
-              { label: "Delete", icon: Trash2, destructive: true, onSelect: () => remove.mutate(thought.id) },
+              { label: t("common.delete"), icon: Trash2, destructive: true, onSelect: () => remove.mutate(thought.id) },
             ]}
           />
         </div>
-        <p className="line-clamp-3 text-sm whitespace-pre-line text-muted-foreground">{stripHtml(thought.body) || "No details yet."}</p>
+        <p className="line-clamp-3 text-sm whitespace-pre-line text-muted-foreground">{stripHtml(thought.body) || t("common.noDetailsYet")}</p>
       </div>
       <dl className="flex flex-col gap-2.5 rounded-xl border bg-card px-3 py-3 text-sm">
         <div className="flex items-center justify-between gap-2">
-          <dt className="text-muted-foreground">Status</dt>
+          <dt className="text-muted-foreground">{t("common.status")}</dt>
           <dd>
-            <StatusBadge label={thought.pinned ? "Pinned" : "Note"} tone={thought.pinned ? "brand" : "info"} />
+            <StatusBadge label={thought.pinned ? t("thoughts.pinned") : t("common.note")} tone={thought.pinned ? "brand" : "info"} />
           </dd>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <dt className="text-muted-foreground">Linked</dt>
-          <dd className="rounded-md border px-2 py-0.5 text-xs">{pluralize(thought.linkedTaskIds.length, "task")}</dd>
+          <dt className="text-muted-foreground">{t("thoughts.linked")}</dt>
+          <dd className="rounded-md border px-2 py-0.5 text-xs">{t("counts.task", { count: thought.linkedTaskIds.length })}</dd>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <dt className="text-muted-foreground">Created</dt>
+          <dt className="text-muted-foreground">{t("common.created")}</dt>
           <dd className="rounded-md border px-2 py-0.5 text-xs">{formatRelativeDay(thought.createdAt)}</dd>
         </div>
         {thought.tags.length > 0 ? <TagList tags={thought.tags} /> : null}

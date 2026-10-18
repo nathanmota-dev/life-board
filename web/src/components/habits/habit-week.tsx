@@ -1,10 +1,12 @@
+import { useTranslation } from "react-i18next"
 import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { HabitWeekProps } from "@/types/habit"
 
 export function HabitWeek({ week }: HabitWeekProps) {
+  const { t } = useTranslation()
   return (
-    <ol className="flex gap-1" aria-label="Last 7 days">
+    <ol className="flex gap-1" aria-label={t("common.last7Days")}>
       {week.map((day) => (
         <li
           key={day.day}
@@ -14,7 +16,7 @@ export function HabitWeek({ week }: HabitWeekProps) {
             day.done && "border-primary bg-primary text-primary-foreground",
           )}
         >
-          {day.done ? <Check className="size-3" aria-label="Goal met" /> : day.label}
+          {day.done ? <Check className="size-3" aria-label={t("habits.goalMet")} /> : day.label}
         </li>
       ))}
     </ol>

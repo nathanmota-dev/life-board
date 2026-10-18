@@ -1,10 +1,11 @@
 import { addDays, startOfDay } from "@/lib/dates"
+import { i18n } from "@/lib/i18n"
 import type { CalendarEvent } from "@/types/calendar"
 import type { Task } from "@/types/task"
 
 export function greeting(now = new Date()) {
   const hour = now.getHours()
-  return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
+  return hour < 12 ? i18n.t("dashboard.goodMorning") : hour < 18 ? i18n.t("dashboard.goodAfternoon") : i18n.t("dashboard.goodEvening")
 }
 
 /** Today's plan: tasks marked for today plus anything due today or overdue. */

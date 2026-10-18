@@ -10,6 +10,7 @@ import {
 import { Dashboard } from "@/routes/dashboard"
 import { SettingsPage } from "@/routes/settings"
 import { workspacePages } from "@/routes/workspace-pages"
+import type { NavigationTitleKey } from "@/types/i18n"
 
 export function createAppRouter(sidebarLayout: RouteComponent) {
   const rootRoute = createRootRoute({ component: Outlet })
@@ -26,14 +27,14 @@ export function createAppRouter(sidebarLayout: RouteComponent) {
     getParentRoute: () => rootRoute,
     id: "sidebar",
     component: sidebarLayout,
-    staticData: { title: "Workspace" },
+    staticData: { titleKey: "navigation.workspace" },
   })
 
   const dashboardRoute = createRoute({
     getParentRoute: () => sidebarRoute,
     path: "dashboard",
     component: Outlet,
-    staticData: { title: "Dashboard" },
+    staticData: { titleKey: "navigation.dashboard" },
   })
 
   const dashboardIndexRoute = createRoute({
@@ -46,7 +47,7 @@ export function createAppRouter(sidebarLayout: RouteComponent) {
     getParentRoute: () => sidebarRoute,
     path: "settings",
     component: SettingsPage,
-    staticData: { title: "Settings" },
+    staticData: { titleKey: "navigation.settings" },
   })
 
   const routeTree = rootRoute.addChildren([
@@ -59,7 +60,7 @@ export function createAppRouter(sidebarLayout: RouteComponent) {
           getParentRoute: () => sidebarRoute,
           path: page.path,
           component: page.component,
-          staticData: { title: page.title },
+          staticData: { titleKey: page.titleKey },
         }),
       ),
     ]),
@@ -73,7 +74,7 @@ export function createAppRouter(sidebarLayout: RouteComponent) {
 
 declare module "@tanstack/react-router" {
   interface StaticDataRouteOption {
-    title?: string
+    titleKey?: NavigationTitleKey
   }
 
   interface Register {

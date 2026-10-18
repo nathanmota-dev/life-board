@@ -1,11 +1,13 @@
+import { useTranslation } from "react-i18next"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { useLogHabit } from "@/hooks/queries/use-habits"
-import { habitProgress } from "@/lib/habits"
+import { habitProgress, habitUnit } from "@/lib/habits"
 import type { HabitsTodayListProps } from "@/types/dashboard"
 
 export function HabitsTodayList({ habits }: HabitsTodayListProps) {
+  const { t } = useTranslation()
   const log = useLogHabit()
 
   return (
@@ -16,15 +18,15 @@ export function HabitsTodayList({ habits }: HabitsTodayListProps) {
             <div className="mb-1.5 flex items-center justify-between gap-2 text-sm">
               <span className="truncate font-medium">{habit.name}</span>
               <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                {habit.todayCount}/{habit.target} {habit.unit}
+                {habit.todayCount}/{habit.target} {habitUnit(habit.unit)}
               </span>
             </div>
-            <Progress value={habitProgress(habit)} aria-label={`${habit.name} progress`} className="h-1.5" />
+            <Progress value={habitProgress(habit)} aria-label={t("common.itemProgress", { title: habit.name })} className="h-1.5" />
           </div>
           <Button
             size="icon-sm"
             variant="outline"
-            aria-label={`Log ${habit.name}`}
+            aria-label={t("habits.log", { name: habit.name })}
             disabled={log.isPending}
             onClick={() => log.mutate({ id: habit.id, input: { delta: 1 } })}
           >

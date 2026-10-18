@@ -1,4 +1,5 @@
 import * as React from "react"
+import { getLocale } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import * as RechartsPrimitive from "recharts"
 import type { TooltipValueType } from "recharts"
@@ -252,7 +253,7 @@ function ChartTooltipContent({
                       {item.value != null && (
                         <span className="font-mono font-medium text-foreground tabular-nums">
                           {typeof item.value === "number"
-                            ? item.value.toLocaleString()
+                            ? item.value.toLocaleString(getLocale())
                             : String(item.value)}
                         </span>
                       )}

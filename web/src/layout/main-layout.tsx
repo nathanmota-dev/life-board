@@ -1,4 +1,5 @@
 import { Outlet } from "@tanstack/react-router"
+import { useTranslation } from "react-i18next"
 import { AccentProvider } from "@/components/accent-provider"
 import { AppSidebar } from "@/components/app-sidebar"
 import { CommandPaletteProvider } from "@/components/command-palette"
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/sidebar"
 
 function WorkspaceHeader() {
+  const { t } = useTranslation()
   const { state, isMobile } = useSidebar()
   const showSidebarTrigger = state === "collapsed" || isMobile
 
@@ -22,7 +24,7 @@ function WorkspaceHeader() {
       {showSidebarTrigger && (
         <>
           <SidebarTrigger
-            aria-label="Abrir sidebar"
+            aria-label={t("navigation.openSidebar")}
             className="size-8 shrink-0 rounded-lg text-muted-foreground"
           />
           <Separator orientation="vertical" className="mx-1 h-4!" />

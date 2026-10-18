@@ -1,9 +1,11 @@
+import { useTranslation } from "react-i18next"
 import { Lock } from "lucide-react"
 import { formatDate } from "@/lib/dates"
 import { openExternal } from "@/lib/external"
 import type { RecentRepoCardProps } from "@/types/github"
 
 export function RecentRepoCard({ repo }: RecentRepoCardProps) {
+  const { t } = useTranslation()
   const [owner, name] = repo.fullName.split("/")
 
   return (
@@ -16,7 +18,7 @@ export function RecentRepoCard({ repo }: RecentRepoCardProps) {
       <span className="min-w-0">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-sm font-medium">{name}</span>
-          {repo.private ? <Lock className="size-3 shrink-0 text-muted-foreground" aria-label="Private" /> : null}
+          {repo.private ? <Lock className="size-3 shrink-0 text-muted-foreground" aria-label={t("github.private")} /> : null}
         </span>
         <span className="block truncate text-xs text-muted-foreground">{owner}</span>
       </span>

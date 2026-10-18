@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Trans, useTranslation } from "react-i18next"
 import { KeyRound } from "lucide-react"
 import { FormField } from "@/components/shared/form-field"
 import { Button } from "@/components/ui/button"
@@ -7,6 +8,7 @@ import { useConnectGithub } from "@/hooks/queries/use-github"
 import { errorMessage } from "@/lib/format"
 
 export function GithubTokenForm() {
+  const { t } = useTranslation()
   const [token, setToken] = useState("")
   const [orgFilter, setOrgFilter] = useState("")
   const connect = useConnectGithub()
@@ -20,10 +22,12 @@ export function GithubTokenForm() {
       }}
     >
       <p className="text-sm text-muted-foreground">
-        Paste a GitHub personal access token (classic) with the <code className="rounded bg-muted px-1">repo</code> and{" "}
-        <code className="rounded bg-muted px-1">read:user</code> scopes. It is encrypted and stored only on this computer.
+        <Trans
+          i18nKey="settings.github.tokenDescription"
+          components={{ code: <code className="rounded bg-muted px-1" /> }}
+        />
       </p>
-      <FormField label="Personal access token" htmlFor="github-token">
+      <FormField label={t("settings.github.token")} htmlFor="github-token">
         <Input
           id="github-token"
           type="password"
@@ -33,14 +37,14 @@ export function GithubTokenForm() {
           onChange={(event) => setToken(event.target.value)}
         />
       </FormField>
-      <FormField label="Only this owner or organization (optional)" htmlFor="github-org">
-        <Input id="github-org" placeholder="my-company" value={orgFilter} onChange={(event) => setOrgFilter(event.target.value)} />
+      <FormField label={t("settings.github.organization")} htmlFor="github-org">
+        <Input id="github-org" placeholder={t("settings.github.organizationPlaceholder")} value={orgFilter} onChange={(event) => setOrgFilter(event.target.value)} />
       </FormField>
       {connect.error ? <p className="text-sm text-destructive">{errorMessage(connect.error)}</p> : null}
       <div>
         <Button type="submit" disabled={token.trim().length < 20 || connect.isPending}>
           <KeyRound />
-          {connect.isPending ? "Checking token…" : "Connect GitHub"}
+          {connect.isPending ? t("settings.github.checking") : t("settings.github.connect")}
         </Button>
       </div>
     </form>
