@@ -75,6 +75,44 @@ describe("GithubClient", () => {
     )
   })
 
+  it("ranks repositories by the user's own latest contribution", async () => {
+    const repo = (name: string) => ({ nameWithOwner: name, url: `https://github.com/${name}`, description: null, isPrivate: false, stargazerCount: 0, primaryLanguage: null })
+    const byRepo = (name: string, occurredAt?: string) => ({ repository: repo(name), contributions: { nodes: occurredAt ? [{ occurredAt }] : [] } })
+    const fetchMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) =>
+      json({
+        data: {
+          user: {
+            contributionsCollection: {
+              commitContributionsByRepository: [byRepo("me/old", "2026-01-01T00:00:00Z"), byRepo("org/busy", "2026-05-01T00:00:00Z")],
+              pullRequestContributionsByRepository: [byRepo("org/busy", "2026-10-10T00:00:00Z"), byRepo("me/empty")],
+              pullRequestReviewContributionsByRepository: [byRepo("org/reviewed", "2026-09-01T00:00:00Z")],
+              issueContributionsByRepository: [byRepo("org/busy", "2026-02-01T00:00:00Z")],
+            },
+          },
+        },
+      }),
+    )
+
+    const repos = await new GithubClient(fetchMock).getContributedRepos("t", "me", 2)
+    expect(repos.map((entry) => [entry.repository.nameWithOwner, entry.lastContributedAt])).toEqual([
+      ["org/busy", "2026-10-10T00:00:00Z"],
+      ["org/reviewed", "2026-09-01T00:00:00Z"],
+    ])
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body))
+    expect(body.variables).toEqual({ login: "me" })
+    expect(body.query).toContain("commitContributionsByRepository(maxRepositories: 100)")
+    expect(body.query).toContain("orderBy: { field: OCCURRED_AT, direction: DESC }")
+  })
+
+  it("raises when GraphQL returns no repositories", async () => {
+    await expect(
+      new GithubClient(async () => json({ errors: [{ message: "Bad query" }] })).getContributedRepos("t", "me", 4),
+    ).rejects.toThrow("Bad query")
+    await expect(new GithubClient(async () => json({ data: { user: null } })).getContributedRepos("t", "me", 4)).rejects.toThrow(
+      "GitHub returned no repositories.",
+    )
+  })
+
   it("uses the global fetch by default", async () => {
     const original = globalThis.fetch
     globalThis.fetch = vi.fn(async () => json({ login: "global" }))

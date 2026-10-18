@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod"
 import { okResponse } from "../dto/common.dto"
-import { connectGithubBody, listIssuesQuery, listPrsQuery } from "../dto/github.dto"
+import { connectGithubBody, listIssuesQuery, listPrsQuery, recentReposQuery } from "../dto/github.dto"
 
 export const githubController: FastifyPluginAsyncZod = async (app) => {
   const { github } = app.services
@@ -19,6 +19,10 @@ export const githubController: FastifyPluginAsyncZod = async (app) => {
   app.post("/github/sync", () => github.sync())
 
   app.get("/github/contributions", () => github.contributions())
+
+  app.get("/github/repos/recent", { schema: { querystring: recentReposQuery } }, async (request) => ({
+    items: await github.recentRepos(request.query),
+  }))
 
   app.get("/github/prs", { schema: { querystring: listPrsQuery } }, async (request) => ({
     items: await github.listPrs(request.query),

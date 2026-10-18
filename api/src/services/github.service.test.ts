@@ -68,6 +68,23 @@ function fakeClient(overrides: Partial<Record<keyof GithubClient, unknown>> = {}
         },
       ],
     })),
+    getContributedRepos: vi.fn(async () => [
+      {
+        repository: {
+          nameWithOwner: "me/app",
+          url: "https://github.com/me/app",
+          description: "My app",
+          isPrivate: true,
+          stargazerCount: 3,
+          primaryLanguage: { name: "TypeScript", color: "#3178c6" },
+        },
+        lastContributedAt: "2026-10-12T00:00:00Z",
+      },
+      {
+        repository: { nameWithOwner: "org/lib", url: "https://github.com/org/lib", description: null, isPrivate: false, stargazerCount: 0, primaryLanguage: null },
+        lastContributedAt: "2026-09-01T00:00:00Z",
+      },
+    ]),
     ...overrides,
   } as unknown as GithubClient
 }
@@ -265,6 +282,41 @@ describe("GithubService", () => {
   it("reports GitHub failures when loading contributions", async () => {
     const service = await connected(fakeClient({ getContributions: vi.fn(async () => Promise.reject(new Error("GitHub 502"))) }))
     await expect(service.contributions()).rejects.toMatchObject({ statusCode: 502, code: "github_unavailable" })
+  })
+
+  it("lists the repositories recently contributed to", async () => {
+    const client = fakeClient()
+    await expect(new GithubService(ctx.db, client, crypto, logger).recentRepos({ limit: 4 })).rejects.toMatchObject({ code: "not_connected" })
+
+    const service = await connected(client)
+    expect(await service.recentRepos({ limit: 4 })).toEqual([
+      {
+        fullName: "me/app",
+        url: "https://github.com/me/app",
+        description: "My app",
+        private: true,
+        lastContributedAt: "2026-10-12T00:00:00Z",
+        stars: 3,
+        language: "TypeScript",
+        languageColor: "#3178c6",
+      },
+      {
+        fullName: "org/lib",
+        url: "https://github.com/org/lib",
+        description: null,
+        private: false,
+        lastContributedAt: "2026-09-01T00:00:00Z",
+        stars: 0,
+        language: null,
+        languageColor: null,
+      },
+    ])
+    expect(client.getContributedRepos).toHaveBeenCalledWith("ghp_0123456789abcdefghij", "me", 4)
+  })
+
+  it("reports GitHub failures when loading recent repositories", async () => {
+    const service = await connected(fakeClient({ getContributedRepos: vi.fn(async () => Promise.reject(new Error("GitHub 502"))) }))
+    await expect(service.recentRepos({ limit: 4 })).rejects.toMatchObject({ statusCode: 502, code: "github_unavailable" })
   })
 
   it("disconnects and clears the cache", async () => {
