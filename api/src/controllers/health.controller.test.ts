@@ -23,4 +23,17 @@ describe("health controller", () => {
     expect(dev.headers["access-control-allow-origin"]).toBe("http://127.0.0.1:5180")
     expect(other.headers["access-control-allow-origin"]).toBeUndefined()
   })
+
+  it("lets the renderer edit and delete through the CORS preflight", async () => {
+    const response = await ctx.app.inject({
+      method: "OPTIONS",
+      url: "/api/tasks/t1",
+      headers: { origin: "http://127.0.0.1:5180", "access-control-request-method": "PATCH" },
+    })
+
+    expect(response.statusCode).toBe(204)
+    expect(String(response.headers["access-control-allow-methods"]).split(/,\s*/)).toEqual(
+      expect.arrayContaining(["PUT", "PATCH", "DELETE"]),
+    )
+  })
 })
