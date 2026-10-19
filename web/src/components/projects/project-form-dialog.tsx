@@ -52,6 +52,17 @@ export function ProjectFormDialog({ open, project, onOpenChange }: ProjectFormDi
       <FormField label={t("common.status")} htmlFor="project-status">
         <SelectField id="project-status" value={values.status} options={getProjectStatusOptions()} onChange={(status) => set("status", status)} />
       </FormField>
+      {values.status === "paused" ? (
+        <FormField label={t("projects.pauseReason")} htmlFor="project-pause-reason" hint={t("common.optional")}>
+          <Input
+            id="project-pause-reason"
+            maxLength={200}
+            value={values.pauseReason}
+            onChange={(event) => set("pauseReason", event.target.value)}
+            placeholder={t("projects.pauseReasonPlaceholder")}
+          />
+        </FormField>
+      ) : null}
     </DialogForm>
   )
 }

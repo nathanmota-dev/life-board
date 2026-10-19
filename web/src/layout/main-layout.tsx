@@ -7,6 +7,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { ThemeProvider } from "@/components/theme-provider"
 import { RouteBreadcrumb } from "@/layout/route-breadcrumb"
 import { Separator } from "@/components/ui/separator"
+import { Toaster } from "@/components/ui/sonner"
 import {
   SidebarInset,
   SidebarProvider,
@@ -51,6 +52,7 @@ export function MainLayout() {
             </SidebarInset>
           </CommandPaletteProvider>
         </SidebarProvider>
+        <Toaster position="bottom-right" />
       </AccentProvider>
     </ThemeProvider>
   )
