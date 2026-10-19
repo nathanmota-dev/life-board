@@ -39,7 +39,6 @@ export type HabitFormDialogProps = { open: boolean; habit: Habit | null; onOpenC
 
 export type HabitDialogState = { open: boolean; habit: Habit | null }
 
-export type HabitPeriod = "week" | "month" | "custom"
 export type HabitFilter = "all" | "pending" | "done"
 export type HabitProgressRingProps = { habit: Habit; pending: boolean; onLog: () => void }
 export type HabitAnalyticsProps = { habits: Habit[] }

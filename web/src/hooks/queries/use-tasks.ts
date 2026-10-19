@@ -22,7 +22,8 @@ export function useCreateTask() {
 export function useUpdateTask() {
   return useInvalidatingMutation(
     ({ id, input }: { id: string; input: TaskUpdate }) => tasksService.update(id, input),
-    [queryKeys.tasks],
+    // Goals derive their progress from linked tasks.
+    [queryKeys.tasks, queryKeys.goals],
   )
 }
 
@@ -34,7 +35,7 @@ export function useSetFocusDays() {
 }
 
 export function useRemoveTask() {
-  return useInvalidatingMutation(tasksService.remove, [queryKeys.tasks])
+  return useInvalidatingMutation(tasksService.remove, [queryKeys.tasks, queryKeys.goals])
 }
 
 /** Applies the new order right away so the dropped card doesn't jump back while the request runs. */

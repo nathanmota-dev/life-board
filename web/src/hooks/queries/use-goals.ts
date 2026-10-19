@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { queryKeys } from "@/hooks/queries/query-keys"
 import { useInvalidatingMutation } from "@/hooks/queries/use-invalidating-mutation"
 import { goalsService } from "@/services/goals-service"
-import type { GoalUpdate, MilestoneUpdate } from "@/types/goal"
+import type { GoalProgressFilters, GoalUpdate, MilestoneInput, MilestoneUpdate } from "@/types/goal"
 
 export function useGoals() {
   return useQuery({ queryKey: [...queryKeys.goals, "list"], queryFn: goalsService.list })
@@ -13,6 +13,13 @@ export function useGoal(id: string | null) {
     queryKey: [...queryKeys.goals, "detail", id],
     queryFn: () => goalsService.get(id!),
     enabled: id !== null,
+  })
+}
+
+export function useGoalProgress(id: string, filters: GoalProgressFilters) {
+  return useQuery({
+    queryKey: [...queryKeys.goals, "progress", id, filters],
+    queryFn: () => goalsService.progress(id, filters),
   })
 }
 
@@ -33,7 +40,7 @@ export function useRemoveGoal() {
 
 export function useAddMilestone() {
   return useInvalidatingMutation(
-    ({ goalId, title }: { goalId: string; title: string }) => goalsService.addMilestone(goalId, title),
+    ({ goalId, input }: { goalId: string; input: MilestoneInput }) => goalsService.addMilestone(goalId, input),
     [queryKeys.goals],
   )
 }

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { DialogForm } from "@/components/shared/dialog-form"
+import { GoalHabitPicker } from "@/components/goals/goal-habit-picker"
 import { FormField } from "@/components/shared/form-field"
 import { SelectField } from "@/components/shared/select-field"
 import { TaskPicker } from "@/components/thoughts/task-picker"
@@ -45,12 +46,15 @@ export function GoalFormDialog({ open, goal, onOpenChange }: GoalFormDialogProps
       <FormField label={t("goals.whyItMatters")} htmlFor="goal-why">
         <Textarea id="goal-why" rows={2} value={values.why} onChange={(event) => set("why", event.target.value)} />
       </FormField>
+      <FormField label={t("goals.area")} htmlFor="goal-domain">
+        <SelectField id="goal-domain" value={values.domain} options={getGoalDomainOptions()} onChange={(domain) => set("domain", domain)} />
+      </FormField>
       <div className="grid gap-3 sm:grid-cols-2">
-        <FormField label={t("goals.area")} htmlFor="goal-domain">
-          <SelectField id="goal-domain" value={values.domain} options={getGoalDomainOptions()} onChange={(domain) => set("domain", domain)} />
+        <FormField label={t("goals.startDate")} htmlFor="goal-start">
+          <Input id="goal-start" type="date" value={values.startAt} max={values.targetAt || undefined} onChange={(event) => set("startAt", event.target.value)} />
         </FormField>
         <FormField label={t("goals.targetDate")} htmlFor="goal-target">
-          <Input id="goal-target" type="date" value={values.targetAt} onChange={(event) => set("targetAt", event.target.value)} />
+          <Input id="goal-target" type="date" value={values.targetAt} min={values.startAt || undefined} onChange={(event) => set("targetAt", event.target.value)} />
         </FormField>
       </div>
       {goal ? null : (
@@ -60,6 +64,9 @@ export function GoalFormDialog({ open, goal, onOpenChange }: GoalFormDialogProps
       )}
       <FormField label={t("goals.relatedTasks")} htmlFor="goal-tasks">
         <TaskPicker selected={values.linkedTaskIds} onChange={(ids) => set("linkedTaskIds", ids)} />
+      </FormField>
+      <FormField label={t("goals.relatedHabits")} htmlFor="goal-habits">
+        <GoalHabitPicker selected={values.linkedHabitIds} onChange={(ids) => set("linkedHabitIds", ids)} />
       </FormField>
     </DialogForm>
   )

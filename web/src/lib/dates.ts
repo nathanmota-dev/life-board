@@ -1,4 +1,5 @@
 import { getLocale } from "@/lib/i18n"
+import type { Period } from "@/types/ui"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -44,6 +45,24 @@ export function minutesSinceMidnight(date: Date) {
 /** The last `count` day keys, oldest first, ending today. */
 export function lastDays(count: number, today: Date = new Date()) {
   return Array.from({ length: count }, (_, index) => toDayKey(addDays(today, index - count + 1)))
+}
+
+/** Every day key from `from` to `to`, or [] when the range is invalid, in the future or over a year long. */
+export function dayRange(from: string, to: string): string[] {
+  const valid = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && toDayKey(fromDayKey(value)) === value
+  if (!valid(from) || !valid(to) || from > to || to > toDayKey()) return []
+  const days: string[] = []
+  let cursor = fromDayKey(from)
+  while (toDayKey(cursor) <= to && days.length <= 366) {
+    days.push(toDayKey(cursor))
+    cursor = addDays(cursor, 1)
+  }
+  return days.length <= 366 ? days : []
+}
+
+/** The days a period filter covers: the last 7 or 30 days, or the custom range. */
+export function periodDays(period: Period, from: string, to: string) {
+  return period === "custom" ? dayRange(from, to) : lastDays(period === "week" ? 7 : 30)
 }
 
 export function formatDate(value: string | Date, options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }) {

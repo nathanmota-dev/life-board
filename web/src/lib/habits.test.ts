@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { completionRate, goalsMetPerDay, habitDateRange, habitProgress, habitWeek } from "@/lib/habits"
+import { dayRange } from "@/lib/dates"
+import { completionRate, goalsMetPerDay, habitProgress, habitWeek } from "@/lib/habits"
 import type { Habit, HabitLog } from "@/types/habit"
 
 const habit: Habit = { id: "h1", name: "Water", unit: "glasses", target: 2, step: 1, emoji: "💧", todayCount: 3, doneToday: true, streak: 1, createdAt: "" }
@@ -51,9 +52,9 @@ describe("habit history windows", () => {
   })
 
   it("validates custom dates and crosses month boundaries", () => {
-    expect(habitDateRange("2026-09-29", "2026-10-02")).toEqual(["2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02"])
+    expect(dayRange("2026-09-29", "2026-10-02")).toEqual(["2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02"])
     for (const [from, to] of [["", "2026-10-18"], ["2026-02-30", "2026-03-01"], ["2026-10-18", "2026-10-17"], ["2026-10-17", "2026-10-19"], ["2024-01-01", "2026-10-18"]]) {
-      expect(habitDateRange(from, to)).toEqual([])
+      expect(dayRange(from, to)).toEqual([])
     }
   })
 })

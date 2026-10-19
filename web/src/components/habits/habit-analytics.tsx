@@ -4,21 +4,19 @@ import { BarChart3, CalendarDays } from "lucide-react"
 import { HabitHistoryChart } from "@/components/habits/habit-history-chart"
 import { HabitHistoryTable } from "@/components/habits/habit-history-table"
 import { DataState } from "@/components/shared/data-state"
-import { SegmentedControl } from "@/components/shared/segmented-control"
-import { Input } from "@/components/ui/input"
+import { PeriodFilter } from "@/components/shared/period-filter"
 import { Panel } from "@/components/workspace-ui"
 import { useHabitLogs } from "@/hooks/queries/use-habits"
-import { lastDays, toDayKey } from "@/lib/dates"
-import { completionRate, goalsMetPerDay, habitDateRange } from "@/lib/habits"
-import type { HabitAnalyticsProps, HabitPeriod } from "@/types/habit"
+import { usePeriod } from "@/hooks/use-period"
+import { toDayKey } from "@/lib/dates"
+import { completionRate, goalsMetPerDay } from "@/lib/habits"
+import type { HabitAnalyticsProps } from "@/types/habit"
 
 export function HabitAnalytics({ habits }: HabitAnalyticsProps) {
   const { t } = useTranslation()
-  const [period, setPeriod] = useState<HabitPeriod>("week")
+  const period = usePeriod()
   const [habitId, setHabitId] = useState("all")
-  const [from, setFrom] = useState(lastDays(30)[0])
-  const [to, setTo] = useState(toDayKey())
-  const days = period === "custom" ? habitDateRange(from, to) : lastDays(period === "week" ? 7 : 30)
+  const { days } = period
   const logs = useHabitLogs({ from: days[0] ?? toDayKey(), to: days.at(-1) ?? toDayKey() })
   const activeId = habits.some((habit) => habit.id === habitId) ? habitId : "all"
   const selected = habits.filter((habit) => activeId === "all" || habit.id === activeId)
@@ -35,16 +33,10 @@ export function HabitAnalytics({ habits }: HabitAnalyticsProps) {
             <option value="all">{t("habits.allHabits")}</option>
             {habits.map((habit) => <option key={habit.id} value={habit.id}>{habit.emoji} {habit.name}</option>)}
           </select>
-          <SegmentedControl<HabitPeriod> label={t("habits.period")} value={period} onChange={setPeriod} options={[
-            { value: "week", label: t("habits.week") }, { value: "month", label: t("habits.month") }, { value: "custom", label: t("habits.custom") },
-          ]} />
+          <PeriodFilter state={period} />
         </div>
       </div>
-      {period === "custom" ? <div className="flex flex-wrap items-end gap-3">
-        <label className="text-xs text-muted-foreground">{t("habits.from")}<Input type="date" className="mt-1 w-auto" value={from} max={to || toDayKey()} onChange={(event) => setFrom(event.target.value)} /></label>
-        <label className="text-xs text-muted-foreground">{t("habits.to")}<Input type="date" className="mt-1 w-auto" value={to} min={from} max={toDayKey()} onChange={(event) => setTo(event.target.value)} /></label>
-      </div> : null}
-      {days.length === 0 ? <p role="alert" className="text-sm text-destructive">{t("habits.invalidRange")}</p> : <DataState isLoading={logs.isLoading} error={logs.error}>
+      {days.length === 0 ? <p role="alert" className="text-sm text-destructive">{t("period.invalidRange")}</p> : <DataState isLoading={logs.isLoading} error={logs.error}>
         <div className="grid gap-4 xl:grid-cols-[240px_minmax(0,1fr)]">
           <div className="flex flex-col justify-between rounded-2xl border border-primary/20 bg-primary/5 p-5">
             <div>

@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next"
 import { CalendarClock } from "lucide-react"
+import { GoalRiskBadge } from "@/components/goals/goal-risk-badge"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { Progress } from "@/components/ui/progress"
 import { formatDate } from "@/lib/dates"
-import { GOAL_STATUS_TONES } from "@/lib/goals"
+import { GOAL_DOMAIN_COLORS, GOAL_STATUS_TONES } from "@/lib/goals"
 import type { GoalCardProps } from "@/types/goal"
 
 export function GoalCard({ goal, onOpen }: GoalCardProps) {
@@ -17,12 +18,15 @@ export function GoalCard({ goal, onOpen }: GoalCardProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-medium">
-            <span className="size-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+            <span className="size-2 shrink-0 rounded-full" style={{ background: GOAL_DOMAIN_COLORS[goal.domain] }} aria-hidden="true" />
             <span className="truncate">{goal.title}</span>
           </p>
           <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{goal.why || t("goals.noMotivation")}</p>
         </div>
-        <StatusBadge label={t(`goalStatuses.${goal.status}`)} tone={GOAL_STATUS_TONES[goal.status]} />
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <StatusBadge label={t(`goalStatuses.${goal.status}`)} tone={GOAL_STATUS_TONES[goal.status]} />
+          <GoalRiskBadge risk={goal.risk} />
+        </div>
       </div>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-xs text-muted-foreground">

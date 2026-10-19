@@ -1,4 +1,4 @@
-import { addDays, formatDate, fromDayKey, lastDays, toDayKey } from "@/lib/dates"
+import { formatDate, fromDayKey, lastDays, toDayKey } from "@/lib/dates"
 import { i18n } from "@/lib/i18n"
 import type { Habit, HabitChartPoint, HabitDay, HabitLog } from "@/types/habit"
 
@@ -43,16 +43,4 @@ export function goalsMetPerDay(habits: Habit[], logs: HabitLog[], days: string[]
 
 export function habitProgress(habit: Habit) {
   return Math.min(100, Math.round((habit.todayCount / habit.target) * 100))
-}
-
-export function habitDateRange(from: string, to: string): string[] {
-  const valid = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && toDayKey(fromDayKey(value)) === value
-  if (!valid(from) || !valid(to) || from > to || to > toDayKey()) return []
-  const days: string[] = []
-  let cursor = fromDayKey(from)
-  while (toDayKey(cursor) <= to && days.length <= 366) {
-    days.push(toDayKey(cursor))
-    cursor = addDays(cursor, 1)
-  }
-  return days.length <= 366 ? days : []
 }

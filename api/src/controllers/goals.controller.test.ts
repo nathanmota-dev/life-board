@@ -30,6 +30,7 @@ describe("goals controller", () => {
 
     const detail = await ctx.app.inject({ method: "GET", url: `/api/goals/${goal.id}` })
     expect(detail.json().milestones).toHaveLength(1)
+    expect(detail.json().goal).toMatchObject({ progressMode: "auto", progress: 0, breakdown: { milestones: { done: 0, total: 1 } }, risk: null })
 
     const updated = await ctx.app.inject({ method: "PATCH", url: `/api/goals/${goal.id}`, payload: { status: "completed" } })
     expect(updated.json().completedAt).toEqual(expect.any(String))
@@ -38,8 +39,20 @@ describe("goals controller", () => {
     expect((await ctx.app.inject({ method: "GET", url: `/api/goals/${goal.id}` })).statusCode).toBe(404)
   })
 
+  it("returns the progress history of a goal", async () => {
+    const { goal } = (await ctx.app.inject({ method: "POST", url: "/api/goals", payload: { title: "Save money", progressMode: "manual" } })).json()
+    await ctx.app.inject({ method: "PATCH", url: `/api/goals/${goal.id}`, payload: { progress: 25 } })
+
+    const history = await ctx.app.inject({ method: "GET", url: `/api/goals/${goal.id}/progress?from=2026-01-01` })
+    expect(history.statusCode).toBe(200)
+    expect(history.json()).toEqual({ items: [{ day: expect.any(String), progress: 25 }], startingProgress: null })
+    expect((await ctx.app.inject({ method: "GET", url: `/api/goals/${goal.id}/progress?from=yesterday` })).statusCode).toBe(400)
+    expect((await ctx.app.inject({ method: "GET", url: "/api/goals/missing/progress" })).statusCode).toBe(404)
+  })
+
   it("validates input", async () => {
     expect((await ctx.app.inject({ method: "POST", url: "/api/goals", payload: { title: "x", color: "red" } })).statusCode).toBe(400)
     expect((await ctx.app.inject({ method: "PATCH", url: "/api/goals/x", payload: { progress: 101 } })).statusCode).toBe(400)
+    expect((await ctx.app.inject({ method: "PATCH", url: "/api/goals/x", payload: { progressMode: "smart" } })).statusCode).toBe(400)
   })
 })
