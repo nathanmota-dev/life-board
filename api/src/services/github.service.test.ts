@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises"
+import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { githubIssues, githubPrs, githubSettings } from "../db/schema"
 import { createTestDb } from "../test/create-test-app"
@@ -330,5 +332,18 @@ describe("GithubService", () => {
     expect((await service.status()).connected).toBe(false)
     expect(await service.listPrs({ limit: 10 })).toEqual([])
     expect(await service.listIssues({ limit: 10 })).toEqual([])
+  })
+
+  it("wipes the encrypted token from the database file on disconnect", async () => {
+    const service = await connected(fakeClient({ searchIssues: vi.fn(async () => [searchItem("me", 1, "2026-10-12T00:00:00Z")]) }))
+    // Sync runs transactions, after which libsql reopens its connection.
+    await service.sync()
+    const [{ tokenCiphertext }] = await ctx.db.select().from(githubSettings)
+    const ciphertext = Buffer.from(tokenCiphertext)
+    expect((await readFile(join(ctx.dir, "test.db"))).includes(ciphertext)).toBe(true)
+
+    await service.disconnect()
+
+    expect((await readFile(join(ctx.dir, "test.db"))).includes(ciphertext)).toBe(false)
   })
 })

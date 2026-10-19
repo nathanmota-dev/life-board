@@ -81,7 +81,11 @@
       "syncedAt": "{{date}} at {{time}}",
       "never": "Never",
       "sync": "Sync now",
-      "disconnect": "Disconnect"
+      "disconnect": "Disconnect",
+      "disconnectTitle": "Disconnect GitHub?",
+      "disconnectDescription": "This deletes the encrypted token for @{{login}} from this computer and clears the synced pull requests and issues. To connect again, you'll need to paste a token.",
+      "disconnectConfirm": "Disconnect and delete token",
+      "disconnecting": "Disconnecting…"
     }
   },
   "common": {

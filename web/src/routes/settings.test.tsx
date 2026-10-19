@@ -94,4 +94,30 @@ describe("SettingsPage", () => {
     expect(calls.find((call) => call.method === "POST")?.body).toEqual({ token: "ghp_0123456789abcdefghij", orgFilter: null })
     await waitFor(() => expect(screen.getByRole("button", { name: "Sync now" })).toBeEnabled())
   })
+
+  it("asks before disconnecting GitHub and deleting the token", async () => {
+    let connected = true
+    const { calls } = mockApi({
+      "GET /github/status": () => ({ connected, login: connected ? "octocat" : null, lastSyncAt: null, lastSyncError: null }),
+      "DELETE /github/disconnect": () => {
+        connected = false
+        return { ok: true }
+      },
+    })
+    renderWithProviders(<SettingsPage />)
+
+    fireEvent.mouseDown(await screen.findByRole("tab", { name: "GitHub" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Disconnect" }))
+    expect(await screen.findByRole("dialog", { name: "Disconnect GitHub?" })).toHaveTextContent("@octocat")
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    expect(calls.some((call) => call.method === "DELETE")).toBe(false)
+
+    fireEvent.click(screen.getByRole("button", { name: "Disconnect" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Disconnect and delete token" }))
+
+    expect(await screen.findByLabelText("Personal access token")).toBeInTheDocument()
+    expect(calls.filter((call) => call.method === "DELETE")).toHaveLength(1)
+  })
 })

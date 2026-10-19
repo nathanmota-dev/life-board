@@ -76,6 +76,8 @@ export type GithubSyncResult = { ok: true; count: number; issues: number; login:
 
 export type GithubConnectedProps = { status: GithubStatus }
 
+export type GithubDisconnectButtonProps = { login: string | null }
+
 export type GithubView = "all" | GithubKind
 
 export type GithubIssueView = "all" | GithubIssueKind

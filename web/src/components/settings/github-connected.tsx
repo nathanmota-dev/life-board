@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next"
-import { RefreshCw, Unplug } from "lucide-react"
+import { RefreshCw } from "lucide-react"
+import { GithubDisconnectButton } from "@/components/settings/github-disconnect-button"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { Button } from "@/components/ui/button"
-import { useDisconnectGithub, useSyncGithub } from "@/hooks/queries/use-github"
+import { useSyncGithub } from "@/hooks/queries/use-github"
 import { formatDate, formatTime } from "@/lib/dates"
 import { errorMessage } from "@/lib/format"
 import type { GithubConnectedProps } from "@/types/github"
@@ -10,7 +11,6 @@ import type { GithubConnectedProps } from "@/types/github"
 export function GithubConnected({ status }: GithubConnectedProps) {
   const { t } = useTranslation()
   const sync = useSyncGithub()
-  const disconnect = useDisconnectGithub()
   const lastSync = status.lastSyncAt
     ? t("settings.github.syncedAt", {
         date: formatDate(status.lastSyncAt),
@@ -43,10 +43,7 @@ export function GithubConnected({ status }: GithubConnectedProps) {
           <RefreshCw className={sync.isPending ? "animate-spin" : undefined} />
           {t("settings.github.sync")}
         </Button>
-        <Button variant="outline" disabled={disconnect.isPending} onClick={() => disconnect.mutate(undefined)}>
-          <Unplug />
-          {t("settings.github.disconnect")}
-        </Button>
+        <GithubDisconnectButton login={status.login} />
       </div>
     </div>
   )

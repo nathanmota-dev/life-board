@@ -81,7 +81,11 @@
       "syncedAt": "{{date}} às {{time}}",
       "never": "Nunca",
       "sync": "Sincronizar agora",
-      "disconnect": "Desconectar"
+      "disconnect": "Desconectar",
+      "disconnectTitle": "Desconectar o GitHub?",
+      "disconnectDescription": "Isso apaga deste computador o token criptografado de @{{login}} e limpa os pull requests e issues sincronizados. Para conectar de novo, será preciso colar um token.",
+      "disconnectConfirm": "Desconectar e apagar token",
+      "disconnecting": "Desconectando…"
     }
   },
   "common": {
