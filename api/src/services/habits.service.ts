@@ -27,14 +27,14 @@ export class HabitsService {
     if (rows.length === 0) return []
 
     const logs = await this.db
-      .select({ habitId: habitLogs.habitId, day: habitLogs.day, count: habitLogs.count })
+      .select({ habitId: habitLogs.habitId, day: habitLogs.day, count: habitLogs.count, target: habitLogs.target })
       .from(habitLogs)
       .where(inArray(habitLogs.habitId, rows.map((habit) => habit.id)))
 
     const todayKey = toDayKey(today)
     return rows.map((habit) => {
       const own = logs.filter((log) => log.habitId === habit.id)
-      const doneDays = new Set(own.filter((log) => log.count >= habit.target).map((log) => log.day))
+      const doneDays = new Set(own.filter((log) => log.count >= (log.day === todayKey ? habit.target : log.target ?? habit.target)).map((log) => log.day))
       const todayCount = own.find((log) => log.day === todayKey)?.count ?? 0
       return {
         ...habit,
@@ -51,13 +51,17 @@ export class HabitsService {
   }
 
   async update(id: string, input: UpdateHabitBody): Promise<Habit> {
-    const [row] = await this.db
-      .update(habits)
-      .set({ ...input, updatedAt: new Date() })
-      .where(and(eq(habits.id, id), isNull(habits.deletedAt)))
-      .returning()
-    if (!row) throw new NotFoundError("Habit not found.")
-    return row
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx.update(habits)
+        .set({ ...input, updatedAt: new Date() })
+        .where(and(eq(habits.id, id), isNull(habits.deletedAt))).returning()
+      if (!row) throw new NotFoundError("Habit not found.")
+      if (input.target !== undefined) {
+        await tx.update(habitLogs).set({ target: input.target })
+          .where(and(eq(habitLogs.habitId, id), eq(habitLogs.day, toDayKey())))
+      }
+      return row
+    })
   }
 
   async remove(id: string) {
@@ -72,17 +76,21 @@ export class HabitsService {
   /** Adds `delta` to the day's count (never going below zero) and returns the new count. */
   async log(habitId: string, { delta, day = toDayKey() }: LogHabitBody) {
     const [habit] = await this.db
-      .select({ id: habits.id })
+      .select({ id: habits.id, target: habits.target })
       .from(habits)
       .where(and(eq(habits.id, habitId), isNull(habits.deletedAt)))
     if (!habit) throw new NotFoundError("Habit not found.")
 
     const [row] = await this.db
       .insert(habitLogs)
-      .values({ id: ulid(), habitId, day, count: Math.max(0, delta) })
+      .values({ id: ulid(), habitId, day, count: Math.max(0, delta), target: habit.target })
       .onConflictDoUpdate({
         target: [habitLogs.habitId, habitLogs.day],
-        set: { count: sql`max(0, ${habitLogs.count} + ${delta})`, updatedAt: new Date() },
+        set: {
+          count: sql`max(0, ${habitLogs.count} + ${delta})`,
+          target: day === toDayKey() ? habit.target : sql`coalesce(${habitLogs.target}, ${habit.target})`,
+          updatedAt: new Date(),
+        },
       })
       .returning({ habitId: habitLogs.habitId, day: habitLogs.day, count: habitLogs.count })
     return row
@@ -95,7 +103,7 @@ export class HabitsService {
     if (to) conditions.push(lte(habitLogs.day, to))
     if (habitId) conditions.push(eq(habitLogs.habitId, habitId))
     return this.db
-      .select({ habitId: habitLogs.habitId, day: habitLogs.day, count: habitLogs.count })
+      .select({ habitId: habitLogs.habitId, day: habitLogs.day, count: habitLogs.count, target: habitLogs.target })
       .from(habitLogs)
       .where(and(...conditions))
       .orderBy(asc(habitLogs.day))

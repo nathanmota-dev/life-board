@@ -1,41 +1,58 @@
-import { formatDate, fromDayKey, lastDays } from "@/lib/dates"
+import { addDays, formatDate, fromDayKey, lastDays, toDayKey } from "@/lib/dates"
 import { i18n } from "@/lib/i18n"
 import type { Habit, HabitChartPoint, HabitDay, HabitLog } from "@/types/habit"
+
+export const HABIT_EMOJIS = ["🌱", "💧", "🥤", "📚", "🏋️", "🚶", "🧘", "😴", "🥗", "💊", "🧹", "✍️", "🎨", "🎸", "💻", "🐾"]
 
 export function habitUnit(unit: string) {
   return unit === "times" ? i18n.t("habits.times") : unit
 }
 
-function countOn(logs: HabitLog[], habitId: string, day: string) {
-  return logs.find((log) => log.habitId === habitId && log.day === day)?.count ?? 0
+export function habitDay(habit: Habit, logs: HabitLog[], day: string): HabitDay {
+  const log = logs.find((item) => item.habitId === habit.id && item.day === day)
+  const count = day === toDayKey() ? habit.todayCount : log?.count ?? 0
+  const target = day === toDayKey() ? habit.target : log?.target ?? habit.target
+  const created = habit.createdAt ? toDayKey(new Date(habit.createdAt)) : ""
+  const eligible = day <= toDayKey() && (day >= created || !!log)
+  return { day, label: formatDate(fromDayKey(day), { weekday: "narrow" }), count, target, eligible, done: eligible && count >= target }
 }
 
-/** One entry per day (oldest first) with how much was logged and whether the goal was met. */
 export function habitWeek(habit: Habit, logs: HabitLog[], days: string[] = lastDays(7)): HabitDay[] {
-  return days.map((day) => {
-    const count = countOn(logs, habit.id, day)
-    return { day, label: formatDate(fromDayKey(day), { weekday: "narrow" }), count, done: count >= habit.target }
-  })
+  return days.map((day) => habitDay(habit, logs, day))
 }
 
-/** Share of habit-days in the window where the goal was met, 0–100. */
+/** Only days on/after creation count; today remains in progress until its goal is met. */
 export function completionRate(habits: Habit[], logs: HabitLog[], days: string[] = lastDays(7)) {
-  if (habits.length === 0) return 0
-  const met = habits.reduce(
-    (total, habit) => total + days.filter((day) => countOn(logs, habit.id, day) >= habit.target).length,
-    0,
-  )
-  return Math.round((met / (habits.length * days.length)) * 100)
+  const entries = habits.flatMap((habit) => habitWeek(habit, logs, days)).filter((day) => day.eligible)
+  return entries.length ? Math.round(entries.filter((day) => day.done).length / entries.length * 100) : 0
 }
 
 export function goalsMetPerDay(habits: Habit[], logs: HabitLog[], days: string[]): HabitChartPoint[] {
-  return days.map((day) => ({
-    day,
-    label: formatDate(fromDayKey(day)),
-    met: habits.filter((habit) => countOn(logs, habit.id, day) >= habit.target).length,
-  }))
+  return days.map((day) => {
+    const entries = habits.map((habit) => habitDay(habit, logs, day)).filter((entry) => entry.eligible)
+    const empty = entries.filter((entry) => entry.count === 0).length
+    return {
+      day, label: formatDate(fromDayKey(day)),
+      met: entries.filter((entry) => entry.done).length,
+      partial: entries.filter((entry) => !entry.done && entry.count > 0).length,
+      missed: day < toDayKey() ? empty : 0,
+      pending: day === toDayKey() ? empty : 0,
+    }
+  })
 }
 
 export function habitProgress(habit: Habit) {
   return Math.min(100, Math.round((habit.todayCount / habit.target) * 100))
+}
+
+export function habitDateRange(from: string, to: string): string[] {
+  const valid = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && toDayKey(fromDayKey(value)) === value
+  if (!valid(from) || !valid(to) || from > to || to > toDayKey()) return []
+  const days: string[] = []
+  let cursor = fromDayKey(from)
+  while (toDayKey(cursor) <= to && days.length <= 366) {
+    days.push(toDayKey(cursor))
+    cursor = addDays(cursor, 1)
+  }
+  return days.length <= 366 ? days : []
 }

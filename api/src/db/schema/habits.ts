@@ -6,6 +6,8 @@ export const habits = sqliteTable("habits", {
   name: text("name").notNull(),
   unit: text("unit").notNull().default("times"),
   target: integer("target").notNull(),
+  step: integer("step").notNull().default(1),
+  emoji: text("emoji").notNull().default("🌱"),
   ...timestamps(),
   deletedAt: deletedAt(),
 })
@@ -20,6 +22,7 @@ export const habitLogs = sqliteTable(
       .references(() => habits.id, { onDelete: "cascade" }),
     day: text("day").notNull(),
     count: integer("count").notNull().default(0),
+    target: integer("target"),
     ...timestamps(),
   },
   (t) => [unique("habit_logs_habit_day_unique").on(t.habitId, t.day)],

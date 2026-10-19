@@ -15,6 +15,7 @@
   "author": "github.com/nathanmota-dev",
   "type": "commonjs",
   "main": "./out/main/index.js",
+  "desktopName": "life-board-app.desktop",
   "scripts": {
     "dev": "electron-vite dev --watch --noSandbox",
     "start": "electron-vite preview --skipBuild --noSandbox",

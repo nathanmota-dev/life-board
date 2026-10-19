@@ -36,3 +36,18 @@ describe("habits controller", () => {
     expect((await ctx.app.inject({ method: "GET", url: "/api/habits/logs?from=yesterday" })).statusCode).toBe(400)
   })
 })
+
+describe("habit customization validation", () => {
+  it("uses backward-compatible defaults and accepts custom amounts", async () => {
+    const defaults = await ctx.app.inject({ method: "POST", url: "/api/habits", payload: { name: "Read", target: 1 } })
+    expect(defaults.json()).toMatchObject({ step: 1, emoji: "🌱" })
+    const custom = await ctx.app.inject({ method: "POST", url: "/api/habits", payload: { name: "Water", target: 3000, step: 500, emoji: "💧", unit: "ml" } })
+    expect(custom.statusCode).toBe(201)
+    expect(custom.json()).toMatchObject({ step: 500, emoji: "💧", target: 3000 })
+  })
+
+  it.each([{ step: 0 }, { step: -1 }, { step: 0.5 }, { step: 10001 }, { emoji: " " }, { emoji: "x".repeat(33) }])("rejects invalid customization %j", async (fields) => {
+    expect((await ctx.app.inject({ method: "POST", url: "/api/habits", payload: { name: "Water", target: 3000, ...fields } })).statusCode).toBe(400)
+    expect((await ctx.app.inject({ method: "PATCH", url: "/api/habits/test", payload: fields })).statusCode).toBe(400)
+  })
+})

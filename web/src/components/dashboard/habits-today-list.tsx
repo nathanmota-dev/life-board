@@ -28,7 +28,7 @@ export function HabitsTodayList({ habits }: HabitsTodayListProps) {
             variant="outline"
             aria-label={t("habits.log", { name: habit.name })}
             disabled={log.isPending}
-            onClick={() => log.mutate({ id: habit.id, input: { delta: 1 } })}
+            onClick={() => log.mutate({ id: habit.id, input: { delta: habit.step } })}
           >
             <Plus />
           </Button>

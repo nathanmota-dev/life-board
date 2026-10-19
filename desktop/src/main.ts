@@ -2,6 +2,7 @@ import { join } from "node:path"
 import { app, BrowserWindow, dialog, ipcMain, shell, utilityProcess } from "electron"
 import type { UtilityProcess } from "electron"
 import backendPath from "./backend-process?modulePath"
+import icon from "../resources/icon.png?asset"
 import { loadSecretKey } from "./secret-key"
 import { defaultBounds, loadWindowState, trackWindowState } from "./window-state"
 
@@ -13,6 +14,7 @@ function createWindow() {
   const state = loadWindowState(dataDir)
   const window = new BrowserWindow({
     title: "Life Board",
+    icon,
     ...(state.bounds ?? defaultBounds()),
     minWidth: 640,
     minHeight: 480,
@@ -76,6 +78,9 @@ function startBackend(secretKey: Buffer) {
 }
 
 void app.whenReady().then(() => {
+  if (process.platform === "darwin") app.dock?.setIcon(icon)
+  if (process.platform === "win32") app.setAppUserModelId("dev.nathanmota.lifeboard")
+
   ipcMain.handle("app:get-version", () => app.getVersion())
 
   ipcMain.handle("api:get-base-url", () => apiBaseUrl)
