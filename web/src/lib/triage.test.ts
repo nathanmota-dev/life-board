@@ -16,6 +16,10 @@ const task: Task = {
   parentTaskId: null,
   tags: ["travel"],
   linkedThoughtIds: ["th9"],
+  pinned: false,
+  color: null,
+  order: 0,
+  archivedAt: null,
   createdAt: "2026-10-17T10:00:00.000Z",
   updatedAt: "2026-10-17T10:00:00.000Z",
 }

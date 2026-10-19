@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next"
-import { ArrowRight, Pencil, Trash2 } from "lucide-react"
+import { Archive, ArchiveRestore, ArrowRight, Pencil, Trash2 } from "lucide-react"
 import { RowActions } from "@/components/shared/row-actions"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { TagList } from "@/components/shared/tag-list"
 import { Checkbox } from "@/components/ui/checkbox"
 import { TableCell, TableRow } from "@/components/ui/table"
-import { useRemoveTask, useUpdateTask } from "@/hooks/queries/use-tasks"
+import { useTaskActions } from "@/hooks/queries/use-task-actions"
+import { useUpdateTask } from "@/hooks/queries/use-tasks"
 import { dueLabel, isOverdue, getTaskPriorityLabels, PRIORITY_TONES, getTaskStatusLabels, getTaskStatusOptions, STATUS_TONES } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 import type { TaskRowProps } from "@/types/task"
@@ -13,7 +14,7 @@ import type { TaskRowProps } from "@/types/task"
 export function TaskRow({ task, onEdit }: TaskRowProps) {
   const { t } = useTranslation()
   const update = useUpdateTask()
-  const remove = useRemoveTask()
+  const actions = useTaskActions()
   const done = task.status === "done"
   const moveActions = getTaskStatusOptions().filter((option) => option.value !== task.status).map((option) => ({
     label: t("tasks.moveTo", { status: option.label }),
@@ -51,7 +52,10 @@ export function TaskRow({ task, onEdit }: TaskRowProps) {
           actions={[
             { label: t("common.edit"), icon: Pencil, onSelect: () => onEdit(task) },
             ...moveActions,
-            { label: t("common.delete"), icon: Trash2, destructive: true, onSelect: () => remove.mutate(task.id) },
+            task.archivedAt
+              ? { label: t("tasks.unarchive"), icon: ArchiveRestore, onSelect: () => void actions.unarchive(task) }
+              : { label: t("tasks.archive"), icon: Archive, onSelect: () => void actions.archive(task) },
+            { label: t("common.delete"), icon: Trash2, destructive: true, onSelect: () => void actions.remove(task) },
           ]}
         />
       </TableCell>

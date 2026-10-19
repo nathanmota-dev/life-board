@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod"
 import { idParams, okResponse } from "../dto/common.dto"
-import { createTaskBody, listTasksQuery, updateTaskBody } from "../dto/tasks.dto"
+import { createTaskBody, listTasksQuery, reorderTasksBody, updateTaskBody } from "../dto/tasks.dto"
 
 export const tasksController: FastifyPluginAsyncZod = async (app) => {
   const { tasks } = app.services
@@ -12,6 +12,11 @@ export const tasksController: FastifyPluginAsyncZod = async (app) => {
   app.post("/tasks", { schema: { body: createTaskBody } }, async (request, reply) =>
     reply.code(201).send(await tasks.create(request.body)),
   )
+
+  app.patch("/tasks/order", { schema: { body: reorderTasksBody } }, async (request) => {
+    await tasks.reorder(request.body)
+    return okResponse
+  })
 
   app.get("/tasks/:id", { schema: { params: idParams } }, (request) =>
     tasks.get(request.params.id),
@@ -25,4 +30,8 @@ export const tasksController: FastifyPluginAsyncZod = async (app) => {
     await tasks.remove(request.params.id)
     return okResponse
   })
+
+  app.post("/tasks/:id/restore", { schema: { params: idParams } }, (request) =>
+    tasks.restore(request.params.id),
+  )
 }
