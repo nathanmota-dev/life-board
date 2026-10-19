@@ -1,8 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { queryKeys } from "@/hooks/queries/query-keys"
 import { errorMessage } from "@/lib/format"
-import { showToast } from "@/lib/toast"
 import { tasksService } from "@/services/tasks-service"
 import type { Task } from "@/types/task"
 
@@ -23,7 +23,7 @@ export function useTaskActions() {
   const withUndo = (work: () => Promise<unknown>, message: string, undo: () => Promise<unknown>) =>
     run(work)
       .then(() =>
-        showToast({ message, action: { label: t("common.undo"), onSelect: () => void run(undo).catch(reportError) } }),
+        toast(message, { action: { label: t("common.undo"), onClick: () => void run(undo).catch(reportError) } }),
       )
       .catch(reportError)
 
@@ -50,5 +50,5 @@ export function useTaskActions() {
 }
 
 function reportError(error: unknown) {
-  showToast({ message: errorMessage(error) })
+  toast.error(errorMessage(error))
 }

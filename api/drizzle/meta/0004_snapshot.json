@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "8bcd2f68-f966-4119-9de2-eea3b6c667ab",
+  "id": "6014649b-ed43-40fd-87c3-7fc2c5668992",
   "prevId": "bdb6990c-62cb-47b4-a22e-1d292b75a78b",
   "tables": {
     "calendar_events": {
@@ -1156,6 +1156,73 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "project_status_changes": {
+      "name": "project_status_changes",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pause_reason": {
+          "name": "pause_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "changed_at": {
+          "name": "changed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "project_status_changes_project_idx": {
+          "name": "project_status_changes_project_idx",
+          "columns": [
+            "project_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "project_status_changes_project_id_projects_id_fk": {
+          "name": "project_status_changes_project_id_projects_id_fk",
+          "tableFrom": "project_status_changes",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "projects": {
       "name": "projects",
       "columns": {
@@ -1197,6 +1264,28 @@
           "autoincrement": false,
           "default": 0
         },
+        "status_changed_at": {
+          "name": "status_changed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "0"
+        },
+        "pause_reason": {
+          "name": "pause_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -1223,6 +1312,14 @@
         "projects_order_idx": {
           "name": "projects_order_idx",
           "columns": [
+            "order"
+          ],
+          "isUnique": false
+        },
+        "projects_status_idx": {
+          "name": "projects_status_idx",
+          "columns": [
+            "status",
             "order"
           ],
           "isUnique": false
@@ -1308,36 +1405,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "pinned": {
-          "name": "pinned",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "order": {
-          "name": "order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "archived_at": {
-          "name": "archived_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -1372,13 +1439,6 @@
           "name": "tasks_completed_idx",
           "columns": [
             "completed_at"
-          ],
-          "isUnique": false
-        },
-        "tasks_parent_idx": {
-          "name": "tasks_parent_idx",
-          "columns": [
-            "parent_task_id"
           ],
           "isUnique": false
         }

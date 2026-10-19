@@ -145,8 +145,8 @@ describe("TasksPage", () => {
     fireEvent.keyDown(within(groceries).getByRole("button", { name: "Groceries actions" }), { key: "Enter" })
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }))
     await waitFor(() => expect(lastCall(calls, "DELETE", "/tasks/t2")).toBeDefined())
-    expect(await screen.findByText("Deleted “Groceries”")).toBeInTheDocument()
-    fireEvent.click(screen.getAllByRole("button", { name: "Undo" }).at(-1)!)
+    const deleted = (await screen.findByText("Deleted “Groceries”")).closest("li")!
+    fireEvent.click(within(deleted).getByRole("button", { name: "Undo" }))
     await waitFor(() => expect(lastCall(calls, "POST", "/tasks/t2/restore")).toBeDefined())
   })
 

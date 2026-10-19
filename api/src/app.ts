@@ -36,6 +36,8 @@ import { ThoughtsService } from "./services/thoughts.service"
 
 // The renderer origin in dev, and `null` for the packaged app loaded from file://.
 const ALLOWED_ORIGINS = ["http://127.0.0.1:5180", "http://localhost:5180", "null"]
+// @fastify/cors only allows GET, HEAD and POST by default; the renderer also edits and deletes.
+const ALLOWED_METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"]
 
 export type AppOptions = {
   db: Db
@@ -53,7 +55,7 @@ export async function buildApp({ db, dataDir, logger = false, githubClient, cryp
   registerErrorHandler(app)
   registerAuth(app, authenticate)
 
-  await app.register(cors, { origin: ALLOWED_ORIGINS, credentials: true })
+  await app.register(cors, { origin: ALLOWED_ORIGINS, methods: ALLOWED_METHODS, credentials: true })
   await app.register(multipart, { limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 } })
 
   app.decorate("services", {

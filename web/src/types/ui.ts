@@ -129,7 +129,3 @@ export type MasonryBoardProps<T> = {
   renderItem: (item: T) => ReactNode
   label?: string
 }
-
-export type ToastAction = { label: string; onSelect: () => void }
-
-export type Toast = { id: number; message: string; action?: ToastAction }

@@ -5,9 +5,10 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { CommandPaletteProvider } from "@/components/command-palette"
 import { ModeToggle } from "@/components/mode-toggle"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/shared/toaster"
+import { useCaptureSync } from "@/hooks/use-capture-sync"
 import { RouteBreadcrumb } from "@/layout/route-breadcrumb"
 import { Separator } from "@/components/ui/separator"
+import { Toaster } from "@/components/ui/sonner"
 import {
   SidebarInset,
   SidebarProvider,
@@ -38,6 +39,8 @@ function WorkspaceHeader() {
 }
 
 export function MainLayout() {
+  useCaptureSync()
+
   return (
     <ThemeProvider>
       <AccentProvider>
@@ -50,9 +53,9 @@ export function MainLayout() {
                 <Outlet />
               </div>
             </SidebarInset>
-            <Toaster />
           </CommandPaletteProvider>
         </SidebarProvider>
+        <Toaster position="bottom-right" />
       </AccentProvider>
     </ThemeProvider>
   )

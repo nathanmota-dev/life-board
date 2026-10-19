@@ -10,12 +10,12 @@ import {
 } from "@tanstack/react-router"
 import { render } from "@testing-library/react"
 import { AccentProvider } from "@/components/accent-provider"
-import { Toaster } from "@/components/shared/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 
 /**
  * Renders `ui` with the providers every page relies on (React Query, theme,
- * accent) inside a router, since several pages use `<Link>`.
+ * accent, toasts) inside a router, since several pages use `<Link>`.
  */
 export function renderWithProviders(ui: ReactElement) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
