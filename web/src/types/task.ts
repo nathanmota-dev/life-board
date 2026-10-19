@@ -22,6 +22,7 @@ export type Task = {
   color: TaskColor | null
   order: number
   archivedAt: string | null
+  focusDay: string | null
   createdAt: string
   updatedAt: string
 }
@@ -40,6 +41,7 @@ export type TaskInput = {
   pinned?: boolean
   color?: TaskColor | null
   parentTaskId?: string | null
+  focusDay?: string | null
   items?: string[]
 }
 
@@ -53,7 +55,11 @@ export type TaskFilters = {
   parentTaskId?: string
   include?: "children"
   archived?: boolean
+  focusDay?: string
 }
+
+/** A task entering a day's focus, or leaving it with `null`. */
+export type FocusChange = { id: string; focusDay: string | null }
 
 export type TaskOrderItem = { id: string; order: number; pinned: boolean }
 

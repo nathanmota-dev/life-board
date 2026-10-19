@@ -17,7 +17,7 @@ import { isPomodoroAvailable } from "@/lib/desktop-pomodoro"
 
 export function PomodoroPage() {
   const { t } = useTranslation()
-  const now = new Date(useNow(1000))
+  const now = useNow(1000)
   const pomodoro = usePomodoro()
   const available = isPomodoroAvailable()
   const location = useApproximateLocation()

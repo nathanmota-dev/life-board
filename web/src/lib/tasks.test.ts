@@ -42,6 +42,7 @@ const task: Task = {
   color: null,
   order: 0,
   archivedAt: null,
+  focusDay: null,
   createdAt: "",
   updatedAt: "",
 }

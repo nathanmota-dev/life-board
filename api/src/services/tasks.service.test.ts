@@ -133,6 +133,43 @@ describe("TasksService", () => {
     expect((await service.update(task.id, { title: "Renamed" })).title).toBe("Renamed")
   })
 
+  it("filters by focus day and keeps the day when the task is completed", async () => {
+    const focus = await service.create({ title: "Write report", status: "today", focusDay: "2026-10-19" })
+    await service.create({ title: "Yesterday", focusDay: "2026-10-18" })
+    await service.create({ title: "Plain" })
+
+    expect((await list({ focusDay: "2026-10-19" })).map((t) => t.title)).toEqual(["Write report"])
+
+    const done = await service.update(focus.id, { status: "done" })
+    expect(done).toMatchObject({ focusDay: "2026-10-19", completedAt: expect.any(Date) })
+    expect((await list({ focusDay: "2026-10-19" })).map((t) => t.status)).toEqual(["done"])
+
+    expect((await service.update(focus.id, { focusDay: null })).focusDay).toBeNull()
+    expect(await list({ focusDay: "2026-10-19" })).toEqual([])
+  })
+
+  it("refuses a fourth focus task for the same day", async () => {
+    const day = "2026-10-19"
+    const picked = [await service.create({ title: "One", focusDay: day }), await service.create({ title: "Two", focusDay: day })]
+    const third = await service.create({ title: "Three" })
+    await service.update(third.id, { focusDay: day, status: "done" })
+    const fourth = await service.create({ title: "Four" })
+
+    await expect(service.update(fourth.id, { focusDay: day })).rejects.toMatchObject({ statusCode: 400, code: "focus_limit" })
+    await expect(service.create({ title: "Five", focusDay: day })).rejects.toMatchObject({ code: "focus_limit" })
+    // Re-saving a task already in the day's focus doesn't count it twice.
+    expect((await service.update(picked[0].id, { focusDay: day, title: "One!" })).title).toBe("One!")
+    // Other days have their own slots.
+    expect((await service.update(fourth.id, { focusDay: "2026-10-20" })).focusDay).toBe("2026-10-20")
+
+    // Archived and deleted focus tasks free their slot.
+    await service.update(picked[0].id, { archivedAt: new Date() })
+    await service.remove(picked[1].id)
+    await service.update(fourth.id, { focusDay: day })
+    expect((await service.create({ title: "Five", focusDay: day })).focusDay).toBe(day)
+    expect(await list({ focusDay: day })).toHaveLength(3)
+  })
+
   it("soft deletes and then treats the task as missing", async () => {
     const task = await service.create({ title: "Task" })
     expect(await service.get(task.id)).toMatchObject({ id: task.id })

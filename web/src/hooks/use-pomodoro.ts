@@ -22,7 +22,7 @@ export function usePomodoro(): PomodoroController | null {
   }, [])
 
   if (!state) return null
-  const remaining = remainingMs(state, now)
+  const remaining = remainingMs(state, now.getTime())
   const apply = (next: PomodoroState | null) => {
     if (next) setState(next)
   }

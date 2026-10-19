@@ -1,69 +1,67 @@
 import { useTranslation } from "react-i18next"
-import { CalendarDays, ListChecks, ListTodo, Target } from "lucide-react"
+import { LayoutGrid } from "lucide-react"
+import { DashboardCustomizeMenu } from "@/components/dashboard/dashboard-customize-menu"
 import { DashboardStats } from "@/components/dashboard/dashboard-stats"
+import { DashboardWidget } from "@/components/dashboard/dashboard-widget"
 import { GithubActivityPanel } from "@/components/dashboard/github-activity-panel"
-import { GoalsProgressList } from "@/components/dashboard/goals-progress-list"
-import { HabitsTodayList } from "@/components/dashboard/habits-today-list"
-import { TodayTasksList } from "@/components/dashboard/today-tasks-list"
-import { UpcomingEventsList } from "@/components/dashboard/upcoming-events-list"
+import { QuickCapture } from "@/components/inbox/quick-capture"
 import { DataState } from "@/components/shared/data-state"
 import { EmptyState } from "@/components/shared/empty-state"
-import { Page, PageSection, Panel } from "@/components/workspace-ui"
+import { Button } from "@/components/ui/button"
+import { Page, PageSection } from "@/components/workspace-ui"
 import { useCalendarEvents } from "@/hooks/queries/use-calendar"
-import { useGoals } from "@/hooks/queries/use-goals"
 import { useHabits } from "@/hooks/queries/use-habits"
 import { useMoodToday } from "@/hooks/queries/use-mood"
 import { useTasks } from "@/hooks/queries/use-tasks"
-import { greeting, nextEvents, tasksForToday, upcomingRange } from "@/lib/dashboard"
+import { useDashboardLayout } from "@/hooks/use-dashboard-layout"
+import { greeting, isAloneOnRow, tasksForToday, upcomingRange, visibleWidgets } from "@/lib/dashboard"
 import { formatDate } from "@/lib/dates"
 
+/** "My day": quick capture, the fixed stat strip and GitHub panel, and the widgets the user chose, in their order. */
 export function Dashboard() {
   const { t } = useTranslation()
   const tasks = useTasks({ limit: 100 })
   const habits = useHabits()
   const events = useCalendarEvents(upcomingRange())
-  const goals = useGoals()
   const mood = useMoodToday()
-  const today = tasksForToday(tasks.data ?? [])
-  const upcoming = nextEvents(events.data ?? [])
-  const activeGoals = (goals.data ?? []).filter((goal) => goal.status === "active").slice(0, 5)
+  const { layout, toggle, move, reset } = useDashboardLayout()
+  const widgets = visibleWidgets(layout)
 
   return (
-    <Page title={t("navigation.dashboard")} description={`${greeting()} — ${formatDate(new Date(), { weekday: "long", month: "long", day: "numeric" })}`}>
+    <Page
+      title={t("navigation.dashboard")}
+      description={`${greeting()} — ${formatDate(new Date(), { weekday: "long", month: "long", day: "numeric" })}`}
+      actions={<DashboardCustomizeMenu layout={layout} onToggle={toggle} onMove={move} onReset={reset} />}
+    >
       <PageSection>
-        <DashboardStats tasksToday={today} habits={habits.data ?? []} events={events.data ?? []} mood={mood.data} />
+        <QuickCapture />
+      </PageSection>
+      <PageSection>
+        <DashboardStats tasksToday={tasksForToday(tasks.data ?? [])} habits={habits.data ?? []} events={events.data ?? []} mood={mood.data} />
       </PageSection>
       <PageSection>
         <GithubActivityPanel />
       </PageSection>
       <PageSection>
-        <div className="grid gap-4 xl:grid-cols-2">
-          <Panel title={t("dashboard.tasksToday")} icon={ListTodo}>
-            <DataState isLoading={tasks.isLoading} error={tasks.error} isEmpty={today.length === 0} empty={<EmptyState icon={ListTodo} title={t("dashboard.noTasksToday")} className="py-6" />}>
-              <TodayTasksList tasks={today} />
-            </DataState>
-          </Panel>
-          <Panel title={t("dashboard.upcomingEvents")} icon={CalendarDays}>
-            <DataState isLoading={events.isLoading} error={events.error} isEmpty={upcoming.length === 0} empty={<EmptyState icon={CalendarDays} title={t("dashboard.noEvents")} className="py-6" />}>
-              <UpcomingEventsList events={upcoming} />
-            </DataState>
-          </Panel>
-          <Panel title={t("dashboard.habitsToday")} icon={ListChecks}>
-            <DataState
-              isLoading={habits.isLoading}
-              error={habits.error}
-              isEmpty={(habits.data ?? []).length === 0}
-              empty={<EmptyState icon={ListChecks} title={t("habits.empty")} className="py-6" />}
-            >
-              <HabitsTodayList habits={habits.data ?? []} />
-            </DataState>
-          </Panel>
-          <Panel title={t("goals.active")} icon={Target}>
-            <DataState isLoading={goals.isLoading} error={goals.error} isEmpty={activeGoals.length === 0} empty={<EmptyState icon={Target} title={t("dashboard.noActiveGoals")} className="py-6" />}>
-              <GoalsProgressList goals={activeGoals} />
-            </DataState>
-          </Panel>
-        </div>
+        <DataState
+          isLoading={false}
+          error={null}
+          isEmpty={widgets.length === 0}
+          empty={
+            <EmptyState
+              icon={LayoutGrid}
+              title={t("dashboard.allHidden")}
+              description={t("dashboard.allHiddenDescription")}
+              action={<Button size="sm" variant="outline" onClick={reset}>{t("dashboard.resetLayout")}</Button>}
+            />
+          }
+        >
+          <div className="grid gap-4 xl:grid-cols-2">
+            {widgets.map((id, index) => (
+              <DashboardWidget key={id} id={id} fullRow={isAloneOnRow(index, widgets.length)} />
+            ))}
+          </div>
+        </DataState>
       </PageSection>
     </Page>
   )
