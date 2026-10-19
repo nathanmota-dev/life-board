@@ -139,6 +139,17 @@ describe("TasksPage", () => {
     expect(await screen.findByRole("dialog", { name: "Edit task" })).toBeInTheDocument()
   })
 
+  it("keeps the board layout while dragging so the card stays under the pointer", async () => {
+    mockApi({ "GET /tasks": () => ({ items: tasks.map((task) => ({ ...task, pinned: false })) }) })
+    renderWithProviders(<TasksPage />)
+
+    const grip = await screen.findByRole("button", { name: "Move Groceries" })
+    fireEvent.keyDown(grip, { code: "Space" })
+    await waitFor(() => expect(grip).toHaveAttribute("aria-pressed", "true"))
+    expect(screen.queryByRole("region", { name: "Pinned" })).not.toBeInTheDocument()
+    expect(screen.queryByText("Drop a card here")).not.toBeInTheDocument()
+  })
+
   it("pins, archives and deletes from the card, with Undo", async () => {
     const { calls } = mockApi({
       "GET /tasks": () => ({ items: tasks }),
