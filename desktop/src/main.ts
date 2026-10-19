@@ -4,14 +4,19 @@ import type { UtilityProcess } from "electron"
 import backendPath from "./backend-process?modulePath"
 import icon from "../resources/icon.png?asset"
 import { isCaptureWindow, registerCaptureShortcut, unregisterCaptureShortcut } from "./capture-window"
+import { registerLocale } from "./locale"
+import { registerNotifications } from "./notifications"
+import { isPomodoroActive, registerPomodoro } from "./pomodoro"
 import { loadRenderer, secureWebPreferences } from "./renderer"
 import { loadSecretKey } from "./secret-key"
+import { createTray } from "./tray"
 import { defaultBounds, loadWindowState, trackWindowState } from "./window-state"
 
 let backend: UtilityProcess | null = null
 let apiBaseUrl: Promise<string> | null = null
+let mainWindow: BrowserWindow | null = null
 
-function createWindow() {
+function createWindow(route?: string) {
   const dataDir = app.getPath("userData")
   const state = loadWindowState(dataDir)
   const window = new BrowserWindow({
@@ -25,6 +30,10 @@ function createWindow() {
     backgroundColor: "#ffffff",
     webPreferences: secureWebPreferences,
   })
+  mainWindow = window
+  window.on("closed", () => {
+    if (mainWindow === window) mainWindow = null
+  })
 
   window.once("ready-to-show", () => {
     if (state.fullScreen) window.setFullScreen(true)
@@ -32,10 +41,19 @@ function createWindow() {
     window.show()
     trackWindowState(window, dataDir)
   })
-  void loadRenderer(window).catch((error: unknown) => {
+  void loadRenderer(window, route).catch((error: unknown) => {
     console.error("Não foi possível carregar a interface:", error)
     app.quit()
   })
+}
+
+/** Brings the main window to the front (reopening it if it was closed), optionally at `route`. */
+function showMainWindow(route?: string) {
+  if (!mainWindow || mainWindow.isDestroyed()) return createWindow(route)
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+  if (route) mainWindow.webContents.send("app:navigate", route)
 }
 
 function startBackend(secretKey: Buffer) {
@@ -88,11 +106,15 @@ void app.whenReady().then(() => {
   apiBaseUrl = startBackend(secretKey)
   apiBaseUrl.catch((error: unknown) => console.error(error))
 
+  registerLocale()
+  registerNotifications(icon, showMainWindow)
+  registerPomodoro(app.getPath("userData"))
   createWindow()
   registerCaptureShortcut(icon)
+  createTray(icon, showMainWindow)
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().every(isCaptureWindow)) createWindow()
+    if (BrowserWindow.getAllWindows().every(isCaptureWindow)) showMainWindow()
   })
 })
 
@@ -103,6 +125,7 @@ app.on("before-quit", () => {
 
 app.on("will-quit", unregisterCaptureShortcut)
 
+// A running pomodoro keeps the app alive in the tray, so it can still notify.
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit()
+  if (process.platform !== "darwin" && !isPomodoroActive()) app.quit()
 })

@@ -12,6 +12,7 @@ export const queryKeys = {
   github: ["github"],
   fileBoards: ["file-boards"],
   projects: ["projects"],
+  weather: ["weather"],
 } as const
 
 export type QueryRoot = (typeof queryKeys)[keyof typeof queryKeys]
