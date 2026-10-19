@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TASK_COLORS, TASK_PRIORITIES, TASK_STATUSES } from "../db/schema"
-import { idList, limit, tagList } from "./common.dto"
+import { dayKey, idList, limit, tagList } from "./common.dto"
 
 // Query strings carry booleans as text, and `z.coerce.boolean()` would read "false" as true.
 const queryBoolean = z.enum(["true", "false"]).transform((value) => value === "true")
@@ -16,6 +16,7 @@ const taskFields = {
   linkedThoughtIds: idList,
   pinned: z.boolean(),
   color: z.enum(TASK_COLORS).nullable(),
+  focusDay: dayKey.nullable(),
 }
 
 export const createTaskBody = z
@@ -37,6 +38,7 @@ export const listTasksQuery = z.object({
   pinned: queryBoolean.optional(),
   color: z.enum(TASK_COLORS).optional(),
   archived: queryBoolean.optional(),
+  focusDay: dayKey.optional(),
 })
 
 // Top-level tasks with their new position and section, saved together.

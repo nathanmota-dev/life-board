@@ -10,6 +10,7 @@ const ERROR_KEYS: Record<string, ErrorTranslationKey | undefined> = {
   sync_failed: "errors.sync_failed",
   github_unavailable: "errors.github_unavailable",
   invalid_order: "errors.invalid_order",
+  focus_limit: "errors.focus_limit",
   validation_error: "errors.validation_error",
   bad_request: "errors.bad_request",
   request_failed: "errors.request_failed",

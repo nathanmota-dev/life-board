@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, exists, inArray, isNotNull, isNull, max, min, or, sql, type SQL } from "drizzle-orm"
+import { and, asc, count, desc, eq, exists, inArray, isNotNull, isNull, max, min, ne, or, sql, type SQL } from "drizzle-orm"
 import { alias } from "drizzle-orm/sqlite-core"
 import { ulid } from "ulid"
 import type { Db } from "../db/client"
@@ -11,11 +11,14 @@ export type TaskWithChildren = Task & { children: Task[] }
 
 const children = alias(tasks, "children")
 
+/** How many tasks can be picked as the focus of a single day. */
+export const FOCUS_LIMIT = 3
+
 export class TasksService {
   constructor(private readonly db: Db) {}
 
   async list(query: ListTasksQuery): Promise<Task[] | TaskWithChildren[]> {
-    const { status, limit, search, parentTaskId, tag, include, pinned, color, archived } = query
+    const { status, limit, search, parentTaskId, tag, include, pinned, color, archived, focusDay } = query
     // Subtasks only ever show up under their parent, never as top-level items.
     const conditions: SQL[] = [
       isNull(tasks.deletedAt),
@@ -27,6 +30,7 @@ export class TasksService {
     if (tag) conditions.push(jsonArrayContains(tasks.tags, tag))
     if (pinned !== undefined) conditions.push(eq(tasks.pinned, pinned))
     if (color) conditions.push(eq(tasks.color, color))
+    if (focusDay) conditions.push(eq(tasks.focusDay, focusDay))
 
     if (include === "children") {
       // The board's hand-made order, newest first among cards never moved.
@@ -61,6 +65,7 @@ export class TasksService {
   async create({ items = [], ...input }: CreateTaskBody): Promise<TaskWithChildren> {
     const completedAt = input.status === "done" ? new Date() : null
     return this.db.transaction(async (tx) => {
+      if (input.focusDay) await this.assertFocusSlot(tx, input.focusDay)
       const [{ first, last }] = await tx
         .select({ first: min(tasks.order), last: max(tasks.order) })
         .from(tasks)
@@ -101,6 +106,7 @@ export class TasksService {
     if (input.status === "done" && input.completedAt === undefined) patch.completedAt = new Date()
     else if (input.status && input.status !== "done") patch.completedAt = null
 
+    if (input.focusDay) await this.assertFocusSlot(this.db, input.focusDay, id)
     const [row] = await this.db
       .update(tasks)
       .set({ ...patch, updatedAt: new Date() })
@@ -154,6 +160,25 @@ export class TasksService {
       .set({ deletedAt: null })
       .where(and(or(eq(tasks.id, id), eq(tasks.parentTaskId, id)), eq(tasks.deletedAt, deleted.deletedAt)))
     return this.get(id)
+  }
+
+  /** Done tasks keep their focus day, so they still take one of the day's slots; archived ones don't show and don't count. */
+  private async assertFocusSlot(db: Pick<Db, "select">, focusDay: string, taskId?: string) {
+    const [{ taken }] = await db
+      .select({ taken: count() })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.focusDay, focusDay),
+          isNull(tasks.deletedAt),
+          isNull(tasks.archivedAt),
+          isNull(tasks.parentTaskId),
+          taskId ? ne(tasks.id, taskId) : undefined,
+        ),
+      )
+    if (taken >= FOCUS_LIMIT) {
+      throw new BadRequestError("focus_limit", `A day can have at most ${FOCUS_LIMIT} focus tasks.`)
+    }
   }
 
   private async withChildren(rows: Task[]): Promise<TaskWithChildren[]> {
