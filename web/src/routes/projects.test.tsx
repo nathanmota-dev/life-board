@@ -133,6 +133,22 @@ describe("ProjectsPage", () => {
     await waitFor(() => expect(calls.some((call) => call.path === "/projects/p1/restore")).toBe(true))
   })
 
+  it("opens the sheet from anywhere on the card except the actions menu", async () => {
+    mockApi({
+      "GET /projects": () => ({ items: [budget] }),
+      "GET /projects/p1/history": () => ({ items: [] }),
+    })
+    renderWithProviders(<ProjectsPage />)
+
+    fireEvent.click(await screen.findByRole("button", { name: "Budget app actions" }))
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Move Budget app" }))
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText("Track monthly expenses"))
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Status history")
+  })
+
   it("asks for a pause reason before moving a project to Paused", async () => {
     const { calls } = mockApi({
       "GET /projects": () => ({ items: [budget] }),

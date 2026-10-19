@@ -7,12 +7,21 @@ import {
   useDroppable,
   useSensor,
   useSensors,
+  pointerWithin,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core"
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { getBoardMove, moveAcrossColumns, settleBoardLayout, toBoardLayout } from "@/lib/board"
 import type { BoardColumnsProps, BoardDropZoneProps, BoardLayout } from "@/types/board"
+
+// What's under the pointer wins, so the empty part of a column takes the drop; keyboard
+// moves have no pointer and fall back to the nearest corners.
+const detectCollisions: CollisionDetection = (args) => {
+  const underPointer = pointerWithin(args)
+  return underPointer.length > 0 ? underPointer : closestCorners(args)
+}
 
 function BoardDropZone({ id, itemIds, children }: BoardDropZoneProps) {
   const { setNodeRef } = useDroppable({ id })
@@ -54,7 +63,7 @@ export function BoardColumns<T>({ columns, getItemId, renderItem, renderColumn, 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={detectCollisions}
       onDragStart={() => setDraft(start)}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
