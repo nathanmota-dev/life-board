@@ -2,6 +2,7 @@ appId: dev.nathanmota.lifeboard
 productName: Life Board
 directories:
   output: release
+  buildResources: desktop/resources
 files:
   - out/**/*
   - package.json
@@ -12,7 +13,11 @@ extraResources:
 linux:
   target: AppImage
   category: Office
+  icon: desktop/resources/icon.png
+  syncDesktopName: true
 win:
   target: nsis
+  icon: desktop/resources/icon.ico
 mac:
   target: dmg
+  icon: desktop/resources/icon.icns
