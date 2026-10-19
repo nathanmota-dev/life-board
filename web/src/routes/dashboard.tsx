@@ -17,25 +17,29 @@ import { useDashboardLayout } from "@/hooks/use-dashboard-layout"
 import { greeting, isAloneOnRow, tasksForToday, upcomingRange, visibleWidgets } from "@/lib/dashboard"
 import { formatDate } from "@/lib/dates"
 
-/** "My day": quick capture, the fixed stat strip and GitHub panel, and the widgets the user chose, in their order. */
+/** "My day": the optional quick capture, the fixed stat strip and GitHub panel, and the widgets the user chose, in their order. */
 export function Dashboard() {
   const { t } = useTranslation()
   const tasks = useTasks({ limit: 100 })
   const habits = useHabits()
   const events = useCalendarEvents(upcomingRange())
   const mood = useMoodToday()
-  const { layout, toggle, move, reset } = useDashboardLayout()
+  const { layout, toggle, move, toggleQuickCapture, reset } = useDashboardLayout()
   const widgets = visibleWidgets(layout)
 
   return (
     <Page
       title={t("navigation.dashboard")}
       description={`${greeting()} — ${formatDate(new Date(), { weekday: "long", month: "long", day: "numeric" })}`}
-      actions={<DashboardCustomizeMenu layout={layout} onToggle={toggle} onMove={move} onReset={reset} />}
+      actions={
+        <DashboardCustomizeMenu layout={layout} onToggle={toggle} onMove={move} onToggleQuickCapture={toggleQuickCapture} onReset={reset} />
+      }
     >
-      <PageSection>
-        <QuickCapture />
-      </PageSection>
+      {layout.quickCapture ? (
+        <PageSection>
+          <QuickCapture />
+        </PageSection>
+      ) : null}
       <PageSection>
         <DashboardStats tasksToday={tasksForToday(tasks.data ?? [])} habits={habits.data ?? []} events={events.data ?? []} mood={mood.data} />
       </PageSection>

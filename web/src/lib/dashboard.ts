@@ -112,7 +112,8 @@ export function daySummary(doneTasks: Task[], habits: Habit[], events: CalendarE
 export const DASHBOARD_LAYOUT_STORAGE_KEY = "life-board-dashboard-layout"
 
 export function defaultDashboardLayout(): DashboardLayout {
-  return { order: [...DASHBOARD_WIDGETS], hidden: [] }
+  // Inbox already has the capture bar, so the dashboard's starts off.
+  return { order: [...DASHBOARD_WIDGETS], hidden: [], quickCapture: false }
 }
 
 function isWidgetId(value: unknown): value is DashboardWidgetId {
@@ -124,7 +125,11 @@ export function normalizeDashboardLayout(value: unknown): DashboardLayout {
   const raw = (value ?? {}) as Partial<Record<keyof DashboardLayout, unknown>>
   const known = (list: unknown) => [...new Set(Array.isArray(list) ? list.filter(isWidgetId) : [])]
   const order = known(raw.order)
-  return { order: [...order, ...DASHBOARD_WIDGETS.filter((id) => !order.includes(id))], hidden: known(raw.hidden) }
+  return {
+    order: [...order, ...DASHBOARD_WIDGETS.filter((id) => !order.includes(id))],
+    hidden: known(raw.hidden),
+    quickCapture: raw.quickCapture === true,
+  }
 }
 
 export function readDashboardLayout(): DashboardLayout {
@@ -147,6 +152,10 @@ export function saveDashboardLayout(layout: DashboardLayout) {
 export function toggleWidget(layout: DashboardLayout, id: DashboardWidgetId): DashboardLayout {
   const hidden = layout.hidden.includes(id) ? layout.hidden.filter((item) => item !== id) : [...layout.hidden, id]
   return { ...layout, hidden }
+}
+
+export function toggleQuickCapture(layout: DashboardLayout): DashboardLayout {
+  return { ...layout, quickCapture: !layout.quickCapture }
 }
 
 /** Moves a widget one place up (-1) or down (1); the ends stay put. */

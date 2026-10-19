@@ -8,8 +8,8 @@ export const DASHBOARD_WIDGETS = ["myDay", "focus", "habits", "mood", "goals"] a
 
 export type DashboardWidgetId = (typeof DASHBOARD_WIDGETS)[number]
 
-/** Widgets in display order, plus the ones the user hid. */
-export type DashboardLayout = { order: DashboardWidgetId[]; hidden: DashboardWidgetId[] }
+/** Widgets in display order, plus the ones the user hid; `quickCapture` shows the capture bar on top. */
+export type DashboardLayout = { order: DashboardWidgetId[]; hidden: DashboardWidgetId[]; quickCapture: boolean }
 
 export type TimelineEventState = "past" | "current" | "next" | "upcoming"
 
@@ -39,6 +39,7 @@ export type DashboardCustomizeMenuProps = {
   layout: DashboardLayout
   onToggle: (id: DashboardWidgetId) => void
   onMove: (id: DashboardWidgetId, offset: -1 | 1) => void
+  onToggleQuickCapture: () => void
   onReset: () => void
 }
 

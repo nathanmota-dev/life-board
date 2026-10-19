@@ -314,7 +314,20 @@ describe("Dashboard habits, mood and capture", () => {
     expect(within(mood).getByRole("button", { name: "Update" })).toBeInTheDocument()
   })
 
+  it("hides the quick capture by default and turns it on from Customize", async () => {
+    mockDashboard()
+    renderWithProviders(<Dashboard />)
+
+    expect(await screen.findByRole("heading", { name: "My day" })).toBeInTheDocument()
+    expect(screen.queryByLabelText("Capture text")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Customize" }))
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Show Quick capture" }))
+    expect(await screen.findByLabelText("Capture text")).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem(DASHBOARD_LAYOUT_STORAGE_KEY) ?? "{}")).toMatchObject({ quickCapture: true })
+  })
+
   it("captures tasks and thoughts with the Inbox parsing", async () => {
+    localStorage.setItem(DASHBOARD_LAYOUT_STORAGE_KEY, JSON.stringify({ quickCapture: true }))
     const { mutations } = mockDashboard()
     renderWithProviders(<Dashboard />)
 

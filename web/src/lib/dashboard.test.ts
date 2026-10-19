@@ -14,6 +14,7 @@ import {
   saveDashboardLayout,
   sortHabitsForDay,
   todayRange,
+  toggleQuickCapture,
   toggleWidget,
   unfinishedFocus,
   visibleWidgets,
@@ -185,6 +186,13 @@ describe("dashboard layout", () => {
     expect(moveWidget(layout, "myDay", -1)).toBe(layout)
   })
 
+  it("starts with the quick capture off and toggles it", () => {
+    const layout = defaultDashboardLayout()
+    expect(layout.quickCapture).toBe(false)
+    expect(toggleQuickCapture(layout).quickCapture).toBe(true)
+    expect(toggleQuickCapture(toggleQuickCapture(layout))).toEqual(layout)
+  })
+
   it("gives the whole row to the last widget of an odd count", () => {
     expect([0, 1, 2, 3, 4].map((index) => isAloneOnRow(index, 5))).toEqual([false, false, false, false, true])
     expect([0, 1, 2, 3].map((index) => isAloneOnRow(index, 4))).toEqual([false, false, false, false])
@@ -196,7 +204,9 @@ describe("dashboard layout", () => {
     expect(normalizeDashboardLayout({ order: ["goals", "github", "nope", "goals", "mood"], hidden: ["focus", 4, "focus", "github"] })).toEqual({
       order: ["goals", "mood", "myDay", "focus", "habits"],
       hidden: ["focus"],
+      quickCapture: false,
     })
+    expect(normalizeDashboardLayout({ quickCapture: true }).quickCapture).toBe(true)
     expect(normalizeDashboardLayout(null)).toEqual(defaultDashboardLayout())
   })
 

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { defaultDashboardLayout, moveWidget, readDashboardLayout, saveDashboardLayout, toggleWidget } from "@/lib/dashboard"
+import { defaultDashboardLayout, moveWidget, readDashboardLayout, saveDashboardLayout, toggleQuickCapture, toggleWidget } from "@/lib/dashboard"
 import type { DashboardLayout, DashboardWidgetId } from "@/types/dashboard"
 
 /** The dashboard's widget layout, saved in localStorage on every change. */
@@ -14,6 +14,7 @@ export function useDashboardLayout() {
     layout,
     toggle: (id: DashboardWidgetId) => apply(toggleWidget(layout, id)),
     move: (id: DashboardWidgetId, offset: -1 | 1) => apply(moveWidget(layout, id, offset)),
+    toggleQuickCapture: () => apply(toggleQuickCapture(layout)),
     reset: () => apply(defaultDashboardLayout()),
   }
 }
