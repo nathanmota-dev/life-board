@@ -27,7 +27,7 @@ export function DialogForm({
   const { t } = useTranslation()
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-2xl sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh_-_2rem)] max-w-[calc(100vw_-_2rem)] overflow-y-auto rounded-2xl sm:max-w-lg">
         <form
           className="flex flex-col gap-5"
           onSubmit={(event) => {

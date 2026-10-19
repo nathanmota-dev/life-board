@@ -43,7 +43,7 @@ export class StatsService {
             isNull(habits.deletedAt),
             gte(habitLogs.day, toDayKey(start)),
             lt(habitLogs.day, toDayKey(end)),
-            sql`${habitLogs.count} >= ${habits.target}`,
+            sql`${habitLogs.count} >= coalesce(${habitLogs.target}, ${habits.target})`,
           ),
         ),
     ])

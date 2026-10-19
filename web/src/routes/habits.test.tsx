@@ -10,6 +10,8 @@ const water: Habit = {
   name: "Drink water",
   unit: "glasses",
   target: 8,
+  step: 1,
+  emoji: "💧",
   todayCount: 3,
   doneToday: false,
   streak: 4,
@@ -30,8 +32,8 @@ describe("HabitsPage", () => {
     })
     renderWithProviders(<HabitsPage />)
 
-    expect(await screen.findByText("Drink water")).toBeInTheDocument()
-    expect(screen.getByText(/3 \/ 8 glasses · 4 day streak/)).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Drink water" })).toBeInTheDocument()
+    expect(screen.getByText("3 / 8 glasses")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "Log Drink water" }))
 
@@ -53,7 +55,7 @@ describe("HabitsPage", () => {
     fireEvent.change(screen.getByLabelText("Unit"), { target: { value: "pages" } })
     fireEvent.click(screen.getByRole("button", { name: "Add habit" }))
 
-    await waitFor(() => expect(calls.find((call) => call.method === "POST")?.body).toEqual({ name: "Read", target: 10, unit: "pages" }))
+    await waitFor(() => expect(calls.find((call) => call.method === "POST")?.body).toEqual({ name: "Read", target: 10, unit: "pages", step: 1, emoji: "🌱" }))
   })
 
   it("shows an error when the API is unreachable", async () => {
@@ -62,4 +64,83 @@ describe("HabitsPage", () => {
 
     expect(await screen.findByText("Something went wrong.")).toBeInTheDocument()
   })
+})
+
+describe("fractional daily goals", () => {
+  it("creates a personalized water goal with six check-ins", async () => {
+    const { calls } = mockApi({
+      "GET /habits": () => ({ items: [] }), "GET /habits/logs": () => ({ items: [] }),
+      "POST /habits": ({ body }) => ({ ...water, ...(body as object) }),
+    })
+    renderWithProviders(<HabitsPage />)
+    fireEvent.click(await screen.findByRole("button", { name: "Add your first habit" }))
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Water" } })
+    fireEvent.change(screen.getByLabelText("Daily goal"), { target: { value: "3000" } })
+    fireEvent.change(screen.getByLabelText("Unit"), { target: { value: "ml" } })
+    fireEvent.change(screen.getByLabelText("Amount per check-in"), { target: { value: "500" } })
+    fireEvent.click(screen.getByRole("button", { name: "🥤" }))
+    expect(screen.getByText("6 check-ins to reach your daily goal")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Add habit" }))
+    await waitFor(() => expect(calls.find((call) => call.method === "POST")?.body).toEqual({ name: "Water", target: 3000, unit: "ml", step: 500, emoji: "🥤" }))
+  })
+
+  it("refreshes progress on completion and allows undo with the configured amount", async () => {
+    let count = 2500
+    const { calls } = mockApi({
+      "GET /habits": () => ({ items: [{ ...water, target: 3000, step: 500, unit: "ml", todayCount: count, doneToday: count >= 3000 }] }),
+      "GET /habits/logs": () => ({ items: [] }),
+      "POST /habits/h1/logs": ({ body }) => { count += (body as { delta: number }).delta; return { habitId: "h1", count } },
+    })
+    renderWithProviders(<HabitsPage />)
+    fireEvent.click(await screen.findByRole("button", { name: "Log Drink water" }))
+    expect(await screen.findByText("3000 / 3000 ml")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Undo Drink water" }))
+    expect(await screen.findByText("2500 / 3000 ml")).toBeInTheDocument()
+    expect(calls.filter((call) => call.method === "POST").map((call) => call.body)).toEqual([{ delta: 500 }, { delta: -500 }])
+    fireEvent.click(screen.getByRole("tab", { name: /Completed/ }))
+    expect(screen.getByText(/No habits in this view/)).toBeInTheDocument()
+  })
+
+  it("requests monthly and custom histories and filters by habit", async () => {
+    const { calls } = mockApi({
+      "GET /habits": () => ({ items: [water] }), "GET /habits/logs": () => ({ items: [] }),
+    })
+    renderWithProviders(<HabitsPage />)
+    fireEvent.click(await screen.findByRole("tab", { name: "30 days" }))
+    await waitFor(() => expect(calls.filter((call) => call.path === "/habits/logs").length).toBeGreaterThan(1))
+    expect(await screen.findByText(/in these 30 days/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("tab", { name: "Custom" }))
+    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-10-01" } })
+    fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-10-07" } })
+    await waitFor(() => expect(calls.some((call) => call.query.get("from") === "2026-10-01" && call.query.get("to") === "2026-10-07")).toBe(true))
+    fireEvent.change(screen.getByRole("combobox", { name: "Filter by habit" }), { target: { value: water.id } })
+    expect(screen.getByRole("combobox", { name: "Filter by habit" })).toHaveValue(water.id)
+  })
+
+  it("shows a failed check-in without changing the displayed progress", async () => {
+    mockApi({
+      "GET /habits": () => ({ items: [water] }), "GET /habits/logs": () => ({ items: [] }),
+      "POST /habits/h1/logs": () => [500, { message: "Unable to save progress" }],
+    })
+    renderWithProviders(<HabitsPage />)
+    fireEvent.click(await screen.findByRole("button", { name: "Log Drink water" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("The request failed. Try again.")
+    expect(screen.getByText("3 / 8 glasses")).toBeInTheDocument()
+  })
+})
+
+it("edits an existing habit with its saved emoji and check-in amount", async () => {
+  const { calls } = mockApi({
+    "GET /habits": () => ({ items: [{ ...water, target: 3000, step: 500, emoji: "🥤", unit: "ml" }] }),
+    "GET /habits/logs": () => ({ items: [] }),
+    "PATCH /habits/h1": ({ body }) => ({ ...water, ...(body as object) }),
+  })
+  renderWithProviders(<HabitsPage />)
+  fireEvent.keyDown(await screen.findByRole("button", { name: "Drink water actions" }), { key: "Enter" })
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Edit" }))
+  expect(screen.getByLabelText("Emoji")).toHaveValue("🥤")
+  expect(screen.getByLabelText("Amount per check-in")).toHaveValue(500)
+  fireEvent.change(screen.getByLabelText("Daily goal"), { target: { value: "2000" } })
+  fireEvent.click(screen.getByRole("button", { name: "Save" }))
+  await waitFor(() => expect(calls.find((call) => call.method === "PATCH")?.body).toEqual({ name: water.name, target: 2000, step: 500, emoji: "🥤", unit: "ml" }))
 })

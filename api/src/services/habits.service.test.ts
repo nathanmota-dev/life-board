@@ -63,7 +63,7 @@ describe("HabitsService", () => {
 
     expect(await service.logs({})).toHaveLength(3)
     expect(await service.logs({ from: "2026-10-05", to: "2026-10-31", habitId: water.id })).toEqual([
-      { habitId: water.id, day: "2026-10-10", count: 1 },
+      { habitId: water.id, day: "2026-10-10", count: 1, target: 2 },
     ])
   })
 
@@ -78,5 +78,40 @@ describe("HabitsService", () => {
     await expect(service.update(habit.id, { target: 1 })).rejects.toBeInstanceOf(NotFoundError)
     await expect(service.remove(habit.id)).rejects.toBeInstanceOf(NotFoundError)
     await expect(service.log(habit.id, { delta: 1 })).rejects.toBeInstanceOf(NotFoundError)
+  })
+})
+
+describe("custom habit goals", () => {
+  it("persists customization and completes 3000 ml in six 500 ml check-ins", async () => {
+    const habit = await service.create({ name: "Water", emoji: "🥤", unit: "ml", target: 3000, step: 500 })
+    for (let index = 1; index <= 6; index++) {
+      expect((await service.log(habit.id, { delta: habit.step })).count).toBe(index * 500)
+      expect((await service.list())[0].doneToday).toBe(index === 6)
+    }
+    expect((await service.list())[0]).toMatchObject({ emoji: "🥤", step: 500, todayCount: 3000, streak: 1 })
+    await service.log(habit.id, { delta: -500 })
+    expect((await service.list())[0]).toMatchObject({ todayCount: 2500, doneToday: false })
+    await service.log(habit.id, { delta: 1000 })
+    expect((await service.list())[0]).toMatchObject({ todayCount: 3500, doneToday: true })
+  })
+
+  it("preserves completed past goals when the daily target changes", async () => {
+    const habit = await service.create({ name: "Read", target: 10 })
+    await service.log(habit.id, { delta: 10, day: "2026-10-16" })
+    await service.update(habit.id, { target: 20, emoji: "📚", step: 5 })
+    expect((await service.list(new Date(2026, 9, 17, 12)))[0]).toMatchObject({ target: 20, emoji: "📚", step: 5, streak: 1 })
+    expect(await service.logs({ habitId: habit.id })).toEqual([{ habitId: habit.id, day: "2026-10-16", count: 10, target: 10 }])
+    await service.log(habit.id, { delta: 5, day: "2026-10-16" })
+    expect((await service.logs({ habitId: habit.id }))[0]).toMatchObject({ count: 15, target: 10 })
+  })
+})
+
+describe("editing today's goal", () => {
+  it("updates today's snapshot so the new goal remains correct tomorrow", async () => {
+    const habit = await service.create({ name: "Read", target: 10 })
+    await service.log(habit.id, { delta: 10 })
+    await service.update(habit.id, { target: 20 })
+    expect((await service.logs({ habitId: habit.id }))[0]).toMatchObject({ count: 10, target: 20 })
+    expect((await service.list())[0].doneToday).toBe(false)
   })
 })

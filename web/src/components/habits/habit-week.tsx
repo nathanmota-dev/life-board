@@ -10,10 +10,12 @@ export function HabitWeek({ week }: HabitWeekProps) {
       {week.map((day) => (
         <li
           key={day.day}
-          title={`${day.day}: ${day.count}`}
+          title={`${day.day}: ${day.eligible ? `${day.count} / ${day.target}` : t("habits.notTracked")}`}
           className={cn(
             "flex size-6 items-center justify-center rounded-md border text-[10px] text-muted-foreground",
             day.done && "border-primary bg-primary text-primary-foreground",
+            !day.done && day.count > 0 && "border-chart-3/40 bg-chart-3/15",
+            !day.eligible && "opacity-30",
           )}
         >
           {day.done ? <Check className="size-3" aria-label={t("habits.goalMet")} /> : day.label}
