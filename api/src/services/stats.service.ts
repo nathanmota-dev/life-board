@@ -18,7 +18,10 @@ export class StatsService {
       this.db
         .select({ total: count() })
         .from(tasks)
-        .where(and(isNull(tasks.deletedAt), gte(tasks.completedAt, start), lt(tasks.completedAt, end))),
+        // Ticked checklist items aren't tasks of their own.
+        .where(
+          and(isNull(tasks.deletedAt), isNull(tasks.parentTaskId), gte(tasks.completedAt, start), lt(tasks.completedAt, end)),
+        ),
       this.db
         .select({ total: count() })
         .from(calendarEvents)

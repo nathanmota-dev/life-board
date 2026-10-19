@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { CommandPaletteProvider } from "@/components/command-palette"
 import { ModeToggle } from "@/components/mode-toggle"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/shared/toaster"
 import { RouteBreadcrumb } from "@/layout/route-breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -49,6 +50,7 @@ export function MainLayout() {
                 <Outlet />
               </div>
             </SidebarInset>
+            <Toaster />
           </CommandPaletteProvider>
         </SidebarProvider>
       </AccentProvider>

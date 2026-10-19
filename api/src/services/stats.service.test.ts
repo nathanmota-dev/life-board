@@ -26,6 +26,7 @@ describe("StatsService", () => {
       { id: "t1", title: "a", completedAt: inWeek },
       { id: "t2", title: "b", completedAt: lastWeek },
       { id: "t3", title: "c" },
+      { id: "t4", title: "checklist item", parentTaskId: "t1", completedAt: inWeek },
     ])
     await ctx.db.insert(calendarEvents).values({ id: "e1", title: "e", startAt: inWeek, endAt: inWeek })
     await ctx.db.insert(goals).values({ id: "g1", title: "g" })

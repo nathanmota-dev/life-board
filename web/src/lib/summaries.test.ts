@@ -20,6 +20,10 @@ const baseTask: Task = {
   parentTaskId: null,
   tags: [],
   linkedThoughtIds: [],
+  pinned: false,
+  color: null,
+  order: 0,
+  archivedAt: null,
   createdAt: "2026-10-16T10:00:00.000Z",
   updatedAt: "",
 }

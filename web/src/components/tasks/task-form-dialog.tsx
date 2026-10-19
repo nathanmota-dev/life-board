@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { DialogForm } from "@/components/shared/dialog-form"
 import { TaskBacklinks } from "@/components/tasks/task-backlinks"
+import { TaskChecklistEditor } from "@/components/tasks/task-checklist-editor"
 import { TaskFormFields } from "@/components/tasks/task-form-fields"
 import { useCreateTask, useUpdateTask } from "@/hooks/queries/use-tasks"
 import { emptyTaskValues, taskToValues, valuesToInput } from "@/lib/tasks"
@@ -34,6 +35,7 @@ export function TaskFormDialog({ open, task, defaultStatus, onOpenChange }: Task
       onSubmit={submit}
     >
       <TaskFormFields values={values} onChange={setValues} />
+      {task ? <TaskChecklistEditor taskId={task.id} /> : null}
       {task ? <TaskBacklinks taskId={task.id} /> : null}
     </DialogForm>
   )

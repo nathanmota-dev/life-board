@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router"
 import { render } from "@testing-library/react"
 import { AccentProvider } from "@/components/accent-provider"
+import { Toaster } from "@/components/shared/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
 
 /**
@@ -33,6 +34,7 @@ export function renderWithProviders(ui: ReactElement) {
         <ThemeProvider>
           <AccentProvider>
             <RouterProvider router={router} />
+            <Toaster />
           </AccentProvider>
         </ThemeProvider>
       </QueryClientProvider>,

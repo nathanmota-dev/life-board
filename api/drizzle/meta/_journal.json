@@ -29,6 +29,13 @@
       "when": 1792376365499,
       "tag": "0003_habit_customization",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792415219743,
+      "tag": "0004_tasks_board",
+      "breakpoints": true
     }
   ]
 }

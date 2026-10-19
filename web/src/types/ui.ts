@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode, Ref } from "react"
 import type { LucideIcon } from "lucide-react"
 
 export type WithChildren = { children: ReactNode }
@@ -110,3 +110,26 @@ export type SegmentedControlProps<T extends string> = {
 }
 
 export type SearchInputProps = { value: string; onChange: (value: string) => void; placeholder: string }
+
+export type NoteCardProps = {
+  ref?: Ref<HTMLElement>
+  style?: CSSProperties
+  /** Soft background and border classes for the card's color. */
+  toneClassName?: string
+  dragging?: boolean
+  label: string
+  header: ReactNode
+  actions?: ReactNode
+  children?: ReactNode
+}
+
+export type MasonryBoardProps<T> = {
+  items: T[]
+  getKey: (item: T) => string
+  renderItem: (item: T) => ReactNode
+  label?: string
+}
+
+export type ToastAction = { label: string; onSelect: () => void }
+
+export type Toast = { id: number; message: string; action?: ToastAction }
