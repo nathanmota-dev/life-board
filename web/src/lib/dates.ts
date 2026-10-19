@@ -98,3 +98,15 @@ export function toDateTimeInput(value: string | Date) {
 export function fromDateTimeInput(value: string) {
   return new Date(value).toISOString()
 }
+
+/** 1 for January 1st. */
+export function dayOfYear(date: Date = new Date()) {
+  return Math.round((startOfDay(date).getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / DAY_MS) + 1
+}
+
+/** ISO 8601 week number (weeks start on Monday; week 1 holds the first Thursday). */
+export function isoWeek(date: Date = new Date()) {
+  const thursday = startOfDay(date)
+  thursday.setDate(thursday.getDate() + 3 - ((thursday.getDay() + 6) % 7))
+  return Math.ceil(dayOfYear(thursday) / 7)
+}

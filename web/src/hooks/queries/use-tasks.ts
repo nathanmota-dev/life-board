@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { queryKeys } from "@/hooks/queries/query-keys"
 import { useInvalidatingMutation } from "@/hooks/queries/use-invalidating-mutation"
 import { tasksService } from "@/services/tasks-service"
-import type { BoardTask, TaskFilters, TaskOrderItem, TaskUpdate } from "@/types/task"
+import type { BoardTask, FocusChange, TaskFilters, TaskOrderItem, TaskUpdate } from "@/types/task"
 
 const boardKey = [...queryKeys.tasks, "board"]
 
@@ -25,6 +25,13 @@ export function useUpdateTask() {
     // Goals derive their progress from linked tasks.
     [queryKeys.tasks, queryKeys.goals],
   )
+}
+
+/** Moves tasks in or out of a day's focus one after the other, so the API checks the focus limit in order. */
+export function useSetFocusDays() {
+  return useInvalidatingMutation(async (changes: FocusChange[]) => {
+    for (const { id, focusDay } of changes) await tasksService.update(id, { focusDay })
+  }, [queryKeys.tasks])
 }
 
 export function useRemoveTask() {

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "525de7dc-1b2c-45ff-9dfa-07bd207acfd8",
+  "id": "bc59466b-6e1c-4489-9821-983a9c06dc03",
   "prevId": "bb0cd016-790d-4a67-a30f-491172be0e7c",
   "tables": {
     "calendar_events": {
@@ -811,81 +811,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "goal_progress_snapshots": {
-      "name": "goal_progress_snapshots",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "goal_id": {
-          "name": "goal_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "day": {
-          "name": "day",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "progress": {
-          "name": "progress",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "goal_progress_snapshots_goal_day_unique": {
-          "name": "goal_progress_snapshots_goal_day_unique",
-          "columns": [
-            "goal_id",
-            "day"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "goal_progress_snapshots_goal_id_goals_id_fk": {
-          "name": "goal_progress_snapshots_goal_id_goals_id_fk",
-          "tableFrom": "goal_progress_snapshots",
-          "tableTo": "goals",
-          "columnsFrom": [
-            "goal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "goals": {
       "name": "goals",
       "columns": {
@@ -963,14 +888,6 @@
           "autoincrement": false,
           "default": 0
         },
-        "progress_mode": {
-          "name": "progress_mode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'auto'"
-        },
         "linked_task_ids": {
           "name": "linked_task_ids",
           "type": "text",
@@ -984,14 +901,6 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "linked_habit_ids": {
-          "name": "linked_habit_ids",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'[]'"
         },
         "created_at": {
           "name": "created_at",
@@ -1526,6 +1435,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "focus_day": {
+          "name": "focus_day",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -1567,6 +1483,13 @@
           "name": "tasks_parent_idx",
           "columns": [
             "parent_task_id"
+          ],
+          "isUnique": false
+        },
+        "tasks_focus_day_idx": {
+          "name": "tasks_focus_day_idx",
+          "columns": [
+            "focus_day"
           ],
           "isUnique": false
         }

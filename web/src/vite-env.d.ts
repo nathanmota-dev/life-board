@@ -9,11 +9,25 @@ interface Window {
     getVersion: () => Promise<string>
     getApiBaseUrl: () => Promise<string>
     openExternal: (url: string) => Promise<void>
+    setLanguage?: (language: string) => void
+    onNavigate?: (callback: (route: string) => void) => () => void
     capture?: {
       getShortcut: () => Promise<string | null>
       close: () => void
       notifySaved: () => void
       onSaved: (callback: () => void) => () => void
+    }
+    notifications?: {
+      show: (notification: import("@/types/notification").AppNotification) => Promise<boolean>
+    }
+    pomodoro?: {
+      getState: () => Promise<import("@/types/pomodoro").PomodoroState>
+      dispatch: (command: import("@/types/pomodoro").PomodoroCommand) => Promise<import("@/types/pomodoro").PomodoroState>
+      updateSettings: (
+        patch: Partial<import("@/types/pomodoro").PomodoroSettings>,
+      ) => Promise<import("@/types/pomodoro").PomodoroState>
+      onState: (callback: (state: import("@/types/pomodoro").PomodoroState) => void) => () => void
+      onCompleted: (callback: (completion: import("@/types/pomodoro").PomodoroCompletion) => void) => () => void
     }
   }
 }

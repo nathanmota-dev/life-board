@@ -22,6 +22,8 @@ export const tasks = sqliteTable(
     color: text("color", { enum: TASK_COLORS }),
     order: integer("order").notNull().default(0),
     archivedAt: timestamp("archived_at"),
+    // The local day (YYYY-MM-DD) the task was picked as one of that day's focus tasks.
+    focusDay: text("focus_day"),
     ...timestamps(),
     deletedAt: deletedAt(),
   },
@@ -29,6 +31,7 @@ export const tasks = sqliteTable(
     index("tasks_status_idx").on(t.status),
     index("tasks_completed_idx").on(t.completedAt),
     index("tasks_parent_idx").on(t.parentTaskId),
+    index("tasks_focus_day_idx").on(t.focusDay),
   ],
 )
 

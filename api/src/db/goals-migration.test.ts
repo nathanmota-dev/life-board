@@ -6,12 +6,12 @@ import { createDb } from "./client"
 import { migrationsFolder } from "../test/create-test-app"
 import { GoalsService } from "../services/goals.service"
 
-it("keeps existing goals on their manual progress and starts new ones in auto", async () => {
+it.each(["0006", "0007"])("upgrades from before %s keeping manual progress and starting new goals in auto", async (nextMigration) => {
   const dir = await mkdtemp(join(tmpdir(), "goals-migration-"))
   const previousFolder = join(dir, "previous")
   await mkdir(join(previousFolder, "meta"), { recursive: true })
   const journal = JSON.parse(await readFile(join(migrationsFolder, "meta/_journal.json"), "utf8"))
-  journal.entries = journal.entries.filter((entry: { tag: string }) => entry.tag < "0006")
+  journal.entries = journal.entries.filter((entry: { tag: string }) => entry.tag < nextMigration)
   await writeFile(join(previousFolder, "meta/_journal.json"), JSON.stringify(journal))
   for (const entry of journal.entries) await copyFile(join(migrationsFolder, `${entry.tag}.sql`), join(previousFolder, `${entry.tag}.sql`))
   const url = `file:${join(dir, "legacy.db")}`

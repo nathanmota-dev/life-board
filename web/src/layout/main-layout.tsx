@@ -6,6 +6,7 @@ import { CommandPaletteProvider } from "@/components/command-palette"
 import { ModeToggle } from "@/components/mode-toggle"
 import { ThemeProvider } from "@/components/theme-provider"
 import { useCaptureSync } from "@/hooks/use-capture-sync"
+import { useDesktopBridge } from "@/hooks/use-desktop-bridge"
 import { RouteBreadcrumb } from "@/layout/route-breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { Toaster } from "@/components/ui/sonner"
@@ -40,6 +41,7 @@ function WorkspaceHeader() {
 
 export function MainLayout() {
   useCaptureSync()
+  useDesktopBridge()
 
   return (
     <ThemeProvider>

@@ -1,6 +1,7 @@
 import { createInstance } from "i18next"
 import LanguageDetector from "i18next-browser-languagedetector"
 import { initReactI18next } from "react-i18next"
+import { syncDesktopLanguage } from "@/lib/desktop-app"
 import en from "../../../public/i18n/en.json"
 import pt from "../../../public/i18n/pt.json"
 import type { Language } from "@/types/i18n"
@@ -21,6 +22,7 @@ export function getLocale() {
 
 i18n.on("languageChanged", (language) => {
   document.documentElement.lang = language.startsWith("pt") ? "pt-BR" : "en"
+  syncDesktopLanguage(language)
 })
 
 // Bundle both dictionaries so the packaged Electron app also works offline over file://.

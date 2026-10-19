@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router"
 import { ArrowUpRight, FolderGit2, GitBranch } from "lucide-react"
 import { ContributionsCalendar } from "@/components/github/contributions-calendar"
 import { RecentRepos } from "@/components/github/recent-repos"
+import { DataState } from "@/components/shared/data-state"
 import { EmptyState } from "@/components/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Panel } from "@/components/workspace-ui"
@@ -46,10 +47,14 @@ export function GithubActivityPanel() {
           </Button>
         }
       >
-        {connected ? <ContributionsCalendar enabled /> : <ConnectPrompt />}
+        <DataState isLoading={status.isLoading} error={status.error}>
+          {connected ? <ContributionsCalendar enabled /> : <ConnectPrompt />}
+        </DataState>
       </Panel>
       <Panel title={t("dashboard.recentRepositories")} icon={FolderGit2} className="xl:col-span-4">
-        {connected ? <RecentRepos enabled /> : <EmptyState icon={FolderGit2} title={t("dashboard.notConnected")} className="py-6" />}
+        <DataState isLoading={status.isLoading} error={status.error}>
+          {connected ? <RecentRepos enabled /> : <EmptyState icon={FolderGit2} title={t("dashboard.notConnected")} className="py-6" />}
+        </DataState>
       </Panel>
     </div>
   )

@@ -11,6 +11,7 @@ import {
   Smile,
   Tags,
   Target,
+  Timer,
 } from "lucide-react"
 import { ActivityPage } from "@/routes/activity"
 import { CalendarPage } from "@/routes/calendar"
@@ -20,6 +21,7 @@ import { GoalsPage } from "@/routes/goals"
 import { HabitsPage } from "@/routes/habits"
 import { InboxPage } from "@/routes/inbox"
 import { MoodPage } from "@/routes/mood"
+import { PomodoroPage } from "@/routes/pomodoro"
 import { ProjectsPage } from "@/routes/projects"
 import { TagsPage } from "@/routes/tags"
 import { TasksPage } from "@/routes/tasks"
@@ -35,6 +37,7 @@ export const workspacePages = [
   { path: "goals", titleKey: "navigation.goals", icon: Target, component: GoalsPage },
   { path: "projects", titleKey: "navigation.projects", icon: Rocket, component: ProjectsPage },
   { path: "habits", titleKey: "navigation.habits", icon: ListChecks, component: HabitsPage },
+  { path: "pomodoro", titleKey: "navigation.pomodoro", icon: Timer, component: PomodoroPage },
   { path: "github", titleKey: "navigation.github", icon: GitPullRequest, component: GitHubPage },
   { path: "file-board", titleKey: "navigation.file-board", icon: FolderKanban, component: FileBoardPage },
   { path: "mood", titleKey: "navigation.mood", icon: Smile, component: MoodPage },
