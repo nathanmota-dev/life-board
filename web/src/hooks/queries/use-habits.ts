@@ -31,17 +31,18 @@ export function useCreateHabit() {
 export function useUpdateHabit() {
   return useInvalidatingMutation(
     ({ id, input }: { id: string; input: Partial<HabitInput> }) => habitsService.update(id, input),
-    [queryKeys.habits],
+    [queryKeys.habits, queryKeys.goals],
   )
 }
 
 export function useRemoveHabit() {
-  return useInvalidatingMutation(habitsService.remove, [queryKeys.habits])
+  return useInvalidatingMutation(habitsService.remove, [queryKeys.habits, queryKeys.goals])
 }
 
 export function useLogHabit() {
   return useInvalidatingMutation(
     ({ id, input }: { id: string; input: HabitLogInput }) => habitsService.log(id, input),
-    [queryKeys.habits],
+    // Goals derive their progress from linked habits.
+    [queryKeys.habits, queryKeys.goals],
   )
 }

@@ -288,7 +288,38 @@
     "domainGoal": "{{domain}} goal",
     "pausedCount_one": "{{count}} paused",
     "pausedCount_other": "{{count}} paused",
-    "pausedCount_zero": "{{count}} paused"
+    "pausedCount_zero": "{{count}} paused",
+    "breakdownMilestones": "Milestones {{done}}/{{total}}",
+    "breakdownTasks": "Tasks {{done}}/{{total}}",
+    "breakdownHabits": "Habits {{percent}}%",
+    "noProgressParts": "Add milestones, tasks or habits to track progress, or switch to manual.",
+    "progressMode": "Progress mode",
+    "modeAuto": "Auto",
+    "modeManual": "Manual",
+    "manualProgress": "Progress typed by hand",
+    "expectedProgress": "Expected by now: {{percent}}%",
+    "start": "Start",
+    "startDate": "Start date",
+    "progressHistory": "Progress history",
+    "noHistory": "No progress recorded in this period yet.",
+    "linkedHabits": "Linked habits",
+    "noLinkedHabits": "No linked habits.",
+    "relatedHabits": "Related habits",
+    "linkHabits": "Link habits",
+    "noHabits": "No habits yet.",
+    "milestoneDue": "Due date for {{title}}",
+    "newMilestoneDue": "New milestone due date",
+    "milestoneMarker": "{{title}}, due {{date}}",
+    "atRisk": "At risk",
+    "atRiskHint": "Behind schedule or overdue",
+    "layout": "Goals layout",
+    "grid": "Grid",
+    "timeline": "Timeline",
+    "groupByArea": "Group by area",
+    "allAreas": "All areas",
+    "areaFilter": "Filter by area",
+    "undated": "Without a target date",
+    "noScheduledGoals": "Set a target date to see goals on the timeline."
   },
   "habits": {
     "empty": "No habits yet",
@@ -345,13 +376,6 @@
     "progressDescription": "See your consistency, one day at a time.",
     "filterHabit": "Filter by habit",
     "allHabits": "All habits",
-    "period": "Analysis period",
-    "week": "7 days",
-    "month": "30 days",
-    "custom": "Custom",
-    "from": "From",
-    "to": "To",
-    "invalidRange": "Choose a valid interval of up to 366 days, ending today or earlier.",
     "consistency": "Goals completed",
     "consistencyHint": "Share of daily goals reached in these {{count}} days. Only tracked days count; today is still in progress.",
     "dailyProgress": "Daily progress",
@@ -420,6 +444,15 @@
     "great": "Great",
     "deleteEntry": "Delete entry for {{date}}",
     "feeling": "{{emoji}} Feeling {{mood}}"
+  },
+  "period": {
+    "label": "Analysis period",
+    "week": "7 days",
+    "month": "30 days",
+    "custom": "Custom",
+    "from": "From",
+    "to": "To",
+    "invalidRange": "Choose a valid interval of up to 366 days, ending today or earlier."
   },
   "projects": {
     "description": "Ideas and projects as a board. Drag a card to another column to change its status.",
@@ -602,7 +635,10 @@
     "linkedTask_zero": "{{count}} linked tasks",
     "item_one": "{{count}} item",
     "item_other": "{{count}} items",
-    "item_zero": "{{count}} items"
+    "item_zero": "{{count}} items",
+    "linkedHabit_one": "{{count}} linked habit",
+    "linkedHabit_other": "{{count}} linked habits",
+    "linkedHabit_zero": "{{count}} linked habits"
   },
   "taskStatuses": {
     "inbox": "Inbox",
@@ -640,6 +676,10 @@
     "learning": "Learning",
     "relationships": "Relationships",
     "personal": "Personal"
+  },
+  "goalRisks": {
+    "at_risk": "At risk",
+    "overdue": "Overdue"
   },
   "projectStatuses": {
     "idea": "Idea",

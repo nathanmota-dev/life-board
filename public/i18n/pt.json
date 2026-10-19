@@ -288,7 +288,38 @@
     "domainGoal": "Meta de {{domain}}",
     "pausedCount_one": "{{count}} pausada",
     "pausedCount_other": "{{count}} pausadas",
-    "pausedCount_zero": "{{count}} pausadas"
+    "pausedCount_zero": "{{count}} pausadas",
+    "breakdownMilestones": "Marcos {{done}}/{{total}}",
+    "breakdownTasks": "Tarefas {{done}}/{{total}}",
+    "breakdownHabits": "Hábitos {{percent}}%",
+    "noProgressParts": "Adicione marcos, tarefas ou hábitos para acompanhar o progresso, ou mude para manual.",
+    "progressMode": "Modo de progresso",
+    "modeAuto": "Automático",
+    "modeManual": "Manual",
+    "manualProgress": "Progresso digitado à mão",
+    "expectedProgress": "Esperado até agora: {{percent}}%",
+    "start": "Início",
+    "startDate": "Data de início",
+    "progressHistory": "Histórico de progresso",
+    "noHistory": "Nenhum progresso registrado neste período ainda.",
+    "linkedHabits": "Hábitos vinculados",
+    "noLinkedHabits": "Nenhum hábito vinculado.",
+    "relatedHabits": "Hábitos relacionados",
+    "linkHabits": "Vincular hábitos",
+    "noHabits": "Nenhum hábito ainda.",
+    "milestoneDue": "Prazo de {{title}}",
+    "newMilestoneDue": "Prazo do novo marco",
+    "milestoneMarker": "{{title}}, prazo {{date}}",
+    "atRisk": "Em risco",
+    "atRiskHint": "Atrasadas ou fora do ritmo",
+    "layout": "Layout das metas",
+    "grid": "Grade",
+    "timeline": "Linha do tempo",
+    "groupByArea": "Agrupar por área",
+    "allAreas": "Todas as áreas",
+    "areaFilter": "Filtrar por área",
+    "undated": "Sem data alvo",
+    "noScheduledGoals": "Defina uma data alvo para ver as metas na linha do tempo."
   },
   "habits": {
     "empty": "Nenhum hábito ainda",
@@ -345,13 +376,6 @@
     "progressDescription": "Acompanhe sua constância, um dia de cada vez.",
     "filterHabit": "Filtrar por hábito",
     "allHabits": "Todos os hábitos",
-    "period": "Período de análise",
-    "week": "7 dias",
-    "month": "30 dias",
-    "custom": "Personalizado",
-    "from": "De",
-    "to": "Até",
-    "invalidRange": "Escolha um intervalo válido de até 366 dias, terminando hoje ou antes.",
     "consistency": "Metas concluídas",
     "consistencyHint": "Proporção de metas diárias atingidas nestes {{count}} dias. Só entram dias acompanhados; hoje ainda está em andamento.",
     "dailyProgress": "Progresso diário",
@@ -420,6 +444,15 @@
     "great": "Ótimo",
     "deleteEntry": "Excluir registro de {{date}}",
     "feeling": "{{emoji}} Sentindo-se {{mood}}"
+  },
+  "period": {
+    "label": "Período de análise",
+    "week": "7 dias",
+    "month": "30 dias",
+    "custom": "Personalizado",
+    "from": "De",
+    "to": "Até",
+    "invalidRange": "Escolha um intervalo válido de até 366 dias, terminando hoje ou antes."
   },
   "projects": {
     "description": "Ideias e projetos em um quadro. Arraste um cartão para outra coluna para mudar o status.",
@@ -602,7 +635,10 @@
     "linkedTask_zero": "{{count}} tarefas vinculadas",
     "item_one": "{{count}} item",
     "item_other": "{{count}} itens",
-    "item_zero": "{{count}} itens"
+    "item_zero": "{{count}} itens",
+    "linkedHabit_one": "{{count}} hábito vinculado",
+    "linkedHabit_other": "{{count}} hábitos vinculados",
+    "linkedHabit_zero": "{{count}} hábitos vinculados"
   },
   "taskStatuses": {
     "inbox": "Caixa de entrada",
@@ -640,6 +676,10 @@
     "learning": "Aprendizado",
     "relationships": "Relacionamentos",
     "personal": "Pessoal"
+  },
+  "goalRisks": {
+    "at_risk": "Em risco",
+    "overdue": "Atrasada"
   },
   "projectStatuses": {
     "idea": "Ideia",

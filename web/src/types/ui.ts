@@ -132,3 +132,18 @@ export type MasonryBoardProps<T> = {
   renderItem: (item: T) => ReactNode
   label?: string
 }
+
+export type Period = "week" | "month" | "custom"
+
+/** The selected period and the day keys it covers (empty when a custom range is invalid). */
+export type PeriodState = {
+  period: Period
+  setPeriod: (period: Period) => void
+  from: string
+  setFrom: (from: string) => void
+  to: string
+  setTo: (to: string) => void
+  days: string[]
+}
+
+export type PeriodFilterProps = { state: PeriodState }

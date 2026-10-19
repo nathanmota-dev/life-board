@@ -3,6 +3,7 @@ import { idParams, okResponse } from "../dto/common.dto"
 import {
   createGoalBody,
   createMilestoneBody,
+  goalProgressQuery,
   milestoneParams,
   updateGoalBody,
   updateMilestoneBody,
@@ -27,6 +28,10 @@ export const goalsController: FastifyPluginAsyncZod = async (app) => {
     await goals.remove(request.params.id)
     return okResponse
   })
+
+  app.get("/goals/:id/progress", { schema: { params: idParams, querystring: goalProgressQuery } }, (request) =>
+    goals.progressHistory(request.params.id, request.query),
+  )
 
   app.post(
     "/goals/:id/milestones",

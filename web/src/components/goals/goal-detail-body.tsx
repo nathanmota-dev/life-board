@@ -1,10 +1,12 @@
 import { useTranslation } from "react-i18next"
 import { Pencil, Trash2 } from "lucide-react"
+import { GoalLinkedHabits } from "@/components/goals/goal-linked-habits"
 import { GoalLinkedTasks } from "@/components/goals/goal-linked-tasks"
 import { GoalMilestones } from "@/components/goals/goal-milestones"
+import { GoalProgressChart } from "@/components/goals/goal-progress-chart"
+import { GoalProgressSection } from "@/components/goals/goal-progress-section"
 import { SelectField } from "@/components/shared/select-field"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import { SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useRemoveGoal, useUpdateGoal } from "@/hooks/queries/use-goals"
 import { formatDate } from "@/lib/dates"
@@ -24,13 +26,7 @@ export function GoalDetailBody({ detail, onClose, onEdit }: GoalDetailBodyProps)
         <SheetDescription>{goal.why || t("goals.domainGoal", { domain: t(`goalDomains.${goal.domain}`) })}</SheetDescription>
       </SheetHeader>
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-5 py-5">
-        <section className="flex flex-col gap-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">{t("goals.progress")}</span>
-            <span className="font-medium tabular-nums">{goal.progress}%</span>
-          </div>
-          <Progress value={goal.progress} aria-label={t("goals.goalProgress")} className="h-2" />
-        </section>
+        <GoalProgressSection goal={goal} />
         <section className="grid grid-cols-2 gap-3 text-sm">
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">{t("common.status")}</span>
@@ -45,6 +41,14 @@ export function GoalDetailBody({ detail, onClose, onEdit }: GoalDetailBodyProps)
             <span className="text-xs text-muted-foreground">{t("goals.target")}</span>
             <span className="flex h-9 items-center rounded-md border px-3">{goal.targetAt ? formatDate(goal.targetAt, { dateStyle: "medium" }) : "—"}</span>
           </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <span className="text-xs text-muted-foreground">{t("goals.start")}</span>
+            <span className="flex h-9 items-center rounded-md border px-3">{formatDate(goal.startAt ?? goal.createdAt, { dateStyle: "medium" })}</span>
+          </div>
+        </section>
+        <section className="flex flex-col gap-3">
+          <h3 className="text-sm font-medium">{t("goals.progressHistory")}</h3>
+          <GoalProgressChart goalId={goal.id} />
         </section>
         <section className="flex flex-col gap-3">
           <h3 className="text-sm font-medium">{t("goals.milestones")}</h3>
@@ -53,6 +57,10 @@ export function GoalDetailBody({ detail, onClose, onEdit }: GoalDetailBodyProps)
         <section className="flex flex-col gap-3">
           <h3 className="text-sm font-medium">{t("goals.linkedTasks")}</h3>
           <GoalLinkedTasks taskIds={goal.linkedTaskIds} />
+        </section>
+        <section className="flex flex-col gap-3">
+          <h3 className="text-sm font-medium">{t("goals.linkedHabits")}</h3>
+          <GoalLinkedHabits goal={goal} />
         </section>
       </div>
       <div className="flex justify-between gap-2 border-t px-5 py-3">

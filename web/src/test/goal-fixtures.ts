@@ -1,0 +1,25 @@
+import type { Goal } from "@/types/goal"
+
+export const goalFixture = (extra: Partial<Goal> = {}): Goal => ({
+  id: "g1",
+  title: "Run a marathon",
+  why: "Feel strong",
+  domain: "health",
+  status: "active",
+  startAt: "2026-10-01T03:00:00.000Z",
+  targetAt: "2026-12-31T03:00:00.000Z",
+  completedAt: null,
+  color: "#a855f7",
+  progress: 20,
+  progressMode: "auto",
+  linkedTaskIds: [],
+  linkedThoughtIds: [],
+  linkedHabitIds: [],
+  breakdown: { milestones: { done: 1, total: 5 }, tasks: null, habits: null },
+  expectedProgress: 20,
+  risk: null,
+  milestoneMarkers: [],
+  createdAt: "2026-09-20T10:00:00.000Z",
+  updatedAt: "2026-09-20T10:00:00.000Z",
+  ...extra,
+})

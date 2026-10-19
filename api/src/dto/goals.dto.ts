@@ -1,6 +1,6 @@
 import { z } from "zod"
-import { GOAL_DOMAINS, GOAL_STATUSES } from "../db/schema"
-import { hexColor, idList } from "./common.dto"
+import { GOAL_DOMAINS, GOAL_PROGRESS_MODES, GOAL_STATUSES } from "../db/schema"
+import { dayKey, hexColor, idList } from "./common.dto"
 
 const milestoneFields = {
   title: z.string().min(1).max(200),
@@ -16,6 +16,8 @@ const goalFields = {
   color: hexColor,
   linkedTaskIds: idList,
   linkedThoughtIds: idList,
+  linkedHabitIds: idList,
+  progressMode: z.enum(GOAL_PROGRESS_MODES),
 }
 
 export const createGoalBody = z
@@ -46,7 +48,10 @@ export const milestoneParams = z.object({
   milestoneId: z.string().min(1),
 })
 
+export const goalProgressQuery = z.object({ from: dayKey.optional(), to: dayKey.optional() })
+
 export type CreateGoalBody = z.infer<typeof createGoalBody>
 export type UpdateGoalBody = z.infer<typeof updateGoalBody>
 export type CreateMilestoneBody = z.infer<typeof createMilestoneBody>
 export type UpdateMilestoneBody = z.infer<typeof updateMilestoneBody>
+export type GoalProgressQuery = z.infer<typeof goalProgressQuery>

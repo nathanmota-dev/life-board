@@ -5,24 +5,32 @@ import { GoalDetailSheet } from "@/components/goals/goal-detail-sheet"
 import { GoalFormDialog } from "@/components/goals/goal-form-dialog"
 import { GoalGrid } from "@/components/goals/goal-grid"
 import { GoalStats } from "@/components/goals/goal-stats"
+import { GoalTimeline } from "@/components/goals/goal-timeline"
+import { GoalsToolbar } from "@/components/goals/goals-toolbar"
 import { DataState } from "@/components/shared/data-state"
 import { EmptyState } from "@/components/shared/empty-state"
-import { SegmentedControl } from "@/components/shared/segmented-control"
 import { Button } from "@/components/ui/button"
 import { Page, PageSection } from "@/components/workspace-ui"
 import { useGoals } from "@/hooks/queries/use-goals"
-import { countGoals, getGoalStatusOptions } from "@/lib/goals"
-import type { GoalDialogState, GoalView } from "@/types/goal"
+import { readGoalLayout, saveGoalLayout } from "@/lib/goals"
+import type { Goal, GoalDialogState, GoalDomainFilter, GoalLayout, GoalView } from "@/types/goal"
 
 export function GoalsPage() {
   const { t } = useTranslation()
   const [view, setView] = useState<GoalView>("all")
+  const [domain, setDomain] = useState<GoalDomainFilter>("all")
+  const [layout, setLayout] = useState<GoalLayout>(readGoalLayout)
+  const [grouped, setGrouped] = useState(false)
   const [openGoalId, setOpenGoalId] = useState<string | null>(null)
   const [dialog, setDialog] = useState<GoalDialogState>({ open: false, goal: null })
   const goals = useGoals()
   const items = goals.data ?? []
-  const counts = countGoals(items)
-  const visible = view === "all" ? items : items.filter((goal) => goal.status === view)
+  const visible = items.filter((goal) => (view === "all" || goal.status === view) && (domain === "all" || goal.domain === domain))
+  const changeLayout = (next: GoalLayout) => {
+    setLayout(next)
+    saveGoalLayout(next)
+  }
+  const open = (goal: Goal) => setOpenGoalId(goal.id)
 
   return (
     <Page
@@ -35,11 +43,16 @@ export function GoalsPage() {
         </Button>
       }
       toolbar={
-        <SegmentedControl
-          label={t("goals.views")}
-          value={view}
-          onChange={setView}
-          options={[{ value: "all", label: t("common.all"), count: items.length }, ...getGoalStatusOptions().map((option) => ({ ...option, count: counts[option.value] }))]}
+        <GoalsToolbar
+          goals={items}
+          view={view}
+          onViewChange={setView}
+          domain={domain}
+          onDomainChange={setDomain}
+          layout={layout}
+          onLayoutChange={changeLayout}
+          grouped={grouped}
+          onGroupedChange={setGrouped}
         />
       }
     >
@@ -53,7 +66,7 @@ export function GoalsPage() {
           isEmpty={visible.length === 0}
           empty={<EmptyState icon={Target} title={t("goals.empty")} description={t("goals.emptyDescription")} />}
         >
-          <GoalGrid goals={visible} onOpen={(goal) => setOpenGoalId(goal.id)} />
+          {layout === "timeline" ? <GoalTimeline goals={visible} onOpen={open} /> : <GoalGrid goals={visible} grouped={grouped} onOpen={open} />}
         </DataState>
       </PageSection>
       <GoalDetailSheet goalId={openGoalId} onClose={() => setOpenGoalId(null)} onEdit={(goal) => setDialog({ open: true, goal })} />
