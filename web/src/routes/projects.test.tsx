@@ -100,7 +100,7 @@ describe("ProjectsPage", () => {
     mockApi({ "GET /projects": () => ({ items: Array.from({ length: 7 }, (_, order) => project(`done-${order}`, "done", order)) }) })
     renderWithProviders(<ProjectsPage />)
 
-    await screen.findByText("done-0")
+    await screen.findByRole("button", { name: "Show all (7)" })
     expect(within(column("Done")).getAllByRole("article")).toHaveLength(5)
     fireEvent.click(screen.getByRole("button", { name: "Show all (7)" }))
     expect(within(column("Done")).getAllByRole("article")).toHaveLength(7)
