@@ -3,6 +3,8 @@ import { app, BrowserWindow, dialog, ipcMain, shell, utilityProcess } from "elec
 import type { UtilityProcess } from "electron"
 import backendPath from "./backend-process?modulePath"
 import icon from "../resources/icon.png?asset"
+import { isCaptureWindow, registerCaptureShortcut, unregisterCaptureShortcut } from "./capture-window"
+import { loadRenderer, secureWebPreferences } from "./renderer"
 import { loadSecretKey } from "./secret-key"
 import { defaultBounds, loadWindowState, trackWindowState } from "./window-state"
 
@@ -21,12 +23,7 @@ function createWindow() {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: "#ffffff",
-    webPreferences: {
-      preload: join(__dirname, "../preload/index.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
+    webPreferences: secureWebPreferences,
   })
 
   window.once("ready-to-show", () => {
@@ -35,15 +32,7 @@ function createWindow() {
     window.show()
     trackWindowState(window, dataDir)
   })
-  window.webContents.setWindowOpenHandler(() => ({ action: "deny" }))
-  window.webContents.on("will-navigate", (event) => event.preventDefault())
-
-  const rendererUrl = process.env.ELECTRON_RENDERER_URL
-  const load = !app.isPackaged && rendererUrl
-    ? window.loadURL(rendererUrl)
-    : window.loadFile(join(__dirname, "../renderer/index.html"))
-
-  void load.catch((error: unknown) => {
+  void loadRenderer(window).catch((error: unknown) => {
     console.error("Não foi possível carregar a interface:", error)
     app.quit()
   })
@@ -100,9 +89,10 @@ void app.whenReady().then(() => {
   apiBaseUrl.catch((error: unknown) => console.error(error))
 
   createWindow()
+  registerCaptureShortcut(icon)
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().every(isCaptureWindow)) createWindow()
   })
 })
 
@@ -110,6 +100,8 @@ app.on("before-quit", () => {
   backend?.kill()
   backend = null
 })
+
+app.on("will-quit", unregisterCaptureShortcut)
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit()

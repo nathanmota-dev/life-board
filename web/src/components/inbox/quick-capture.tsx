@@ -1,31 +1,42 @@
 import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { Lightbulb, ListTodo, Send } from "lucide-react"
+import { CapturePreview } from "@/components/inbox/capture-preview"
 import { SegmentedControl } from "@/components/shared/segmented-control"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useCreateTask } from "@/hooks/queries/use-tasks"
 import { useCreateThought } from "@/hooks/queries/use-thoughts"
+import { captureToTaskInput, captureToThoughtInput } from "@/lib/capture"
 import { errorMessage } from "@/lib/format"
-import type { CaptureKind } from "@/types/inbox"
+import { parseCapture } from "@/lib/parse-capture"
+import type { CaptureKind, QuickCaptureProps } from "@/types/inbox"
 
-export function QuickCapture() {
+export function QuickCapture({ autoFocus, onCaptured }: QuickCaptureProps) {
   const { t } = useTranslation()
   const [kind, setKind] = useState<CaptureKind>("task")
   const [text, setText] = useState("")
+  const [ignored, setIgnored] = useState<string[]>([])
   const createTask = useCreateTask()
   const createThought = useCreateThought()
   const mutation = kind === "task" ? createTask : createThought
-  const reset = { onSuccess: () => setText("") }
+  const parsed = parseCapture(text, kind, { ignored: new Set(ignored) })
+  const reset = {
+    onSuccess: () => {
+      setText("")
+      setIgnored([])
+      onCaptured?.()
+    },
+  }
 
   return (
     <form
       className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-xs"
       onSubmit={(event) => {
         event.preventDefault()
-        const value = text.trim()
-        if (value && kind === "task") createTask.mutate({ title: value, status: "inbox" }, reset)
-        else if (value) createThought.mutate({ body: value }, reset)
+        if (!text.trim()) return
+        if (kind === "task") createTask.mutate(captureToTaskInput(parsed), reset)
+        else createThought.mutate(captureToThoughtInput(parsed), reset)
       }}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -46,6 +57,7 @@ export function QuickCapture() {
       <div className="flex gap-2">
         <Input
           aria-label={t("inbox.captureText")}
+          autoFocus={autoFocus}
           value={text}
           onChange={(event) => setText(event.target.value)}
           placeholder={kind === "task" ? t("inbox.taskPlaceholder") : t("inbox.thoughtPlaceholder")}
@@ -55,6 +67,9 @@ export function QuickCapture() {
           {t("inbox.capture")}
         </Button>
       </div>
+      {parsed.tokens.length > 0 ? (
+        <CapturePreview tokens={parsed.tokens} onRemove={(token) => setIgnored((words) => [...words, token.text.toLowerCase()])} />
+      ) : null}
       {mutation.error ? <p className="text-sm text-destructive">{errorMessage(mutation.error)}</p> : null}
     </form>
   )

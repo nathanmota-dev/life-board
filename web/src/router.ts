@@ -7,6 +7,7 @@ import {
   redirect,
   type RouteComponent,
 } from "@tanstack/react-router"
+import { CapturePage } from "@/routes/capture"
 import { Dashboard } from "@/routes/dashboard"
 import { SettingsPage } from "@/routes/settings"
 import { workspacePages } from "@/routes/workspace-pages"
@@ -21,6 +22,13 @@ export function createAppRouter(sidebarLayout: RouteComponent) {
     beforeLoad: () => {
       throw redirect({ to: "/dashboard", replace: true })
     },
+  })
+
+  // The global capture window loads this route, outside the sidebar layout.
+  const captureRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "capture",
+    component: CapturePage,
   })
 
   const sidebarRoute = createRoute({
@@ -52,6 +60,7 @@ export function createAppRouter(sidebarLayout: RouteComponent) {
 
   const routeTree = rootRoute.addChildren([
     indexRoute,
+    captureRoute,
     sidebarRoute.addChildren([
       dashboardRoute.addChildren([dashboardIndexRoute]),
       settingsRoute,
