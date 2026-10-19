@@ -89,6 +89,37 @@ describe("tasks controller", () => {
     expect((await ctx.app.inject({ method: "POST", url: "/api/tasks/missing/restore" })).statusCode).toBe(404)
   })
 
+  it("picks focus tasks per day and refuses a fourth one", async () => {
+    const create = (title: string) => ctx.app.inject({ method: "POST", url: "/api/tasks", payload: { title } })
+    const ids: string[] = []
+    for (const title of ["One", "Two", "Three", "Four"]) ids.push((await create(title)).json().id)
+    const focus = (id: string, focusDay: string | null) =>
+      ctx.app.inject({ method: "PATCH", url: `/api/tasks/${id}`, payload: { focusDay } })
+
+    for (const id of ids.slice(0, 3)) expect((await focus(id, "2026-10-19")).json().focusDay).toBe("2026-10-19")
+    const refused = await focus(ids[3], "2026-10-19")
+    expect(refused.statusCode).toBe(400)
+    expect(refused.json()).toMatchObject({ error: "focus_limit" })
+
+    const created = await ctx.app.inject({ method: "POST", url: "/api/tasks", payload: { title: "Five", focusDay: "2026-10-19" } })
+    expect(created.statusCode).toBe(400)
+    expect(created.json().error).toBe("focus_limit")
+
+    await ctx.app.inject({ method: "PATCH", url: `/api/tasks/${ids[0]}`, payload: { status: "done" } })
+    const day = await ctx.app.inject({ method: "GET", url: "/api/tasks?focusDay=2026-10-19" })
+    expect(day.json().items.map((task: { title: string }) => task.title).sort()).toEqual(["One", "Three", "Two"])
+
+    expect((await focus(ids[1], null)).json().focusDay).toBeNull()
+    expect((await focus(ids[3], "2026-10-19")).statusCode).toBe(200)
+  })
+
+  it("validates the focus day format", async () => {
+    expect((await ctx.app.inject({ method: "GET", url: "/api/tasks?focusDay=today" })).statusCode).toBe(400)
+    const response = await ctx.app.inject({ method: "POST", url: "/api/tasks", payload: { title: "x", focusDay: "19/10/2026" } })
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toMatchObject({ error: "validation_error", issues: [expect.objectContaining({ path: "/focusDay" })] })
+  })
+
   it("returns 404 for unknown tasks", async () => {
     const response = await ctx.app.inject({ method: "PATCH", url: "/api/tasks/missing", payload: { title: "x" } })
     expect(response.statusCode).toBe(404)

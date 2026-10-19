@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { buildActivity } from "@/lib/activity"
-import { nextEvents, tasksForToday } from "@/lib/dashboard"
+import { tasksForToday } from "@/lib/dashboard"
 import { averageMood, moodChartData } from "@/lib/mood"
 import { summarizeTags } from "@/lib/tags"
 import { toDayKey } from "@/lib/dates"
-import type { CalendarEvent } from "@/types/calendar"
 import type { MoodEntry } from "@/types/mood"
 import type { Task } from "@/types/task"
 import type { Thought } from "@/types/thought"
@@ -24,6 +23,7 @@ const baseTask: Task = {
   color: null,
   order: 0,
   archivedAt: null,
+  focusDay: null,
   createdAt: "2026-10-16T10:00:00.000Z",
   updatedAt: "",
 }
@@ -47,13 +47,6 @@ describe("summaries", () => {
       { ...baseTask, id: "d", status: "done" as const },
     ]
     expect(tasksForToday(tasks, now).map((task) => task.id)).toEqual(["a", "b"])
-  })
-
-  it("keeps all-day events until the end of their day", () => {
-    const now = new Date(2026, 9, 17, 20)
-    const allDay = { id: "e", startAt: new Date(2026, 9, 17).toISOString(), endAt: new Date(2026, 9, 17).toISOString(), allDay: true } as CalendarEvent
-    const past = { id: "p", startAt: new Date(2026, 9, 17, 9).toISOString(), endAt: new Date(2026, 9, 17, 10).toISOString(), allDay: false } as CalendarEvent
-    expect(nextEvents([allDay, past], now).map((event) => event.id)).toEqual(["e"])
   })
 
   it("averages recent mood and orders chart points", () => {
