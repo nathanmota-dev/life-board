@@ -49,7 +49,7 @@ afterEach(() => {
 })
 
 describe("TasksPage", () => {
-  it("opens in board view with pinned, others and a collapsed completed section", async () => {
+  it("opens in board view with pinned and others, leaving done tasks to the Completed filter", async () => {
     const { calls } = mockApi({ "GET /tasks": () => ({ items: tasks }) })
     renderWithProviders(<TasksPage />)
 
@@ -62,11 +62,24 @@ describe("TasksPage", () => {
     expect(screen.getByRole("list", { name: "Checklist" })).toHaveTextContent("Milk")
     expect(screen.queryByRole("article", { name: "Milk" })).not.toBeInTheDocument()
 
-    const completed = screen.getByRole("button", { name: /Completed\s*1/ })
-    expect(completed).toHaveAttribute("aria-expanded", "false")
     expect(screen.queryByText("Old invoice")).not.toBeInTheDocument()
-    fireEvent.click(completed)
+    fireEvent.click(within(screen.getByRole("group", { name: "Task filters" })).getByRole("button", { name: "Completed" }))
     expect(screen.getByText("Old invoice")).toBeInTheDocument()
+    expect(screen.queryByText("Pay rent")).not.toBeInTheDocument()
+    expect(screen.queryByRole("textbox", { name: "Take a task…" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Mark as done" })).not.toBeInTheDocument()
+  })
+
+  it("marks a task as done straight from the card", async () => {
+    const { calls } = mockApi({
+      "GET /tasks": () => ({ items: tasks }),
+      "PATCH /tasks/t1": ({ body }) => ({ ...base, ...(body as object) }),
+    })
+    renderWithProviders(<TasksPage />)
+
+    const card = await screen.findByRole("article", { name: "Pay rent" })
+    fireEvent.click(within(card).getByRole("button", { name: "Mark as done" }))
+    await waitFor(() => expect(lastCall(calls, "PATCH", "/tasks/t1")?.body).toEqual({ status: "done" }))
   })
 
   it("creates plain and checklist tasks from the composer and drops empty drafts", async () => {

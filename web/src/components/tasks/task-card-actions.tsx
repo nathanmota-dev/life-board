@@ -9,7 +9,7 @@ import { useTaskActions } from "@/hooks/queries/use-task-actions"
 import { useUpdateTask } from "@/hooks/queries/use-tasks"
 import type { TaskCardActionsProps, TaskUpdate } from "@/types/task"
 
-/** Pin, color, due date, archive and more; shown along the bottom of a card. */
+/** Done, pin, color, due date, archive and more; shown along the bottom of a card. */
 export function TaskCardActions({ task, onEdit }: TaskCardActionsProps) {
   const { t } = useTranslation()
   const update = useUpdateTask()
@@ -17,9 +17,15 @@ export function TaskCardActions({ task, onEdit }: TaskCardActionsProps) {
   const patch = (input: TaskUpdate) => update.mutate({ id: task.id, input })
   const pinLabel = task.pinned ? t("tasks.unpin") : t("tasks.pin")
   const archiveLabel = task.archivedAt ? t("tasks.unarchive") : t("tasks.archive")
+  const done = task.status === "done"
 
   return (
     <>
+      {done ? null : (
+        <Button variant="ghost" size="icon-sm" aria-label={t("tasks.markDone")} title={t("tasks.markDone")} onClick={() => patch({ status: "done" })}>
+          <CircleCheck />
+        </Button>
+      )}
       <Button variant="ghost" size="icon-sm" aria-label={pinLabel} title={pinLabel} onClick={() => patch({ pinned: !task.pinned })}>
         {task.pinned ? <PinOff /> : <Pin />}
       </Button>
@@ -57,9 +63,7 @@ export function TaskCardActions({ task, onEdit }: TaskCardActionsProps) {
           label={t("common.itemActions", { title: task.title })}
           actions={[
             { label: t("common.edit"), icon: Pencil, onSelect: () => onEdit(task) },
-            task.status === "done"
-              ? { label: t("tasks.reopenTask"), icon: RotateCcw, onSelect: () => patch({ status: "inbox" }) }
-              : { label: t("tasks.markDone"), icon: CircleCheck, onSelect: () => patch({ status: "done" }) },
+            ...(done ? [{ label: t("tasks.reopenTask"), icon: RotateCcw, onSelect: () => patch({ status: "inbox" }) }] : []),
             { label: t("common.delete"), icon: Trash2, destructive: true, onSelect: () => void actions.remove(task) },
           ]}
         />

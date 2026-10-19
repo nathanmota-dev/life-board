@@ -1,7 +1,7 @@
 export const TASK_STATUSES = ["inbox", "today", "upcoming", "someday", "done"] as const
 export const TASK_PRIORITIES = ["none", "low", "medium", "high"] as const
 export const TASK_COLORS = ["red", "orange", "yellow", "green", "teal", "blue", "purple", "pink", "gray"] as const
-export const TASK_CHIPS = ["all", "today", "upcoming", "someday", "overdue", "archived"] as const
+export const TASK_CHIPS = ["all", "today", "upcoming", "someday", "overdue", "archived", "completed"] as const
 
 export type TaskStatus = (typeof TASK_STATUSES)[number]
 export type TaskPriority = (typeof TASK_PRIORITIES)[number]
@@ -63,7 +63,7 @@ export type TaskChip = (typeof TASK_CHIPS)[number]
 
 export type TaskBoardFilters = { chip: TaskChip; tag: string | null; color: TaskColor | null }
 
-export type TaskSections = { pinned: BoardTask[]; others: BoardTask[]; completed: BoardTask[] }
+export type TaskSections = { pinned: BoardTask[]; others: BoardTask[] }
 
 export type TaskBoardSection = "pinned" | "others"
 
@@ -118,8 +118,6 @@ export type TaskBoardSectionProps = {
   sortable: boolean
   onEdit: (task: Task) => void
 }
-
-export type TaskCompletedSectionProps = { tasks: BoardTask[]; onEdit: (task: Task) => void }
 
 export type TaskCardProps = { task: BoardTask; sortable?: boolean; onEdit: (task: Task) => void }
 

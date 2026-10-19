@@ -2,13 +2,12 @@ import { useTranslation } from "react-i18next"
 import { closestCorners, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core"
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import { TaskBoardSection } from "@/components/tasks/task-board-section"
-import { TaskCompletedSection } from "@/components/tasks/task-completed-section"
 import { useReorderTasks } from "@/hooks/queries/use-tasks"
 import { boardOrder, moveBoardTask } from "@/lib/tasks"
 import type { TaskBoardProps } from "@/types/task"
 
 /**
- * Pinned and Others in a masonry layout, reordered by dragging (pointer or keyboard), then Completed.
+ * Pinned and Others in a masonry layout, reordered by dragging (pointer or keyboard).
  * The sections never change while dragging: dnd-kit measures the card when the drag starts, so
  * anything inserted above it would leave the card behind the pointer.
  */
@@ -33,7 +32,6 @@ export function TaskBoard({ sections, sortable, onEdit }: TaskBoardProps) {
         {sections.others.length > 0 || showSections ? (
           <TaskBoardSection id="others" title={showSections ? t("tasks.others") : undefined} tasks={sections.others} sortable={sortable} onEdit={onEdit} />
         ) : null}
-        {sections.completed.length > 0 ? <TaskCompletedSection tasks={sections.completed} onEdit={onEdit} /> : null}
       </div>
     </DndContext>
   )

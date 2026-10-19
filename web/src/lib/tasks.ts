@@ -129,6 +129,7 @@ export function getTaskChipOptions() {
     someday: i18n.t("tasks.someday"),
     overdue: i18n.t("tasks.overdue"),
     archived: i18n.t("tasks.archivedFilter"),
+    completed: i18n.t("tasks.completed"),
   }
   return TASK_CHIPS.map((value) => ({ value, label: labels[value] }))
 }
@@ -153,8 +154,14 @@ export function saveTaskLayout(layout: TaskLayout) {
 
 export const DEFAULT_BOARD_FILTERS: TaskBoardFilters = { chip: "all", tag: null, color: null }
 
-/** Today and Upcoming match the status or the due date; archived tasks are filtered by the API. */
+/**
+ * Done tasks only show under Completed. Today and Upcoming match the status or the due date;
+ * archived tasks are filtered by the API.
+ */
 export function matchesChip(task: Task, chip: TaskChip, now = new Date()) {
+  if (chip === "archived") return true
+  if (chip === "completed") return task.status === "done"
+  if (task.status === "done") return false
   const due = task.dueAt ? new Date(task.dueAt) : null
   if (chip === "today") return task.status === "today" || (due !== null && isSameDay(due, now))
   if (chip === "upcoming") return task.status === "upcoming" || (due !== null && due >= addDays(startOfDay(now), 1))
@@ -179,15 +186,10 @@ function byBoardOrder(a: Task, b: Task) {
   return a.order - b.order || b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id)
 }
 
-/** Open tasks split into Pinned and Others in their hand-made order; done tasks go to Completed. */
+/** Tasks split into Pinned and Others in their hand-made order. */
 export function groupBoardTasks(tasks: BoardTask[]): TaskSections {
   const sorted = [...tasks].sort(byBoardOrder)
-  const open = sorted.filter((task) => task.status !== "done")
-  return {
-    pinned: open.filter((task) => task.pinned),
-    others: open.filter((task) => !task.pinned),
-    completed: sorted.filter((task) => task.status === "done"),
-  }
+  return { pinned: sorted.filter((task) => task.pinned), others: sorted.filter((task) => !task.pinned) }
 }
 
 const PRIORITY_RANK: Record<TaskPriority, number> = { high: 0, medium: 1, low: 2, none: 3 }

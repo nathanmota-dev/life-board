@@ -93,6 +93,7 @@ describe("board filters", () => {
   const late = card("late", { dueAt: new Date(2026, 9, 1).toISOString(), tags: ["home"], color: "red" })
   const someday = card("someday", { status: "someday", tags: ["fun"] })
   const today = card("today", { status: "today" })
+  const done = card("done", { status: "done", dueAt: new Date(2026, 9, 17).toISOString() })
   const all = [dueToday, dueLater, late, someday, today]
 
   it("matches each chip by status or due date", () => {
@@ -101,6 +102,12 @@ describe("board filters", () => {
     expect(ids(all.filter((item) => matchesChip(item, "someday", now)))).toEqual(["someday"])
     expect(ids(all.filter((item) => matchesChip(item, "overdue", now)))).toEqual(["late"])
     expect(all.every((item) => matchesChip(item, "all", now) && matchesChip(item, "archived", now))).toBe(true)
+    expect(all.some((item) => matchesChip(item, "completed", now))).toBe(false)
+  })
+
+  it("keeps done tasks out of every chip but Completed and Archived", () => {
+    expect((["all", "today", "overdue"] as const).some((chip) => matchesChip(done, chip, now))).toBe(false)
+    expect(matchesChip(done, "completed", now) && matchesChip(done, "archived", now)).toBe(true)
   })
 
   it("combines chip, tag and color filters", () => {
@@ -119,16 +126,10 @@ describe("board filters", () => {
 })
 
 describe("board grouping and ordering", () => {
-  it("splits open tasks into pinned and others by order, and done ones into completed", () => {
-    const sections = groupBoardTasks([
-      card("b", { order: 2 }),
-      card("a", { order: 1, pinned: true }),
-      card("done", { status: "done", pinned: true }),
-      card("c", { order: 1 }),
-    ])
+  it("splits tasks into pinned and others by order", () => {
+    const sections = groupBoardTasks([card("b", { order: 2 }), card("a", { order: 1, pinned: true }), card("c", { order: 1 })])
     expect(ids(sections.pinned)).toEqual(["a"])
     expect(ids(sections.others)).toEqual(["c", "b"])
-    expect(ids(sections.completed)).toEqual(["done"])
   })
 
   it("sorts the list view by state, priority and due date", () => {

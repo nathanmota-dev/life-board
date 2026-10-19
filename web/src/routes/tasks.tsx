@@ -32,6 +32,8 @@ export function TasksPage() {
   const [search, setSearch] = useState("")
   const [dialog, setDialog] = useState<TaskDialogState>({ open: false, task: null })
   const archived = filters.chip === "archived"
+  // New tasks are open and unarchived, so the composer would drop them out of these views.
+  const showComposer = layout === "board" && !archived && filters.chip !== "completed"
   const tasks = useBoardTasks({ search: useDeferredValue(search.trim()), archived: archived || undefined, limit: 500 })
   const items = tasks.data ?? []
   const visible = filterBoardTasks(items, filters)
@@ -72,7 +74,7 @@ export function TasksPage() {
     >
       <PageSection>
         <div className="flex min-w-0 flex-col gap-6">
-          {layout === "board" && !archived ? <TaskComposer /> : null}
+          {showComposer ? <TaskComposer /> : null}
           <DataState
             isLoading={tasks.isLoading}
             error={tasks.error}
