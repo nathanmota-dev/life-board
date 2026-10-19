@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode, Ref } from "react"
+import type { CSSProperties, MouseEventHandler, PointerEventHandler, ReactNode, Ref } from "react"
 import type { LucideIcon } from "lucide-react"
 
 export type WithChildren = { children: ReactNode }
@@ -114,9 +114,12 @@ export type SearchInputProps = { value: string; onChange: (value: string) => voi
 export type NoteCardProps = {
   ref?: Ref<HTMLElement>
   style?: CSSProperties
+  className?: string
   /** Soft background and border classes for the card's color. */
   toneClassName?: string
   dragging?: boolean
+  onPointerDown?: PointerEventHandler<HTMLElement>
+  onClick?: MouseEventHandler<HTMLElement>
   label: string
   header: ReactNode
   actions?: ReactNode

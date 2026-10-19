@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Checkbox } from "@/components/ui/checkbox"
 import { checklistView } from "@/lib/tasks"
-import { cn } from "@/lib/utils"
+import { cn, stopCardEvents } from "@/lib/utils"
 import type { TaskChecklistProps } from "@/types/task"
 
 /** Checklist items on a card: open ones first, ticked ones struck through below and collapsed after three. */
@@ -20,6 +20,7 @@ export function TaskChecklist({ items, onToggle }: TaskChecklistProps) {
           return (
             <li key={item.id} className={cn("flex items-start gap-2 text-sm", done && index === view.open.length && index > 0 && "mt-1 border-t pt-2")}>
               <Checkbox
+                {...stopCardEvents}
                 checked={done}
                 aria-label={done ? t("common.reopen", { title: item.title }) : t("common.complete", { title: item.title })}
                 onCheckedChange={() => onToggle(item)}
@@ -31,7 +32,14 @@ export function TaskChecklist({ items, onToggle }: TaskChecklistProps) {
         })}
       </ul>
       {collapsible ? (
-        <button type="button" onClick={() => setExpanded((current) => !current)} className="cursor-pointer self-start pl-6 text-xs text-muted-foreground hover:text-foreground hover:underline">
+        <button
+          type="button"
+          onPointerDown={stopCardEvents.onPointerDown}
+          onClick={(event) => {
+            event.stopPropagation()
+            setExpanded((current) => !current)
+          }}
+          className="cursor-pointer self-start pl-6 text-xs text-muted-foreground hover:text-foreground hover:underline">
           {expanded ? t("tasks.showLess") : t("tasks.moreDone", { count: view.hiddenDone })}
         </button>
       ) : null}

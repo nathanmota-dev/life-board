@@ -122,6 +122,23 @@ describe("TasksPage", () => {
     await waitFor(() => expect(lastCall(calls, "PATCH", "/tasks/t2")?.body).toEqual({ status: "done" }))
   })
 
+  it("opens the editor from anywhere on the card except its controls", async () => {
+    mockApi({
+      "GET /tasks": () => ({ items: tasks }),
+      "PATCH /tasks/c2": () => item("c2", "Milk", true),
+    })
+    renderWithProviders(<TasksPage />)
+
+    const groceries = await screen.findByRole("article", { name: "Groceries" })
+    fireEvent.click(within(groceries).getByRole("button", { name: "Move Groceries" }))
+    fireEvent.click(within(groceries).getByRole("checkbox", { name: "Complete Milk" }))
+    fireEvent.click(within(groceries).getByRole("button", { name: "Color" }))
+    expect(screen.queryByRole("dialog", { name: "Edit task" })).not.toBeInTheDocument()
+
+    fireEvent.click(within(groceries).getByText("Eggs"))
+    expect(await screen.findByRole("dialog", { name: "Edit task" })).toBeInTheDocument()
+  })
+
   it("pins, archives and deletes from the card, with Undo", async () => {
     const { calls } = mockApi({
       "GET /tasks": () => ({ items: tasks }),
