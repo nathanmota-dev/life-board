@@ -88,45 +88,59 @@ function startBackend(secretKey: Buffer) {
   })
 }
 
-void app.whenReady().then(() => {
-  if (process.platform === "darwin") app.dock?.setIcon(icon)
-  if (process.platform === "win32") app.setAppUserModelId("dev.nathanmota.lifeboard")
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+} else {
+  let initialized = false
+  let openRequested = false
 
-  ipcMain.handle("app:get-version", () => app.getVersion())
-
-  ipcMain.handle("api:get-base-url", () => apiBaseUrl)
-  // Only GitHub links leave the app (PRs, profiles); everything else is refused.
-  ipcMain.handle("app:open-external", (_event, url: string) => {
-    if (typeof url === "string" && url.startsWith("https://github.com/")) return shell.openExternal(url)
+  app.on("second-instance", (_event, argv) => {
+    if (argv.includes("--hidden")) return
+    if (initialized) showMainWindow()
+    else openRequested = true
   })
-  let secretKey: Buffer
-  try {
-    secretKey = loadSecretKey(app.getPath("userData"))
-  } catch (error) {
-    dialog.showErrorBox("Life Board", (error as Error).message)
-    app.quit()
-    return
-  }
-  apiBaseUrl = startBackend(secretKey)
-  apiBaseUrl.catch((error: unknown) => console.error(error))
 
-  registerLocale()
-  registerNotifications(icon, showMainWindow)
-  registerPomodoro(app.getPath("userData"))
-  registerStartupSettings(app.getPath("userData"))
-  registerAppLifecycle()
-  registerCaptureShortcut(icon)
-  createTray(icon, showMainWindow)
-  if (!isHiddenStartup()) createWindow()
+  void app.whenReady().then(() => {
+    if (process.platform === "darwin") app.dock?.setIcon(icon)
+    if (process.platform === "win32") app.setAppUserModelId("dev.nathanmota.lifeboard")
 
-  app.on("activate", () => {
-    showMainWindow()
+    ipcMain.handle("app:get-version", () => app.getVersion())
+
+    ipcMain.handle("api:get-base-url", () => apiBaseUrl)
+    // Only GitHub links leave the app (PRs, profiles); everything else is refused.
+    ipcMain.handle("app:open-external", (_event, url: string) => {
+      if (typeof url === "string" && url.startsWith("https://github.com/")) return shell.openExternal(url)
+    })
+    let secretKey: Buffer
+    try {
+      secretKey = loadSecretKey(app.getPath("userData"))
+    } catch (error) {
+      dialog.showErrorBox("Life Board", (error as Error).message)
+      app.quit()
+      return
+    }
+    apiBaseUrl = startBackend(secretKey)
+    apiBaseUrl.catch((error: unknown) => console.error(error))
+
+    registerLocale()
+    registerNotifications(icon, showMainWindow)
+    registerPomodoro(app.getPath("userData"))
+    registerStartupSettings(app.getPath("userData"))
+    registerAppLifecycle()
+    registerCaptureShortcut(icon)
+    createTray(icon, showMainWindow)
+    if (!isHiddenStartup() || openRequested) showMainWindow()
+    initialized = true
+
+    app.on("activate", () => {
+      showMainWindow()
+    })
   })
-})
 
-app.on("before-quit", () => {
-  backend?.kill()
-  backend = null
-})
+  app.on("before-quit", () => {
+    backend?.kill()
+    backend = null
+  })
 
-app.on("will-quit", unregisterCaptureShortcut)
+  app.on("will-quit", unregisterCaptureShortcut)
+}
