@@ -50,3 +50,5 @@ Um pomodoro em execução ou pausado sempre mantém o app em segundo plano,
 mesmo com essa opção desativada. Sem ele e com a opção desativada, fechar
 a janela encerra o app em todos os sistemas. As preferências ficam em
 `startup-settings.json` na pasta de dados do Electron.
+
+O processo principal também mantém um único serviço de atualizações, com histórico durável, notificações, download verificado e instalação explícita para DEB/AppImage. Consulte [Atualizações](atualizacoes.md).

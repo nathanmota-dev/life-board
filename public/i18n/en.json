@@ -93,6 +93,42 @@
       "disconnectDescription": "This deletes the encrypted token for @{{login}} from this computer and clears the synced pull requests and issues. To connect again, you'll need to paste a token.",
       "disconnectConfirm": "Disconnect and delete token",
       "disconnecting": "Disconnecting…"
+    },
+    "updates": {
+      "title": "Updates",
+      "description": "Life Board checks for stable updates once a day while running. You choose when to download, install and restart.",
+      "installed": "Installed version",
+      "lastCheck": "Last successful check",
+      "never": "Not yet checked",
+      "availableVersion": "Available version",
+      "releaseDate": "Release date",
+      "releaseNotes": "View release on GitHub",
+      "check": "Check for updates",
+      "download": "Download update",
+      "install": "Install and restart",
+      "progress": "Download progress",
+      "indicator": "Update {{version}} available",
+      "confirmTitle": "Install update and restart?",
+      "confirmDescription": "Life Board will request system authorization for a DEB update, then restart. Your data and settings are kept. Running or paused pomodoro sessions resume after restart.",
+      "states": {
+        "idle": "No check completed yet.",
+        "checking": "Checking for updates…",
+        "up-to-date": "Life Board is up to date.",
+        "available": "A new version is available.",
+        "downloading": "Downloading and verifying the update…",
+        "ready": "The update is verified and ready to install.",
+        "installing": "Installing the update. Complete the system authorization prompt if requested.",
+        "unavailable": "Updates are available in packaged Linux DEB and AppImage installations on x64 and ARM64. Development, browser preview and other distributions cannot update here.",
+        "error": "The update could not be completed. You can try again."
+      },
+      "errors": {
+        "network": "Cannot reach the update source. Check your connection and try again. Automatic checks retry with a delay.",
+        "metadata": "The release feed is missing or invalid, or has no stable package for your format and architecture. Try checking again later.",
+        "permission": "Authorization was cancelled or denied, or the installation path is not writable. The app has not restarted. Check permissions and try again.",
+        "integrity": "The package checksum does not match the update metadata. Check again and download a fresh copy.",
+        "installation": "The package manager could not install the update. The app has not restarted. Check system dependencies and try again.",
+        "storage": "Update history could not be saved. Check the permissions and free space in your application data directory."
+      }
     }
   },
   "common": {

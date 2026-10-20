@@ -11,6 +11,7 @@ interface Window {
     openExternal: (url: string) => Promise<void>
     setLanguage?: (language: string) => void
     onNavigate?: (callback: (route: string) => void) => () => void
+    updates?: import("@/types/updates").UpdatesBridge
     app?: import("@/types/settings").StartupSettingsBridge
     capture?: {
       getShortcut: () => Promise<string | null>

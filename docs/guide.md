@@ -14,3 +14,5 @@ repositório, salvo indicação em contrário.
   empacotamento e testes.
 - [Instalação e atualização no Linux](instalacao-linux.md): instalação do AppImage,
   integração com o menu e atualização manual.
+
+- [Atualizações do aplicativo](atualizacoes.md): cadência, consentimento, DEB/AppImage, contrato do feed e testes empacotados.

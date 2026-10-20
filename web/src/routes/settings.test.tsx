@@ -22,6 +22,16 @@ describe("SettingsPage", () => {
     expect(screen.queryByRole("heading", { name: "About Life Board" })).not.toBeInTheDocument()
   })
 
+  it("includes an Updates tab and shows browser availability", async () => {
+    renderWithProviders(<SettingsPage />)
+    fireEvent.mouseDown(await screen.findByRole("tab", { name: "Updates" }))
+    expect(await screen.findByRole("button", { name: "Check for updates" })).toBeDisabled()
+    expect(screen.getByText(/Development, browser preview/)).toBeInTheDocument()
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "General" }))
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "Updates" }))
+    expect(await screen.findByRole("heading", { name: "Updates" })).toBeInTheDocument()
+  })
+
   it("switches the theme from the appearance panel", async () => {
     renderWithProviders(<SettingsPage />)
     const dark = await screen.findByRole("button", { name: /dark/i })

@@ -16,6 +16,13 @@ contextBridge.exposeInMainWorld("desktop", {
   // Lets the tray and notifications speak the language picked in Settings.
   setLanguage: (language: string) => ipcRenderer.send("app:set-language", language),
   onNavigate: (callback: (route: string) => void) => subscribe("app:navigate", callback),
+  updates: {
+    getState: () => ipcRenderer.invoke("updates:get-state"),
+    check: () => ipcRenderer.invoke("updates:check"),
+    download: () => ipcRenderer.invoke("updates:download"),
+    install: () => ipcRenderer.invoke("updates:install"),
+    onState: (callback: (state: unknown) => void) => subscribe("updates:state", callback),
+  },
   app: {
     getStartupSettings: () => ipcRenderer.invoke("app:get-startup-settings"),
     updateStartupSettings: (patch: unknown) => ipcRenderer.invoke("app:update-startup-settings", patch),
