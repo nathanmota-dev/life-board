@@ -25,7 +25,7 @@ export function RecentRepoCard({ repo }: RecentRepoCardProps) {
       <span className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="flex min-w-0 items-center gap-1.5">
           {repo.language ? (
-            <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: repo.languageColor ?? "var(--muted-foreground)" }} />
+            <span className="size-2 shrink-0 rounded-full bg-primary" />
           ) : null}
           <span className="truncate">{repo.language ?? "—"}</span>
         </span>
