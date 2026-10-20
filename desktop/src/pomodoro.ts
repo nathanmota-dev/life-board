@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs"
+import { readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { BrowserWindow, ipcMain, powerMonitor } from "electron"
 import { t } from "./locale"
@@ -12,6 +12,7 @@ import {
   isPomodoroCommand,
   phaseMinutes,
   rollDay,
+  remainingAt,
   sanitizeSettings,
   updateSettings,
 } from "./pomodoro-timer"
@@ -37,7 +38,19 @@ function load(): PomodoroState {
     const validToday =
       today && Number.isInteger(today.sessions) && Number.isInteger(today.focusMinutes) && typeof today.day === "string"
     const cycle = typeof saved.cycle === "number" && Number.isInteger(saved.cycle) && saved.cycle >= 0 ? saved.cycle : 0
-    return rollDay(createState(sanitizeSettings(saved.settings), validToday ? today : emptyDay(now), cycle), now)
+    const base = rollDay(createState(sanitizeSettings(saved.settings), validToday ? today : emptyDay(now), cycle), now)
+    try {
+      const path = join(dataDir, "pomodoro-update.json")
+      const snapshot = JSON.parse(readFileSync(path, "utf8")) as PomodoroState
+      rmSync(path, { force: true })
+      if (["running", "paused"].includes(snapshot.status) && ["focus", "shortBreak", "longBreak"].includes(snapshot.phase)
+        && Number.isFinite(snapshot.remainingMs) && snapshot.remainingMs >= 0 && snapshot.remainingMs <= 180 * 60_000
+        && Number.isFinite(snapshot.durationMs) && snapshot.durationMs > 0 && snapshot.durationMs <= 180 * 60_000) {
+        return { ...base, phase: snapshot.phase, status: snapshot.status, durationMs: snapshot.durationMs,
+          remainingMs: snapshot.remainingMs, endsAt: snapshot.status === "running" ? now + snapshot.remainingMs : null }
+      }
+    } catch { /* Ordinary launches start idle; only an explicit update writes a snapshot. */ }
+    return base
   } catch {
     return createState(DEFAULT_SETTINGS, emptyDay(now))
   }
@@ -108,9 +121,16 @@ export function isPomodoroActive() {
   return state.status !== "idle"
 }
 
+/** Fail the update restart if the active timer cannot be preserved. */
+export function preservePomodoroForUpdate() {
+  save()
+  writeFileSync(join(dataDir, "pomodoro-update.json"), JSON.stringify({ ...state, remainingMs: remainingAt(state, Date.now()) }), { mode: 0o600 })
+}
+
 export function registerPomodoro(directory: string) {
   dataDir = directory
   state = load()
+  schedule()
 
   ipcMain.handle("pomodoro:get-state", () => getPomodoroState())
   ipcMain.handle("pomodoro:dispatch", (_event, command: unknown) =>

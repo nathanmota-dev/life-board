@@ -2,14 +2,16 @@
 
 [← Guia da documentação](guide.md)
 
-O AppImage pode ser instalado para o usuário atual, sem `sudo`. O processo é
-manual: `git pull` atualiza o código, e `npm run package` gera o pacote, mas nenhum
-dos dois substitui automaticamente o app instalado.
+O AppImage pode ser instalado para o usuário atual, sem `sudo`. Após instalar uma versão com o atualizador, use **Configurações → Atualizações**
+para descobrir, baixar e instalar versões publicadas. Consulte [Atualizações](atualizacoes.md).
+Os comandos abaixo continuam disponíveis para instalar builds locais manualmente.
 
 Na instalação local, o pacote gerado fica em `release/` no repositório.
 Uma cópia executável fica em `~/.local/opt/life-board/life-board.AppImage`.
 O atalho fica em `~/.local/share/applications/life-board-app.desktop` e os ícones
 em `~/.local/share/icons/hicolor/`.
+
+Os exemplos abaixo usam Linux x64; em ARM64 substitua `x86_64` por `arm64`.
 
 ## Primeira instalação
 
@@ -25,7 +27,7 @@ npm ci
 npm run package
 
 life_board_version=$(node -p "require('./package.json').version")
-install -Dm755 "release/Life Board-${life_board_version}.AppImage" \
+install -Dm755 "release/life-board-${life_board_version}-x86_64.AppImage" \
   "$HOME/.local/opt/life-board/life-board.AppImage"
 
 install -Dm644 desktop/resources/icon.png \
@@ -71,7 +73,7 @@ git pull --ff-only &&
 npm ci &&
 npm run package &&
 life_board_version=$(node -p "require('./package.json').version") &&
-install -Dm755 "release/Life Board-${life_board_version}.AppImage" \
+install -Dm755 "release/life-board-${life_board_version}-x86_64.AppImage" \
   "$HOME/.local/opt/life-board/life-board.AppImage.new" &&
 mv -f "$HOME/.local/opt/life-board/life-board.AppImage.new" \
   "$HOME/.local/opt/life-board/life-board.AppImage" &&

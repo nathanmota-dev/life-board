@@ -8,6 +8,7 @@ import { registerCaptureShortcut, unregisterCaptureShortcut } from "./capture-wi
 import { registerLocale } from "./locale"
 import { isHiddenStartup } from "./login-item"
 import { registerNotifications } from "./notifications"
+import { registerUpdates } from "./register-updates"
 import { registerPomodoro } from "./pomodoro"
 import { loadRenderer, secureWebPreferences } from "./renderer"
 import { loadSecretKey } from "./secret-key"
@@ -127,6 +128,7 @@ if (!app.requestSingleInstanceLock()) {
     registerPomodoro(app.getPath("userData"))
     registerStartupSettings(app.getPath("userData"))
     registerAppLifecycle()
+    registerUpdates()
     registerCaptureShortcut(icon)
     createTray(icon, showMainWindow)
     if (!isHiddenStartup() || openRequested) showMainWindow()

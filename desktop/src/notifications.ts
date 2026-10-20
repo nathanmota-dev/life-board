@@ -26,7 +26,7 @@ function parseNotification(value: unknown): AppNotification | null {
   return {
     title: input.title.slice(0, 120),
     body: typeof input.body === "string" ? input.body.slice(0, 400) : undefined,
-    route: typeof input.route === "string" && ROUTE_PATTERN.test(input.route) ? input.route : undefined,
+    route: typeof input.route === "string" && (ROUTE_PATTERN.test(input.route) || input.route === "/settings?tab=updates") ? input.route : undefined,
     silent: input.silent === true,
   }
 }

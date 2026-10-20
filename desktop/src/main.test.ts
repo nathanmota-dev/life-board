@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   isHiddenStartup: vi.fn(), keepInBackground: vi.fn(), isPomodoroActive: vi.fn(),
   registerLocale: vi.fn(), registerNotifications: vi.fn(), registerPomodoro: vi.fn(),
   registerStartupSettings: vi.fn(), registerCaptureShortcut: vi.fn(), unregisterCaptureShortcut: vi.fn(),
+  registerUpdates: vi.fn(),
   createTray: vi.fn(), showErrorBox: vi.fn(),
 }))
 
@@ -57,6 +58,7 @@ vi.mock("./secret-key", () => ({ loadSecretKey: mocks.loadSecretKey }))
 vi.mock("./startup-settings", () => ({
   registerStartupSettings: mocks.registerStartupSettings, keepInBackground: mocks.keepInBackground,
 }))
+vi.mock("./register-updates", () => ({ registerUpdates: mocks.registerUpdates }))
 vi.mock("./tray", () => ({ createTray: mocks.createTray }))
 vi.mock("./window-state", () => ({
   loadWindowState: () => ({ maximized: false, fullScreen: false }),
@@ -102,7 +104,7 @@ describe("single-instance startup", () => {
     for (const initialize of [
       mocks.handle, mocks.loadSecretKey, mocks.fork, createWindow, mocks.createTray,
       mocks.registerLocale, mocks.registerNotifications, mocks.registerPomodoro,
-      mocks.registerStartupSettings, mocks.registerCaptureShortcut,
+      mocks.registerStartupSettings, mocks.registerCaptureShortcut, mocks.registerUpdates,
     ]) expect(initialize).not.toHaveBeenCalled()
     expect(app.listenerCount("second-instance")).toBe(0)
     expect(app.listenerCount("will-quit")).toBe(0)
@@ -128,6 +130,7 @@ describe("single-instance startup", () => {
     expect(createWindow).toHaveBeenCalledOnce()
     expect(mocks.fork).toHaveBeenCalledOnce()
     expect(mocks.createTray).toHaveBeenCalledOnce()
+    expect(mocks.registerUpdates).toHaveBeenCalledOnce()
   })
 
   it.each([false, true])("focuses the existing visible window (minimized=%s)", async (minimized) => {
@@ -158,6 +161,7 @@ describe("single-instance startup", () => {
     expect(mocks.loadRenderer).toHaveBeenCalledOnce()
     expect(mocks.fork).toHaveBeenCalledOnce()
     expect(mocks.createTray).toHaveBeenCalledOnce()
+    expect(mocks.registerUpdates).toHaveBeenCalledOnce()
     expect(windows[0].webContents.send).not.toHaveBeenCalled()
   })
 
@@ -171,6 +175,7 @@ describe("single-instance startup", () => {
     expect(createWindow).toHaveBeenCalledOnce()
     expect(mocks.fork).toHaveBeenCalledOnce()
     expect(mocks.createTray).toHaveBeenCalledOnce()
+    expect(mocks.registerUpdates).toHaveBeenCalledOnce()
   })
 
   it.each([false, true])("ignores hidden secondary launches before and after startup (hidden=%s)", async (hidden) => {
@@ -186,6 +191,18 @@ describe("single-instance startup", () => {
     }
   })
 
+  it("opens Updates from a native notification after hidden startup", async () => {
+    mocks.isHiddenStartup.mockReturnValue(true)
+    await import("./main")
+    await ready()
+    const openRoute = mocks.registerNotifications.mock.calls[0][1] as (route: string) => void
+    openRoute("/settings?tab=updates")
+    expect(mocks.loadRenderer).toHaveBeenCalledWith(windows[0], "/settings?tab=updates")
+    openRoute("/settings?tab=updates")
+    expect(windows[0].webContents.send).toHaveBeenCalledWith("app:navigate", "/settings?tab=updates")
+    expect(mocks.registerUpdates).toHaveBeenCalledOnce()
+  })
+
   it("recreates a destroyed main window without restarting background resources", async () => {
     await import("./main")
     await ready()
@@ -195,6 +212,7 @@ describe("single-instance startup", () => {
     expect(createWindow).toHaveBeenCalledTimes(2)
     expect(mocks.fork).toHaveBeenCalledOnce()
     expect(mocks.createTray).toHaveBeenCalledOnce()
+    expect(mocks.registerUpdates).toHaveBeenCalledOnce()
   })
 
   it("keeps tray navigation, activation and Quit working after reopening", async () => {

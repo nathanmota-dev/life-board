@@ -25,4 +25,6 @@ Life Board is a personal Electron desktop app for organizing and tracking everyt
 
 ## Agent instructions
 
+Before implementing or modifying any code, read and follow all instructions in ./RULES.md.
+
 When a task requires creating a Git branch, commit, or pull request, follow the `git-pr-conventions` skill at `.agents/skills/git-pr-conventions/SKILL.md`.

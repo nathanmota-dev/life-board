@@ -1,3 +1,4 @@
+import { UpdateIndicator } from "@/components/settings/update-indicator"
 import { Outlet } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next"
 import { AccentProvider } from "@/components/accent-provider"
@@ -34,6 +35,7 @@ function WorkspaceHeader() {
         </>
       )}
       <RouteBreadcrumb />
+      <UpdateIndicator />
       <ModeToggle />
     </header>
   )

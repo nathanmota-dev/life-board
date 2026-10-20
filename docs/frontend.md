@@ -39,3 +39,5 @@ Para adicionar componentes do shadcn, execute na raiz:
 ```bash
 npx shadcn@latest add button --cwd web
 ```
+
+A aba Atualizações em Configurações usa `useAppUpdates` e uma assinatura compartilhada do snapshot do processo principal. A indicação no cabeçalho e `/settings?tab=updates` mantêm a descoberta acessível fora da aba. Tipos ficam em `web/src/types/updates.ts`; detalhes em [Atualizações](atualizacoes.md).

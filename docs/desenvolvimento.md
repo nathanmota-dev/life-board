@@ -60,3 +60,5 @@ ou `*.test.tsx` ao lado do código testado em `web/src/` (o padrão `*.spec.*`
 também é aceito). Importe `describe`, `it` e `expect` de `vitest`.
 O alias `@/` aponta para `web/src/`, e o setup em `web/src/test/setup.ts`
 registra os matchers de DOM e limpa os componentes renderizados após cada teste.
+
+`npm run package` gera AppImage e DEB Linux com metadados de atualização. Para testar instalação real com duas versões e um feed local, consulte [Atualizações](atualizacoes.md).

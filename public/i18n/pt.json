@@ -93,6 +93,42 @@
       "disconnectDescription": "Isso apaga deste computador o token criptografado de @{{login}} e limpa os pull requests e issues sincronizados. Para conectar de novo, será preciso colar um token.",
       "disconnectConfirm": "Desconectar e apagar token",
       "disconnecting": "Desconectando…"
+    },
+    "updates": {
+      "title": "Atualizações",
+      "description": "O Life Board procura versões estáveis uma vez por dia enquanto está aberto. Você escolhe quando baixar, instalar e reiniciar.",
+      "installed": "Versão instalada",
+      "lastCheck": "Última verificação bem-sucedida",
+      "never": "Ainda não verificado",
+      "availableVersion": "Versão disponível",
+      "releaseDate": "Data de lançamento",
+      "releaseNotes": "Ver lançamento no GitHub",
+      "check": "Verificar atualizações",
+      "download": "Baixar atualização",
+      "install": "Instalar e reiniciar",
+      "progress": "Progresso do download",
+      "indicator": "Atualização {{version}} disponível",
+      "confirmTitle": "Instalar atualização e reiniciar?",
+      "confirmDescription": "O Life Board solicitará autorização do sistema para atualizar um DEB e depois reiniciará. Seus dados e configurações serão mantidos. Sessões do pomodoro em execução ou pausadas serão retomadas após reiniciar.",
+      "states": {
+        "idle": "Nenhuma verificação concluída.",
+        "checking": "Verificando atualizações…",
+        "up-to-date": "O Life Board está atualizado.",
+        "available": "Uma nova versão está disponível.",
+        "downloading": "Baixando e verificando a atualização…",
+        "ready": "A atualização foi verificada e está pronta para instalar.",
+        "installing": "Instalando a atualização. Conclua a autorização do sistema, se solicitada.",
+        "unavailable": "Atualizações estão disponíveis em instalações Linux DEB e AppImage para x64 e ARM64. Desenvolvimento, prévia no navegador e outras distribuições não podem atualizar aqui.",
+        "error": "Não foi possível concluir a atualização. Você pode tentar novamente."
+      },
+      "errors": {
+        "network": "Não foi possível acessar a fonte de atualizações. Verifique sua conexão e tente novamente. As verificações automáticas tentarão de novo após um intervalo.",
+        "metadata": "O feed está ausente ou inválido, ou não contém um pacote estável para seu formato e arquitetura. Tente verificar novamente mais tarde.",
+        "permission": "A autorização foi cancelada ou negada, ou o local de instalação não permite escrita. O app não foi reiniciado. Verifique as permissões e tente novamente.",
+        "integrity": "A soma de verificação do pacote não corresponde aos metadados. Verifique novamente e baixe uma nova cópia.",
+        "installation": "O gerenciador de pacotes não conseguiu instalar a atualização. O app não foi reiniciado. Verifique as dependências do sistema e tente novamente.",
+        "storage": "Não foi possível salvar o histórico. Verifique as permissões e o espaço livre na pasta de dados do aplicativo."
+      }
     }
   },
   "common": {

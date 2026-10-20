@@ -11,7 +11,10 @@ extraResources:
   - from: api/drizzle
     to: migrations
 linux:
-  target: AppImage
+  target:
+    - AppImage
+    - deb
+  artifactName: life-board-${version}-${arch}.${ext}
   category: Office
   icon: desktop/resources/icon.png
   syncDesktopName: true
@@ -21,3 +24,23 @@ win:
 mac:
   target: dmg
   icon: desktop/resources/icon.icns
+
+publish:
+  provider: github
+  owner: nathanmota-dev
+  repo: life-board
+  channel: latest
+  releaseType: release
+deb:
+  maintainer: nathanmota-dev <nathanmota-dev@users.noreply.github.com>
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+    - policykit-1
