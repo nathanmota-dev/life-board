@@ -27,7 +27,7 @@ function ConnectPrompt() {
   )
 }
 
-/** Contributions grid and recently contributed repositories, side by side on wide windows. */
+/** Shared contributions grid and recent repositories, side by side on wide windows. */
 export function GithubActivityPanel() {
   const { t } = useTranslation()
   const status = useGithubStatus()

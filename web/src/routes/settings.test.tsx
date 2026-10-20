@@ -13,12 +13,13 @@ afterEach(() => {
 })
 
 describe("SettingsPage", () => {
-  it("shows the General, Profile and GitHub views", async () => {
+  it("shows the General and GitHub views without the empty Profile view or About panel", async () => {
     renderWithProviders(<SettingsPage />)
     expect(await screen.findByRole("tab", { name: "General" })).toHaveAttribute("aria-selected", "true")
-    expect(screen.getByRole("tab", { name: "Profile" })).toBeInTheDocument()
+    expect(screen.queryByRole("tab", { name: "Profile" })).not.toBeInTheDocument()
     expect(screen.getByRole("tab", { name: "GitHub" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Startup and background" })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "About Life Board" })).not.toBeInTheDocument()
   })
 
   it("switches the theme from the appearance panel", async () => {

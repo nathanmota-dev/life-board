@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next"
-import { AboutPanel } from "@/components/settings/about-panel"
 import { AccentPanel } from "@/components/settings/accent-panel"
 import { AppearancePanel } from "@/components/settings/appearance-panel"
 import { GithubTokenPanel } from "@/components/settings/github-token-panel"
@@ -17,7 +16,6 @@ export function SettingsPage() {
         <Tabs defaultValue="general">
           <TabsList aria-label={t("settings.views")}>
             <TabsTrigger value="general">{t("settings.general")}</TabsTrigger>
-            <TabsTrigger value="profile">{t("settings.profile")}</TabsTrigger>
             <TabsTrigger value="github">{t("navigation.github")}</TabsTrigger>
           </TabsList>
           <TabsContent value="general">
@@ -26,10 +24,8 @@ export function SettingsPage() {
               <LanguagePanel />
               <AccentPanel />
               <StartupPanel />
-              <AboutPanel />
             </div>
           </TabsContent>
-          <TabsContent value="profile" />
           <TabsContent value="github">
             <GithubTokenPanel />
           </TabsContent>

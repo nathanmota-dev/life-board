@@ -38,7 +38,6 @@
     "description": "A workspace that feels like yours.",
     "views": "Settings views",
     "general": "General",
-    "profile": "Profile",
     "language": {
       "title": "Language",
       "description": "Choose the language used in the app. Your browser or system language is used by default.",
@@ -73,11 +72,6 @@
       "desktopOnly": "These settings are available in the desktop app.",
       "loadError": "Could not load startup settings. Return to this window to try again.",
       "saveError": "Could not save startup settings. Please try again."
-    },
-    "about": {
-      "title": "About Life Board",
-      "local": "Local",
-      "description": "Life Board is your personal board for tasks, calendar, goals, GitHub, habits and everything else you want to keep track of. Everything is stored on this computer."
     },
     "github": {
       "tokenDescription": "Paste a GitHub personal access token (classic) with the <code>repo</code> and <code>read:user</code> scopes. It is encrypted and stored only on this computer.",

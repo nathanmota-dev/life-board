@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { RefreshCw } from "lucide-react"
-import { ContributionsCalendar } from "@/components/github/contributions-calendar"
+import { GithubActivityPanel } from "@/components/github/github-activity-panel"
 import { GithubIssueList } from "@/components/github/github-issue-list"
 import { GithubPrList } from "@/components/github/github-pr-list"
 import { SegmentedControl } from "@/components/shared/segmented-control"
 import { Button } from "@/components/ui/button"
-import { PageSection, Panel } from "@/components/workspace-ui"
+import { PageSection } from "@/components/workspace-ui"
 import { useAutoSyncGithub } from "@/hooks/queries/use-github"
 import { formatRelativeDay } from "@/lib/dates"
 import { errorMessage } from "@/lib/format"
@@ -21,9 +21,7 @@ export function GithubDashboard({ status }: GithubDashboardProps) {
   return (
     <>
       <PageSection>
-        <Panel title={`@${status.login}`} action={<span className="text-xs text-muted-foreground">{t("github.contributions")}</span>}>
-          <ContributionsCalendar enabled />
-        </Panel>
+        <GithubActivityPanel />
       </PageSection>
       <PageSection>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

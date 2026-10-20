@@ -28,18 +28,33 @@ function mockGithub(lastSyncAt: string | null) {
     "POST /github/sync": () => ({ ok: true, count: 0, issues: 1, login: "octocat" }),
     "GET /github/prs": () => ({ items: [] }),
     "GET /github/contributions": () => ({ login: "octocat", total: 0, days: [{ date: "2026-10-17", count: 0, level: 0 }] }),
+    "GET /github/repos/recent": () => ({
+      items: [{
+        fullName: "octocat/life-board",
+        url: "https://github.com/octocat/life-board",
+        description: "Life Board",
+        private: true,
+        lastContributedAt: "2026-10-17T00:00:00Z",
+        stars: 0,
+        language: "TypeScript",
+        languageColor: "#3178c6",
+      }],
+    }),
     "GET /github/issues": ({ query }) => ({ items: query.get("kind") === "authored" ? [] : [issue] }),
   })
 }
 
 describe("GitHubPage", () => {
-  it("syncs on open, shows PRs first and switches to issues", async () => {
+  it("shows contributions and recent repositories, syncs PRs and switches to issues", async () => {
     const { calls } = mockGithub(null)
     renderWithProviders(<GitHubPage />)
 
     expect(await screen.findByText("No pull requests")).toBeInTheDocument()
     await waitFor(() => expect(calls.filter((call) => call.path === "/github/sync")).toHaveLength(1))
     expect(calls.some((call) => call.path === "/github/contributions")).toBe(true)
+    expect(screen.getByRole("heading", { name: "GitHub contributions" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Recent repositories" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: /life-board/ })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("tab", { name: "Issues" }))
     expect(await screen.findByText("Login is broken")).toBeInTheDocument()

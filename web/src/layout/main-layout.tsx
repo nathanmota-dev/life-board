@@ -51,7 +51,7 @@ export function MainLayout() {
             <AppSidebar />
             <SidebarInset className="min-h-0 min-w-0 overflow-hidden border border-border shadow-xs">
               <WorkspaceHeader />
-              <div className="flex min-h-0 flex-1 overflow-auto">
+              <div className="flex min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
                 <Outlet />
               </div>
             </SidebarInset>

@@ -38,7 +38,6 @@
     "description": "Uma área de trabalho com a sua cara.",
     "views": "Seções de configurações",
     "general": "Geral",
-    "profile": "Perfil",
     "language": {
       "title": "Idioma",
       "description": "Escolha o idioma usado no app. Por padrão, usamos o idioma do navegador ou sistema.",
@@ -73,11 +72,6 @@
       "desktopOnly": "Estas configurações estão disponíveis no aplicativo para desktop.",
       "loadError": "Não foi possível carregar as configurações de inicialização. Volte a esta janela para tentar novamente.",
       "saveError": "Não foi possível salvar as configurações de inicialização. Tente novamente."
-    },
-    "about": {
-      "title": "Sobre o Life Board",
-      "local": "Local",
-      "description": "O Life Board é seu painel pessoal para tarefas, calendário, metas, GitHub, hábitos e tudo mais que você quiser acompanhar. Tudo fica armazenado neste computador."
     },
     "github": {
       "tokenDescription": "Cole um token de acesso pessoal do GitHub (clássico) com os escopos <code>repo</code> e <code>read:user</code>. Ele é criptografado e armazenado apenas neste computador.",
