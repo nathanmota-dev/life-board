@@ -92,6 +92,20 @@ de foco e gráficos (`--chart-1…5`) derivam dela. O padrão é `#FF892B`.
 O token do GitHub é configurado em Settings → GitHub e alimenta o gráfico de
 contribuições do Dashboard pela rota `/api/github/contributions`.
 
+Em Settings → General → Inicialização e segundo plano, as duas opções começam
+desativadas. Iniciar com o sistema registra o app no login do Windows/macOS ou
+em `$XDG_CONFIG_HOME/autostart/dev.nathanmota.lifeboard.desktop` no Linux
+(por padrão, `~/.config/autostart/`). O app inicia oculto na bandeja. No Linux,
+o registro aponta para o AppImage instalado, não para sua montagem temporária.
+Se o item for removido ou desativado no sistema, a opção reflete essa mudança.
+
+Continuar em segundo plano faz o fechamento da janela apenas ocultá-la;
+use Abrir no menu da bandeja para reabrir e Sair para encerrar o app.
+Um pomodoro em execução ou pausado sempre mantém o app em segundo plano,
+mesmo com essa opção desativada. Sem ele e com a opção desativada, fechar
+a janela encerra o app em todos os sistemas. As preferências ficam em
+`startup-settings.json` na pasta de dados do Electron.
+
 ## Idiomas
 
 O app usa i18next e react-i18next, com os dicionários em `public/i18n/pt.json`
@@ -221,7 +235,9 @@ statements; abaixo disso o comando falha.
 npm run test:coverage  # Testes do backend com relatório de cobertura
 ```
 
-`npm test` na raiz roda os testes do frontend e do backend.
+`npm test` na raiz roda os testes do desktop, do frontend e do backend.
+`npm run test:desktop` verifica a integração com o login do sistema, a
+persistência e as decisões ao fechar a janela, incluindo a exceção do pomodoro.
 
 ## Testes unitários do frontend
 

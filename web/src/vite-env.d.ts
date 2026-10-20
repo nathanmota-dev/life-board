@@ -11,6 +11,7 @@ interface Window {
     openExternal: (url: string) => Promise<void>
     setLanguage?: (language: string) => void
     onNavigate?: (callback: (route: string) => void) => () => void
+    app?: import("@/types/settings").StartupSettingsBridge
     capture?: {
       getShortcut: () => Promise<string | null>
       close: () => void

@@ -18,6 +18,7 @@ describe("SettingsPage", () => {
     expect(await screen.findByRole("tab", { name: "General" })).toHaveAttribute("aria-selected", "true")
     expect(screen.getByRole("tab", { name: "Profile" })).toBeInTheDocument()
     expect(screen.getByRole("tab", { name: "GitHub" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Startup and background" })).toBeInTheDocument()
   })
 
   it("switches the theme from the appearance panel", async () => {
