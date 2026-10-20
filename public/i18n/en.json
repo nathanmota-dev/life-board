@@ -62,6 +62,18 @@
       "hexCode": "Accent hex code",
       "preview": "Primary button"
     },
+    "startup": {
+      "title": "Startup and background",
+      "description": "Choose how Life Board starts and what happens when you close the window.",
+      "startOnLogin": "Start Life Board when I log in",
+      "loginHint": "Starts quietly in the tray. Open Life Board from the tray when you need it.",
+      "keepInBackground": "Keep running in the background when the window is closed",
+      "backgroundHint": "Reopen Life Board from the tray, or choose Quit in the tray menu to exit fully.",
+      "pomodoroHint": "An active pomodoro always keeps the app running in the background, even when this is off.",
+      "desktopOnly": "These settings are available in the desktop app.",
+      "loadError": "Could not load startup settings. Return to this window to try again.",
+      "saveError": "Could not save startup settings. Please try again."
+    },
     "about": {
       "title": "About Life Board",
       "local": "Local",

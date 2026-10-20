@@ -3,12 +3,15 @@ import { app, BrowserWindow, dialog, ipcMain, shell, utilityProcess } from "elec
 import type { UtilityProcess } from "electron"
 import backendPath from "./backend-process?modulePath"
 import icon from "../resources/icon.png?asset"
-import { isCaptureWindow, registerCaptureShortcut, unregisterCaptureShortcut } from "./capture-window"
+import { registerAppLifecycle, trackMainWindowClose } from "./app-lifecycle"
+import { registerCaptureShortcut, unregisterCaptureShortcut } from "./capture-window"
 import { registerLocale } from "./locale"
+import { isHiddenStartup } from "./login-item"
 import { registerNotifications } from "./notifications"
-import { isPomodoroActive, registerPomodoro } from "./pomodoro"
+import { registerPomodoro } from "./pomodoro"
 import { loadRenderer, secureWebPreferences } from "./renderer"
 import { loadSecretKey } from "./secret-key"
+import { registerStartupSettings } from "./startup-settings"
 import { createTray } from "./tray"
 import { defaultBounds, loadWindowState, trackWindowState } from "./window-state"
 
@@ -31,6 +34,7 @@ function createWindow(route?: string) {
     webPreferences: secureWebPreferences,
   })
   mainWindow = window
+  trackMainWindowClose(window)
   window.on("closed", () => {
     if (mainWindow === window) mainWindow = null
   })
@@ -109,12 +113,14 @@ void app.whenReady().then(() => {
   registerLocale()
   registerNotifications(icon, showMainWindow)
   registerPomodoro(app.getPath("userData"))
-  createWindow()
+  registerStartupSettings(app.getPath("userData"))
+  registerAppLifecycle()
   registerCaptureShortcut(icon)
   createTray(icon, showMainWindow)
+  if (!isHiddenStartup()) createWindow()
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().every(isCaptureWindow)) showMainWindow()
+    showMainWindow()
   })
 })
 
@@ -124,8 +130,3 @@ app.on("before-quit", () => {
 })
 
 app.on("will-quit", unregisterCaptureShortcut)
-
-// A running pomodoro keeps the app alive in the tray, so it can still notify.
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin" && !isPomodoroActive()) app.quit()
-})

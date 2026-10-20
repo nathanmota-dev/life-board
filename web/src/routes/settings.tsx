@@ -4,6 +4,7 @@ import { AccentPanel } from "@/components/settings/accent-panel"
 import { AppearancePanel } from "@/components/settings/appearance-panel"
 import { GithubTokenPanel } from "@/components/settings/github-token-panel"
 import { LanguagePanel } from "@/components/settings/language-panel"
+import { StartupPanel } from "@/components/settings/startup-panel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Page, PageSection } from "@/components/workspace-ui"
 
@@ -24,6 +25,7 @@ export function SettingsPage() {
               <AppearancePanel />
               <LanguagePanel />
               <AccentPanel />
+              <StartupPanel />
               <AboutPanel />
             </div>
           </TabsContent>

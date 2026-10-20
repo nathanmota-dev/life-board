@@ -16,6 +16,10 @@ contextBridge.exposeInMainWorld("desktop", {
   // Lets the tray and notifications speak the language picked in Settings.
   setLanguage: (language: string) => ipcRenderer.send("app:set-language", language),
   onNavigate: (callback: (route: string) => void) => subscribe("app:navigate", callback),
+  app: {
+    getStartupSettings: () => ipcRenderer.invoke("app:get-startup-settings"),
+    updateStartupSettings: (patch: unknown) => ipcRenderer.invoke("app:update-startup-settings", patch),
+  },
   // The global capture shortcut and its window; React only sees these methods.
   capture: {
     getShortcut: (): Promise<string | null> => ipcRenderer.invoke("capture:get-shortcut"),
