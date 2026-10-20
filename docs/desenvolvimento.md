@@ -15,8 +15,8 @@ As dependências de `web/` são instaladas pelo workspace npm da raiz.
 
 As execuções locais (`dev` e `start`) usam `--no-sandbox` para desabilitar o sandbox do
 Chromium para funcionar em ambientes com restrições do AppArmor. O isolamento
-de contexto continua habilitado. O [atalho Linux](instalacao-linux.md) também usa
-essa opção, como o atalho gerado no AppImage.
+de contexto continua habilitado. O [atalho manual do AppImage](instalacao-linux.md#instalar-a-partir-do-código)
+também usa essa opção. O DEB mantém o sandbox e instala um perfil do AppArmor.
 
 ## Comandos
 
@@ -25,9 +25,12 @@ npm run typecheck  # Verifica os tipos do desktop, frontend e backend
 npm run build      # Compila o app para out/
 npm start          # Abre a versão compilada (execute build antes)
 npm run package    # Gera um instalador para o sistema atual em release/
+npm run package:linux # Gera DEB e AppImage x64 e latest-linux.yml, sem publicar
 ```
 
-O empacotamento usa AppImage no Linux, NSIS no Windows e DMG no macOS.
+O empacotamento usa DEB e AppImage no Linux, NSIS no Windows e DMG no macOS.
+As releases públicas são geradas pelo workflow de tag; veja
+[Publicação de releases](releases.md).
 
 ## Testes do backend
 
@@ -61,4 +64,6 @@ também é aceito). Importe `describe`, `it` e `expect` de `vitest`.
 O alias `@/` aponta para `web/src/`, e o setup em `web/src/test/setup.ts`
 registra os matchers de DOM e limpa os componentes renderizados após cada teste.
 
-`npm run package` gera AppImage e DEB Linux com metadados de atualização. Para testar instalação real com duas versões e um feed local, consulte [Atualizações](atualizacoes.md).
+`npm run package:linux` gera AppImage e DEB Linux com metadados de atualização.
+`desktop/scripts/release-checks.test.ts` cobre a validação da tag, do feed, dos
+checksums e dos arquivos enviados usada pelo workflow de release. Para testar instalação real com duas versões e um feed local, consulte [Atualizações](atualizacoes.md).

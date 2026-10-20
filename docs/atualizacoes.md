@@ -34,7 +34,7 @@ verificado do updater.
 
 ## Formatos e instalação
 
-O suporte inicial cobre Linux x64 e ARM64. `APPIMAGE` identifica um AppImage;
+O updater suporta Linux x64 e ARM64, mas as releases publicadas são só x64. `APPIMAGE` identifica um AppImage;
 `resources/package-type=deb`, gerado pelo electron-builder, identifica DEB.
 Outros formatos, desenvolvimento e prévia no navegador mostram indisponibilidade.
 O atualizador não usa o token da integração GitHub do usuário.
@@ -56,8 +56,8 @@ O atualizador não usa o token da integração GitHub do usuário.
   diretório precisam permitir escrita pelo usuário.
 
 A instalação DEB exige `apt-get`, `pkexec`, um serviço PolicyKit e um agente de
-autorização na sessão do desktop. O DEB declara `policykit-1` e `libsecret-1-0`,
-além das bibliotecas do Electron. O desktop precisa disponibilizar um chaveiro
+autorização na sessão do desktop. O DEB declara `apt`, `pkexec | policykit-1` e
+`libsecret-1-0`, além das bibliotecas do Electron. O desktop precisa disponibilizar um chaveiro
 (libsecret/KWallet) e seu próprio agente de autorização. Ambientes sem agente
 recebem um erro recuperável. `electron-updater` 6.8.9 é dependência de runtime,
 compatível com electron-builder 26.x.
@@ -72,7 +72,7 @@ abertura seguinte; uma saída comum mantém o comportamento anterior do timer.
 O diretório `userData` não muda: banco, uploads, chave criptografada, preferências
 e configuração de inicialização continuam no mesmo lugar.
 
-## Contrato do feed e coordenação com #22
+## Contrato do feed
 
 A configuração de produção é GitHub Releases público:
 `nathanmota-dev/life-board`, canal `latest`, somente versões estáveis. O updater
@@ -83,15 +83,16 @@ arquitetura devem corresponder à instalação. DEB nunca troca para AppImage.
 O electron-builder gera `app-update.yml` no pacote e `latest-linux.yml` junto aos
 artefatos x64. Para ARM64, usa `latest-linux-arm64.yml`. O feed precisa manter a
 lista `files`, os nomes dos artefatos, tamanhos e os hashes SHA-512 gerados juntos.
-Os nomes configurados são `life-board-${version}-${arch}.${ext}`; o builder
-normaliza x64 para `amd64` em DEB e `x86_64` em AppImage. O seletor também aceita
+Os nomes configurados são `life-board_${version}_${arch}.deb` e
+`life-board-${version}-${arch}.AppImage`; o builder normaliza x64 para `amd64` em
+DEB e `x86_64` em AppImage. O seletor também aceita
 `x64`; ARM64 aceita `arm64` e `aarch64`.
 
-A issue #22 deve publicar os pacotes e os metadados correspondentes na mesma
-release estável, preservando ambos os formatos no feed. Se o build for dividido
-por alvo/arquitetura, combine corretamente os metadados antes de publicar para
-não sobrescrever a lista de um formato com a de outro. O instalador público
-v1.0.0 precisa conter este atualizador. Não publique releases fictícias para testar.
+O [workflow de release](releases.md) gera DEB, AppImage e `latest-linux.yml` em um
+único build x64 e confere o feed antes de publicar, preservando os dois formatos.
+Se o build for dividido por alvo/arquitetura, combine os metadados antes de
+publicar para não sobrescrever a lista de um formato com a de outro. Não publique
+releases fictícias para testar.
 
 As notas são exibidas como texto, sem HTML da rede. O link de release é construído
 para este repositório. O renderer recebe somente estado e ações fixas; não pode
@@ -112,7 +113,7 @@ de gravação exigem espaço e permissões no diretório de dados ou do AppImage
 ## Testes com pacotes controlados
 
 Execute as verificações da issue: `npm ci`, `npm run typecheck`, `npm test`,
-`npm run test:coverage`, `npm run build` e `npm run package`. O último gera DEB,
+`npm run test:coverage`, `npm run build` e `npm run package:linux`. O último gera DEB,
 AppImage e metadados; não publique os artefatos de teste.
 
 Para o teste real, use um desktop Linux descartável com chaveiro desbloqueado e
