@@ -85,6 +85,13 @@ if ($RequireSignature -and [string]::IsNullOrWhiteSpace($PublisherName)) { throw
 $profilePath = [Environment]::GetFolderPath('UserProfile')
 if ([string]::IsNullOrWhiteSpace($profilePath) -or !$profilePath.Contains(' ')) { throw 'Smoke requires a real user profile with spaces.' }
 $env:USERPROFILE = $profilePath
+# Start-Process -Credential inherits runneradmin's environment; rebase the
+# per-user variables (TEMP is also used by Add-Type) onto this profile.
+$env:HOMEDRIVE = Split-Path -Qualifier $profilePath
+$env:HOMEPATH = $profilePath.Substring($env:HOMEDRIVE.Length)
+$env:TEMP = Join-Path $profilePath 'AppData\Local\Temp'
+$env:TMP = $env:TEMP
+New-Item -ItemType Directory -Force -Path $env:TEMP | Out-Null
 # Secondary logon loads the new user's hive but does not run Explorer's first
 # logon initialization. Provision that account's default shell folders before
 # NSIS/Electron query them; do not inherit runneradmin's AppData locations.
