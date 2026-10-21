@@ -1,5 +1,5 @@
 import { join } from "node:path"
-import { app, BrowserWindow, dialog, ipcMain, shell, utilityProcess } from "electron"
+import { app, BrowserWindow, ipcMain, shell, utilityProcess } from "electron"
 import type { UtilityProcess } from "electron"
 import backendPath from "./backend-process?modulePath"
 import icon from "../resources/icon.png?asset"
@@ -11,7 +11,9 @@ import { registerNotifications } from "./notifications"
 import { registerUpdates } from "./register-updates"
 import { registerPomodoro } from "./pomodoro"
 import { loadRenderer, secureWebPreferences } from "./renderer"
-import { loadSecretKey } from "./secret-key"
+import { confirmSecretsReset } from "./secret-key"
+import type { SecretKey } from "./secret-key"
+import { openSecretKey } from "./secret-key-recovery"
 import { registerStartupSettings } from "./startup-settings"
 import { createTray } from "./tray"
 import { defaultBounds, loadWindowState, trackWindowState } from "./window-state"
@@ -61,7 +63,7 @@ function showMainWindow(route?: string) {
   if (route) mainWindow.webContents.send("app:navigate", route)
 }
 
-function startBackend(secretKey: Buffer) {
+function startBackend({ key, resetSecrets }: SecretKey) {
   const migrationsDir = app.isPackaged
     ? join(process.resourcesPath, "migrations")
     : join(app.getAppPath(), "api/drizzle")
@@ -75,7 +77,7 @@ function startBackend(secretKey: Buffer) {
     },
   })
   // Sent over the message port rather than env, which other processes can read.
-  backend.postMessage({ type: "secret-key", key: secretKey.toString("base64") })
+  backend.postMessage({ type: "secret-key", key: key.toString("base64"), resetSecrets })
 
   return new Promise<string>((resolve, reject) => {
     backend?.on("message", (message: { type?: string; url?: string }) => {
@@ -112,16 +114,16 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.handle("app:open-external", (_event, url: string) => {
       if (typeof url === "string" && url.startsWith("https://github.com/")) return shell.openExternal(url)
     })
-    let secretKey: Buffer
-    try {
-      secretKey = loadSecretKey(app.getPath("userData"))
-    } catch (error) {
-      dialog.showErrorBox("Life Board", (error as Error).message)
+    const secretKey = openSecretKey(app.getPath("userData"))
+    if (!secretKey) {
       app.quit()
       return
     }
     apiBaseUrl = startBackend(secretKey)
-    apiBaseUrl.catch((error: unknown) => console.error(error))
+    apiBaseUrl.then(
+      () => { if (secretKey.resetSecrets) confirmSecretsReset(app.getPath("userData")) },
+      (error: unknown) => console.error(error),
+    )
 
     registerLocale()
     registerNotifications(icon, showMainWindow)

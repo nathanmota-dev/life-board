@@ -189,6 +189,15 @@ encerra o app e abre novamente: a tarefa e o hash de `secret.key.enc` precisam
 permanecer iguais. O segundo início exige descriptografar a chave existente pelo
 `safeStorage`/DPAPI, sem adaptadores ou chaveiro sintético.
 
+Depois, o smoke apaga o perfil e repete o primeiro início, grava uma tarefa e
+encerra o app à força (`Stop-Process -Force`, como `taskkill /F`) logo depois
+que a janela aparece. Registra se o `Local State` já tinha `os_crypt.encrypted_key`
+e se a chave ainda estava pendente. O início seguinte precisa ficar saudável, com a
+tarefa preservada, ou chegar ao diálogo de recuperação, detectado pelo log do
+processo principal. Quando fica saudável, o app é fechado normalmente e aberto mais
+uma vez: a chave precisa decifrar com o mesmo hash e deixar de estar pendente. O
+resultado vai em `forcedExit` no `smoke.json`.
+
 Instalação tem limite de 90 segundos; cada início espera até 60 segundos pela
 API; o processo da conta inteira tem limite de seis minutos. O cleanup só encerra
 processos da pasta de instalação exclusiva ou do SID criado pelo teste, remove
@@ -412,6 +421,34 @@ O perfil continua em `app.getPath("userData")`, com o nome `life-board-app`:
 O banco (`life-board.db`), os uploads e `secret.key.enc` ficam nessa pasta. A chave
 é protegida pelo `safeStorage`: libsecret/KWallet no Linux, DPAPI no Windows e
 Keychain no macOS.
+
+### Chave dos segredos no Windows
+
+No Windows, o `safeStorage` usa o OSCrypt do Chromium: a chave que cifra
+`secret.key.enc` é protegida pelo DPAPI e salva no `Local State`, dentro da mesma
+pasta, em `os_crypt.encrypted_key`. O Chromium grava o `Local State` alguns
+segundos depois de uma mudança ou ao sair normalmente, e o Electron não expõe uma
+API para forçar essa gravação. Se o app é encerrado à força no primeiro início
+antes disso, o próximo início recebe outra chave do OSCrypt e não consegue decifrar
+`secret.key.enc` (#38). Linux e macOS gravam a chave no chaveiro na hora.
+
+Por isso, `desktop/src/secret-key.ts` não depende do `Local State`:
+
+- Uma chave nova no Windows fica **pendente** (`secret.key.pending`) até um início
+  posterior decifrá-la. Se a chave pendente não decifra, ela foi criada num início
+  cujo OSCrypt nunca foi salvo: o app cria outra chave sem perguntar, registra um
+  aviso no log e continua.
+- Toda chave nova grava `secret.key.reset` antes de `secret.key.enc` (que é gravado
+  num arquivo temporário e renomeado). O backend recebe `resetSecrets` e apaga só
+  os segredos cifrados com a chave anterior — hoje, a linha de `github_settings`
+  com o token do GitHub. O marcador só é removido quando o backend fica pronto, então
+  um crash no meio repete a limpeza no próximo início.
+- Uma chave já confirmada que não decifra (em qualquer sistema) é registrada no log
+  do processo principal antes de qualquer diálogo. O diálogo explica que os segredos
+  salvos não podem ser lidos e oferece **Redefinir chave** ou **Sair** (padrão).
+  Redefinir mantém o banco: tarefas, hábitos, metas e os demais dados continuam; só
+  o token do GitHub precisa ser conectado de novo. Chaveiro indisponível continua
+  fechando o app com a mensagem de erro, também registrada no log.
 
 O cliente libSQL lê `file:<caminho>` como URL: decodifica `%XX` e trata `?` e `#`
 como query e fragmento. Antes, um perfil com `#` ou `?` não abria o banco, e `%20`
