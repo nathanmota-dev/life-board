@@ -80,10 +80,10 @@ smoke Linux nem usará APT fora do Linux. O fan-in multiplataforma é a tarefa #
 | Eventos | `workflow_call` e `workflow_dispatch` (build-only) |
 | Input `release` | Booleano opcional, padrão `false`; `true` exige tag estável igual à versão e notas não vazias. Dispatch ignora modo release. |
 | Checkout | Commit do caller/dispatch, sem input de ref alternativo; `HEAD` deve ser igual a `GITHUB_SHA` |
-| Output `artifact-name` | Nome determinístico `<sistema>-<arquitetura>`; Linux: `linux-x64` |
+| Output `artifact-name` | Nome determinístico `<sistema>-<arquitetura>`: `linux-x64` ou `windows-x64` |
 | Output `version` | Versão real do `package.json` do checkout |
 | Output `source-sha` | SHA completo do commit efetivamente compilado |
-| Output `target` | Alvo do artefato; Linux: `linux-x64` |
+| Output `target` | Alvo do artefato: `linux-x64` ou `windows-x64` |
 | Output `release-tag` | Tag validada ou string vazia em build-only |
 | Permissão | `contents: read`; sem publicação, tags ou uploads de GitHub Release |
 | Retenção | 14 dias, com `if-no-files-found: error`; upload só após todos os gates |
@@ -142,18 +142,112 @@ node desktop/scripts/release-checks.mts assets <diretório> <alvo>
 node desktop/scripts/release-checks.mts uploaded <diretório> <assets.json> <alvo>
 ```
 
-Nesta etapa só `linux-x64` é implementado; alvos desconhecidos falham. #29/#30
-estenderão essa interface. A chamada antiga `assets <diretório>` continua aceitando
+Os alvos `linux-x64` e `windows-x64` estão implementados; alvos desconhecidos
+falham. #30 acrescentará macOS. A chamada antiga `assets <diretório>` continua aceitando
 um build Linux sem `build-info.json`; quando o manifesto existe, é validado e
 precisa constar nos checksums mesmo na chamada antiga. O alvo explícito sempre
 exige o manifesto. O mesmo vale para a chamada antiga `uploaded`.
 
-Mantenha um diretório e um artefato por alvo (`linux-x64`, `win32-x64`,
-`darwin-x64`, `darwin-arm64`). Checksums e manifestos de arquiteturas diferentes
+Mantenha um diretório e um artefato por alvo (`linux-x64`, `windows-x64`,
+`mac-x64`, `mac-arm64`). O nome do alvo Windows é `windows-x64`, enquanto seu
+`targetOs` no manifesto é `win32`. Checksums e manifestos de arquiteturas diferentes
 nunca são sobrescritos em um download mesclado. Em particular, os feeds Mac com
 mesmo nome precisam continuar separados até a combinação explícita em #31.
 Rascunho, aprovação pelo ambiente `release` e publicação permanecem centralizados
 em `release.yml`, que revalida origem/arquivos antes de criar o rascunho e publicar.
+
+### Build Windows x64
+
+`.github/workflows/build-windows.yml` usa `windows-2022` (Windows Server 2022,
+build 20348) e Node.js **24.18.0**. O job verifica esses valores e registra a
+versão exata da imagem do runner no resumo. Não depende de Linux/macOS e não usa
+APT ou Bash. Executa `npm ci`, typecheck, todos os testes Vitest e cobertura da
+API (mínimo de 80% em cada métrica) antes de `npm run package:win`. O E2E completo
+continua no workflow próprio, com Linux/Xvfb/chaveiro; não é desabilitado nem
+apresentado como evidência nativa do Windows.
+
+Os testes usam os separadores nativos ao extrair arquivos do ASAR e fixtures de
+sistema operacional explícitas. A prova do módulo nativo ocorre em subprocesso,
+pois o Windows mantém uma DLL carregada bloqueada. O launcher de testes da API
+também remove a sessão temporária depois de o Vitest encerrar: o libSQL 0.5.29
+pode reter handles de statements após `close()` ([limitação conhecida](https://github.com/tursodatabase/libsql-js/issues/228)).
+As asserções, os bancos reais por teste e a cobertura permanecem ativos; não há
+supressão de erro de limpeza nem alteração das dependências de produção.
+
+O hook `after-pack.cjs` carrega o libSQL da máquina e exige PE x64 no executável e
+no módulo nativo. Inspeciona o ASAR: identidade do app, AppUserModelID, backend
+do `utilityProcess`, preload e renderer. O NSIS instala por usuário, sem elevação
+e sem abrir o app automaticamente ao terminar.
+
+O smoke usa uma conta local descartável **sem privilégios de administrador**,
+com espaços no nome do perfil. O runner administrador apenas cria/remove essa
+conta. O script copia instalador e teste para uma pasta acessível pela conta,
+carrega seu perfil e remove Node.js/npm/Git do PATH antes de instalar/abrir o app.
+Confere versão/arquitetura do executável instalado, migrations, libSQL, recursos
+e o AppUserModelID do atalho. Consulta `/api/health`, grava uma tarefa pela API,
+encerra o app e abre novamente: a tarefa e o hash de `secret.key.enc` precisam
+permanecer iguais. O segundo início exige descriptografar a chave existente pelo
+`safeStorage`/DPAPI, sem adaptadores ou chaveiro sintético.
+
+Instalação tem limite de 90 segundos; cada início espera até 60 segundos pela
+API; o processo da conta inteira tem limite de seis minutos. O cleanup só encerra
+processos da pasta de instalação exclusiva ou do SID criado pelo teste, remove
+perfil/conta e preserva logs em `windows-x64-smoke` por 14 dias, inclusive em
+falhas. O artefato de build só é enviado após o smoke e a verificação passarem.
+
+`windows-x64` contém exatamente os arquivos entregáveis abaixo, na raiz:
+
+- `life-board-<versão>-win-x64.exe` e `.exe.blockmap`;
+- `latest.yml`, `build-info.json`, `signing-info.json` e `SHA256SUMS.txt`.
+
+O feed deve conter apenas o instalador x64 completo, com tamanho/SHA-512 exatos;
+pacotes web auxiliares são recusados. O blockmap gzip v2 precisa conter faixas
+válidas que cubram todo o instalador. Os SHA-256 cobrem também blockmap e ambos
+os manifestos. Checksums com LF ou CRLF são aceitos. `signing-info.json` usa
+`schemaVersion: 1`, `status: "signed" | "unsigned"`, `publisher`, `thumbprint`,
+`installerSha256` e `executableSha256`. Em unsigned, publisher/thumbprint são
+null. Esse arquivo é a evidência gerada pela inspeção nativa de assinaturas;
+revalidar um JSON no Linux não executa a verificação Authenticode do Windows.
+
+O output adicional `signing-status` e o resumo marcam explicitamente o estado.
+Dispatch e chamadas com `release: false` geram builds **unsigned**, sem acesso a
+credenciais, inclusive quando selecionam uma tag. Não são distribuíveis como
+release de produção. O verificador recusa manifesto com `releaseTag` preenchido
+e `status: unsigned`.
+
+Para #31, a chamada é independente dos outros sistemas:
+
+```yaml
+jobs:
+  windows:
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      release: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+    secrets:
+      WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+```
+
+O workflow não cria release, tag nem publica feed. A aprovação do ambiente
+`release` continua no orquestrador; não é consumida para executar esses checks.
+
+Para uma branch já enviada, quando o workflow estiver registrado na branch
+padrão do GitHub:
+
+```powershell
+gh workflow run build-windows.yml --ref ci/reusable-windows-build
+gh run list --workflow build-windows.yml --branch ci/reusable-windows-build
+gh run view <run-id> --log
+gh run download <run-id> --name windows-x64 --dir artifacts/windows-x64
+node desktop/scripts/release-checks.mts assets artifacts/windows-x64 windows-x64
+```
+
+O checkout local usado para revalidar deve ser o mesmo SHA do run; `RELEASE_TAG`
+deve estar vazio em build-only. Antes de o workflow estar na branch padrão,
+dispatch direto pode retornar 404. Pushes para branches `ci/**` que alteram o
+workflow, `desktop/`, `api/`, `web/` ou a configuração de build também executam
+esse workflow em build-only, permitindo validar antes da integração. Não criar
+versão/tag de produção para testar branches.
 
 ## Caminhos e dados do usuário
 
@@ -202,9 +296,24 @@ nos sistemas reais (#32):
 Os comandos geram pacotes sem assinatura quando não há certificado. Os pré-requisitos
 de cada workflow:
 
-- **Windows:** certificado de assinatura de código (`CSC_LINK`/`CSC_KEY_PASSWORD` ou
-  `WIN_CSC_LINK`/`WIN_CSC_KEY_PASSWORD`). Sem ele, o NSIS funciona, mas o SmartScreen
-  avisa.
+- **Windows:** o caminho implementado usa Authenticode por certificado PFX,
+  suportado pelo electron-builder 26. O mantenedor deve escolher/provisionar uma
+  identidade compatível com sua autoridade certificadora e política de custódia;
+  nenhum serviço de nuvem é presumido nem provisionado por este workflow.
+  Configurar os secrets `WIN_CSC_LINK` (PFX codificado em base64) e
+  `WIN_CSC_KEY_PASSWORD`, e a variável de repositório `WINDOWS_PUBLISHER_NAME`
+  exatamente igual ao nome comum do certificado. Não adicionar PFX/senha ao Git.
+  Certificados com chave não exportável/HSM exigem integração específica do
+  provedor antes de habilitar releases; não são convertidos automaticamente em PFX.
+  Em produção, o caller deve vir de push de tag do próprio repositório; tag,
+  versão e notas são conferidas. Só o passo de empacotamento recebe os secrets.
+  `forceCodeSigning` impede fallback silencioso. `Get-AuthenticodeSignature`
+  exige assinatura válida, publisher esperado e o mesmo certificado no
+  instalador e no executável instalado. Credenciais ausentes, certificado
+  inválido ou publisher diferente falham antes do upload. Renovação deve manter
+  o publisher esperado pelo updater. Branches deliberadamente unsigned podem
+  disparar avisos do SmartScreen; assinatura válida também não garante ausência
+  desses avisos. O comportamento observado deve ser registrado no teste manual.
 - **macOS:** certificado Developer ID Application (`CSC_LINK`/`CSC_KEY_PASSWORD`)
   e notarização (`APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`). O
   updater do macOS só instala apps assinados.
@@ -230,6 +339,14 @@ em outro sistema; "inspeção" é a leitura do arquivo gerado.
 Ainda não validado: execução nativa no Windows e no macOS (instalação, `/api/health`,
 DPAPI/Keychain, `utilityProcess` e integração com o sistema) e o DMG. Esses itens
 ficam para os workflows de Windows e macOS e para a validação integrada.
+
+A implementação do workflow Windows não substitui a evidência de execução:
+registrar run-id, versão da imagem, SHA fonte, hashes do artefato baixado e
+`windows-x64-smoke/smoke.json` após o primeiro run nativo. Produção assinada
+continua pendente da identidade/credenciais do mantenedor. A matriz manual de
+#32 deve cobrir Windows 10/11 em usuário comum sem ferramentas de desenvolvimento,
+tray, notificações/permissões, login real após reboot, SmartScreen, upgrade
+assinado e preservação dos dados. Um runner Server 2022 não comprova esses itens.
 
 Observação para a validação integrada: em um container sem namespaces de usuário,
 o `postinst` do DEB usa o `chrome-sandbox` com SUID e o app não abriu

@@ -1,13 +1,12 @@
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
+import { copyFile, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { expect, it } from "vitest"
 import { createDb, sqliteFileUrl } from "./client"
-import { migrationsFolder } from "../test/create-test-app"
+import { migrationsFolder, removeTestDirectory, testTemporaryRoot } from "../test/create-test-app"
 import { TasksService, type TaskWithChildren } from "../services/tasks.service"
 
 it("upgrades existing tasks onto the board with their subtasks", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "tasks-migration-"))
+  const dir = await mkdtemp(join(testTemporaryRoot, "tasks-migration-"))
   const previousFolder = join(dir, "previous")
   await mkdir(join(previousFolder, "meta"), { recursive: true })
   const journal = JSON.parse(await readFile(join(migrationsFolder, "meta/_journal.json"), "utf8"))
@@ -29,6 +28,6 @@ it("upgrades existing tasks onto the board with their subtasks", async () => {
     expect(trip.children.map((item) => item.title)).toEqual(["Passport"])
   } finally {
     upgraded.close()
-    await rm(dir, { recursive: true, force: true })
+    await removeTestDirectory(dir)
   }
 })

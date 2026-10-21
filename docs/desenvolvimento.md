@@ -92,3 +92,32 @@ os gates E2E, unitários, cobertura, inspeção e instalação/smoke do DEB no
 [contrato de artefatos](multiplataforma.md#contrato-de-workflows-e-artefatos) para
 inputs, outputs, manifesto e verificações locais. O linter de workflows é
 `actionlint .github/workflows/*.yml`.
+
+O workflow **Build Windows** executa checks e NSIS nativamente no
+`windows-2022`, também com Node.js 24.18.0. Pode ser chamado por outro workflow ou
+executado em uma branch sem publicar. A suíte E2E completa permanece no workflow
+Linux; o Windows acrescenta smoke do app instalado com perfil comum e DPAPI real.
+Consulte [Build Windows x64](multiplataforma.md#build-windows-x64) para interface,
+artefatos, dispatch e assinatura de produção.
+
+Para validar numa máquina Windows descartável, em PowerShell:
+
+```powershell
+npm ci
+npm run typecheck
+npm test
+npm run test:coverage
+npm run package:win
+$version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+powershell -NoProfile -ExecutionPolicy Bypass -File desktop/scripts/smoke-windows.ps1 -InstallerPath "release/life-board-$version-win-x64.exe" -Version $version -AsDisposableUser
+```
+
+`-AsDisposableUser` exige terminal administrador somente para criar/remover a
+conta temporária. O teste falha se o instalador/app executar como administrador.
+Para usar uma conta padrão descartável já criada, omita a opção; o perfil deve
+ter espaços e nenhum dado existente do Life Board. Não use um perfil pessoal.
+Os logs e evidências ficam em `test-results/windows-smoke/`. O workflow copia a
+evidência de assinatura para `release/`, escreve proveniência/checksums e executa
+`node desktop/scripts/release-checks.mts assets release windows-x64` antes de enviar
+o artefato. Para produção, o smoke também exige `-RequireSignature -PublisherName`
+e verifica Authenticode no instalador e app instalado.

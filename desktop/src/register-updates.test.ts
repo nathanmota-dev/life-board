@@ -19,6 +19,8 @@ const driver = { check: vi.fn(), download: vi.fn(), install: vi.fn(), dispose: v
 beforeEach(() => {
   vi.resetModules(); vi.clearAllMocks(); vi.useFakeTimers()
   directory = mkdtempSync(join(tmpdir(), "life-board-register-updates-"))
+  // Linux is the baseline fixture; native platform cases override it below.
+  vi.stubGlobal("process", { ...process, platform: "linux", arch: "x64", resourcesPath: directory })
   app.isPackaged = true
   vi.stubEnv("APPIMAGE", "/stable/life-board.AppImage")
   mocks.createUpdateDriver.mockReturnValue(driver)

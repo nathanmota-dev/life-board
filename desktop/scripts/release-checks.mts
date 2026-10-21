@@ -8,19 +8,26 @@ import { createHash } from "node:crypto"
 import { createReadStream, existsSync, lstatSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
+import { gunzipSync } from "node:zlib"
 import { parse } from "yaml"
 
 const STABLE_TAG = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
 export const FEED = "latest-linux.yml"
 export const CHECKSUMS = "SHA256SUMS.txt"
 export const BUILD_INFO = "build-info.json"
+export const SIGNING_INFO = "signing-info.json"
 
 export type Provenance = { sourceSha: string, releaseTag: string | null }
 export type BuildInfo = Provenance & { schemaVersion: 1, version: string, targetOs: string, architecture: string }
 
 function targetInfo(target: string) {
-  if (target !== "linux-x64") throw new Error(`Unsupported artifact target ${target}.`)
-  return { targetOs: "linux", architecture: "x64" }
+  if (!["linux-x64", "windows-x64"].includes(target)) throw new Error(`Unsupported artifact target ${target}.`)
+  return { targetOs: target === "windows-x64" ? "win32" : "linux", architecture: "x64" }
+}
+
+export function windowsFiles(version: string) {
+  const installer = `life-board-${version}-win-x64.exe`
+  return { installer, blockmap: `${installer}.blockmap`, feed: "latest.yml" }
 }
 
 /** Use the checkout/context as the trust anchor, never the downloaded manifest. */
@@ -78,34 +85,59 @@ async function sha(path: string, algorithm: "sha256" | "sha512", encoding: "hex"
 /** The feed, checksums and installers must come from the same build and reference each other exactly. */
 export async function checkAssets(dir: string, version: string, target?: string, provenance?: Provenance) {
   targetInfo(target ?? "linux-x64")
-  const expected = releaseFiles(version)
+  const windows = target === "windows-x64" ? windowsFiles(version) : undefined
+  const expected = windows ? { installer: windows.installer } : releaseFiles(version)
+  const feedName = windows?.feed ?? FEED
   // Legacy Linux builds without a manifest remain valid only with no explicit target.
   const hasBuildInfo = target !== undefined || existsSync(join(dir, BUILD_INFO))
-  const assets = [...Object.values(expected), FEED, ...(hasBuildInfo ? [BUILD_INFO] : [])]
+  const assets = [...Object.values(expected), ...(windows ? [windows.blockmap, SIGNING_INFO] : []), feedName, ...(hasBuildInfo ? [BUILD_INFO] : [])]
   for (const name of assets) {
     const path = join(dir, name)
     if (!existsSync(path)) throw new Error(`Artifact is missing ${name}.`)
     if (!lstatSync(path).isFile() || statSync(path).size === 0) throw new Error(`${name} must be a nonempty regular file.`)
   }
   if (hasBuildInfo) checkBuildInfo(JSON.parse(readFileSync(join(dir, BUILD_INFO), "utf8")), version, target ?? "linux-x64", provenance ?? checkoutProvenance())
-  const feed = parse(readFileSync(join(dir, FEED), "utf8")) as { version?: unknown, files?: FeedFile[], path?: unknown, sha512?: unknown }
-  if (feed?.version !== version) throw new Error(`${FEED} announces ${String(feed?.version)}, expected ${version}.`)
-  if (!Array.isArray(feed.files)) throw new Error(`${FEED} has no files list.`)
+  const feed = parse(readFileSync(join(dir, feedName), "utf8")) as { version?: unknown, files?: FeedFile[], path?: unknown, sha512?: unknown, packages?: unknown }
+  if (feed?.version !== version) throw new Error(`${feedName} announces ${String(feed?.version)}, expected ${version}.`)
+  if (!Array.isArray(feed.files)) throw new Error(`${feedName} has no files list.`)
+  if (windows && feed.packages !== undefined) throw new Error("Windows requires a full NSIS installer, not a web package.")
   const urls = feed.files.map((file) => file?.url).sort()
   if (JSON.stringify(urls) !== JSON.stringify(Object.values(expected).sort())) {
-    throw new Error(`${FEED} must list exactly ${Object.values(expected).join(", ")}; found ${urls.join(", ")}.`)
+    throw new Error(`${feedName} must list exactly ${Object.values(expected).join(", ")}; found ${urls.join(", ")}.`)
   }
   for (const file of feed.files) {
     const path = join(dir, file.url)
-    if (!existsSync(path)) throw new Error(`${FEED} references missing ${file.url}.`)
-    if (statSync(path).size !== file.size) throw new Error(`${file.url} size does not match ${FEED}.`)
-    if (await sha(path, "sha512", "base64") !== file.sha512) throw new Error(`${file.url} sha512 does not match ${FEED}.`)
+    if (!existsSync(path)) throw new Error(`${feedName} references missing ${file.url}.`)
+    if (statSync(path).size !== file.size) throw new Error(`${file.url} size does not match ${feedName}.`)
+    if (await sha(path, "sha512", "base64") !== file.sha512) throw new Error(`${file.url} sha512 does not match ${feedName}.`)
   }
   const legacy = feed.files.find((file) => file.url === feed.path)
-  if (!legacy || legacy.sha512 !== feed.sha512) throw new Error(`${FEED} path/sha512 must match one of its files.`)
+  if (!legacy || legacy.sha512 !== feed.sha512) throw new Error(`${feedName} path/sha512 must match one of its files.`)
+
+  if (windows) {
+    const info = JSON.parse(readFileSync(join(dir, SIGNING_INFO), "utf8"))
+    const keys = ["schemaVersion", "status", "publisher", "thumbprint", "installerSha256", "executableSha256"].sort()
+    if (!info || JSON.stringify(Object.keys(info).sort()) !== JSON.stringify(keys) || info.schemaVersion !== 1
+      || !["signed", "unsigned"].includes(info.status) || !/^[a-f0-9]{64}$/.test(info.executableSha256)
+      || info.installerSha256 !== await sha(join(dir, windows.installer), "sha256", "hex")) throw new Error("Invalid Windows signing evidence.")
+    if (info.status === "signed" ? typeof info.publisher !== "string" || !info.publisher.trim() || typeof info.thumbprint !== "string" || !/^[A-F0-9]{40}$/.test(info.thumbprint)
+      : info.publisher !== null || info.thumbprint !== null) throw new Error("Invalid Windows publisher evidence.")
+    const build = JSON.parse(readFileSync(join(dir, BUILD_INFO), "utf8")) as BuildInfo
+    if (build.releaseTag && info.status !== "signed") throw new Error("A Windows release requires valid Authenticode signatures.")
+    // electron-builder writes a gzip-compressed v2 blockmap. Verify its ranges
+    // cover this installer, rather than accepting any nonempty .blockmap file.
+    const map = JSON.parse(gunzipSync(readFileSync(join(dir, windows.blockmap))).toString("utf8"))
+    if (map.version !== "2" || !Array.isArray(map.files) || map.files.length !== 1) throw new Error("Invalid NSIS blockmap.")
+    const file = map.files[0]
+    if (file.name !== "file" || file.offset !== 0 || !Array.isArray(file.sizes) || !file.sizes.length
+      || !Array.isArray(file.checksums) || file.checksums.length !== file.sizes.length
+      || file.sizes.some((size: unknown) => !Number.isSafeInteger(size) || (size as number) <= 0)
+      || file.checksums.some((sum: unknown) => typeof sum !== "string" || !/^[A-Za-z0-9+/]{24}$/.test(sum))
+      || file.sizes.reduce((sum: number, size: number) => sum + size, 0) !== statSync(join(dir, windows.installer)).size) throw new Error("NSIS blockmap does not cover the installer.")
+  }
 
   const sums = new Map<string, string>()
-  for (const line of readFileSync(join(dir, CHECKSUMS), "utf8").trimEnd().split("\n")) {
+  for (const line of readFileSync(join(dir, CHECKSUMS), "utf8").trimEnd().split(/\r?\n/)) {
     const match = /^([a-f0-9]{64}) [ *]([^/\\\r\n]+)$/.exec(line)
     if (!match || sums.has(match[2])) throw new Error(`${CHECKSUMS} has a malformed or duplicate entry.`)
     sums.set(match[2], match[1])
