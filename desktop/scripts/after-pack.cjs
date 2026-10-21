@@ -39,6 +39,10 @@ async function afterPack(context) {
   const arch = ARCHES[context.arch]
   const target = checkPackagedResources(context.packager.getResourcesDir(context.appOutDir), context.electronPlatformName, arch)
   if (context.electronPlatformName === "win32") require("./windows-package.cjs").checkWindowsPackage(context.appOutDir)
+  if (context.electronPlatformName === "darwin") {
+    const name = context.packager.appInfo.productFilename
+    require("./macos-package.cjs").checkMacPackage(join(context.appOutDir, `${name}.app`), arch, name)
+  }
   console.log(`  • checked native module  target=@libsql/${target} platform=${context.electronPlatformName} arch=${arch}`)
 }
 

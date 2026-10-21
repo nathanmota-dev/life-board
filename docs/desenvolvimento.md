@@ -79,7 +79,7 @@ em PRs para `main` e `release/**` e bloqueia o empacotamento de releases em caso
 
 `npm run package:linux` gera AppImage e DEB Linux com metadados de atualização.
 `desktop/scripts/packaging.test.ts` cobre a verificação do módulo nativo, os nomes
-dos pacotes e a escolha do ZIP do macOS pelo updater.
+dos pacotes, a assinatura do macOS e a escolha do ZIP do macOS pelo updater.
 `desktop/scripts/release-checks.test.ts` cobre a validação da tag, do feed, dos
 checksums, da proveniência de `build-info.json` e dos arquivos enviados usada pelos
 workflows de build/release. Para testar instalação real com duas versões e um feed
@@ -121,3 +121,33 @@ evidência de assinatura para `release/`, escreve proveniência/checksums e exec
 `node desktop/scripts/release-checks.mts assets release windows-x64` antes de enviar
 o artefato. Para produção, o smoke também exige `-RequireSignature -PublisherName`
 e verifica Authenticode no instalador e app instalado.
+
+O workflow **Build macOS** executa checks, DMG + ZIP e o smoke do app instalado
+nativamente em `macos-15-intel` (x64) e `macos-15` (arm64), com Node.js 24.18.0.
+Branches geram builds ad-hoc sem credenciais; só tags de release assinam com
+Developer ID e notarizam. Consulte [Build macOS x64 e arm64](multiplataforma.md#build-macos-x64-e-arm64)
+para runners, interface, artefatos e assinatura.
+
+Para validar num Mac da mesma arquitetura do alvo (Intel para x64, Apple
+Silicon sem Rosetta para arm64), em uma conta descartável:
+
+```bash
+npm ci
+npm run typecheck
+npm test
+npm run test:coverage
+npm run package:mac:arm64 -- --config.mac.identity=- \
+  --config.mac.entitlements=desktop/resources/entitlements.mac.adhoc.plist \
+  --config.mac.entitlementsInherit=desktop/resources/entitlements.mac.adhoc.plist
+version=$(node -p 'require("./package.json").version')
+bash desktop/scripts/smoke-macos.sh "release/mac-arm64/life-board-$version-mac-arm64.dmg"
+```
+
+Sem as opções `--config.mac.*`, o electron-builder procura um certificado no
+keychain e, sem nenhum, gera um app sem assinatura, que o smoke recusa. O smoke
+troca temporariamente o keychain padrão e grava as evidências em
+`test-results/macos-smoke/`. Para um build Developer ID notarizado, acrescente
+`--team-id <TEAMID>`. O workflow copia `signing-info.json` para a pasta de saída,
+escreve proveniência/checksums e executa
+`node desktop/scripts/release-checks.mts assets release/mac-arm64 macos-arm64`
+antes de enviar cada artefato.

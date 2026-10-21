@@ -2,6 +2,7 @@
 //   node desktop/scripts/release-checks.mts tag v1.0.0
 //   node desktop/scripts/release-checks.mts build-info release linux-x64
 //   node desktop/scripts/release-checks.mts assets release linux-x64
+//   node desktop/scripts/release-checks.mts assets release/mac-arm64 macos-arm64
 //   node desktop/scripts/release-checks.mts uploaded release assets.json linux-x64
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
@@ -20,14 +21,27 @@ export const SIGNING_INFO = "signing-info.json"
 export type Provenance = { sourceSha: string, releaseTag: string | null }
 export type BuildInfo = Provenance & { schemaVersion: 1, version: string, targetOs: string, architecture: string }
 
+const TARGETS: Record<string, { targetOs: string, architecture: string }> = {
+  "linux-x64": { targetOs: "linux", architecture: "x64" },
+  "windows-x64": { targetOs: "win32", architecture: "x64" },
+  "macos-x64": { targetOs: "darwin", architecture: "x64" },
+  "macos-arm64": { targetOs: "darwin", architecture: "arm64" },
+}
+
 function targetInfo(target: string) {
-  if (!["linux-x64", "windows-x64"].includes(target)) throw new Error(`Unsupported artifact target ${target}.`)
-  return { targetOs: target === "windows-x64" ? "win32" : "linux", architecture: "x64" }
+  if (!Object.hasOwn(TARGETS, target)) throw new Error(`Unsupported artifact target ${target}.`)
+  return TARGETS[target]
 }
 
 export function windowsFiles(version: string) {
   const installer = `life-board-${version}-win-x64.exe`
   return { installer, blockmap: `${installer}.blockmap`, feed: "latest.yml" }
+}
+
+/** Both Mac builds write latest-mac.yml; each feed lists only its own ZIP until #31 combines them. */
+export function macFiles(version: string, arch: "x64" | "arm64") {
+  const zip = `life-board-${version}-mac-${arch}.zip`
+  return { dmg: `life-board-${version}-mac-${arch}.dmg`, zip, blockmap: `${zip}.blockmap`, feed: "latest-mac.yml" }
 }
 
 /** Use the checkout/context as the trust anchor, never the downloaded manifest. */
@@ -84,13 +98,16 @@ async function sha(path: string, algorithm: "sha256" | "sha512", encoding: "hex"
 
 /** The feed, checksums and installers must come from the same build and reference each other exactly. */
 export async function checkAssets(dir: string, version: string, target?: string, provenance?: Provenance) {
-  targetInfo(target ?? "linux-x64")
+  const { targetOs, architecture } = targetInfo(target ?? "linux-x64")
   const windows = target === "windows-x64" ? windowsFiles(version) : undefined
-  const expected = windows ? { installer: windows.installer } : releaseFiles(version)
-  const feedName = windows?.feed ?? FEED
+  const mac = targetOs === "darwin" ? macFiles(version, architecture as "x64" | "arm64") : undefined
+  // The DMG is only for first installs; the updater downloads the ZIP.
+  const expected = windows ? { installer: windows.installer } : mac ? { zip: mac.zip } : releaseFiles(version)
+  const feedName = windows?.feed ?? mac?.feed ?? FEED
   // Legacy Linux builds without a manifest remain valid only with no explicit target.
   const hasBuildInfo = target !== undefined || existsSync(join(dir, BUILD_INFO))
-  const assets = [...Object.values(expected), ...(windows ? [windows.blockmap, SIGNING_INFO] : []), feedName, ...(hasBuildInfo ? [BUILD_INFO] : [])]
+  const extra = windows ? [windows.blockmap, SIGNING_INFO] : mac ? [mac.dmg, mac.blockmap, SIGNING_INFO] : []
+  const assets = [...Object.values(expected), ...extra, feedName, ...(hasBuildInfo ? [BUILD_INFO] : [])]
   for (const name of assets) {
     const path = join(dir, name)
     if (!existsSync(path)) throw new Error(`Artifact is missing ${name}.`)
@@ -124,16 +141,21 @@ export async function checkAssets(dir: string, version: string, target?: string,
       : info.publisher !== null || info.thumbprint !== null) throw new Error("Invalid Windows publisher evidence.")
     const build = JSON.parse(readFileSync(join(dir, BUILD_INFO), "utf8")) as BuildInfo
     if (build.releaseTag && info.status !== "signed") throw new Error("A Windows release requires valid Authenticode signatures.")
-    // electron-builder writes a gzip-compressed v2 blockmap. Verify its ranges
-    // cover this installer, rather than accepting any nonempty .blockmap file.
-    const map = JSON.parse(gunzipSync(readFileSync(join(dir, windows.blockmap))).toString("utf8"))
-    if (map.version !== "2" || !Array.isArray(map.files) || map.files.length !== 1) throw new Error("Invalid NSIS blockmap.")
-    const file = map.files[0]
-    if (file.name !== "file" || file.offset !== 0 || !Array.isArray(file.sizes) || !file.sizes.length
-      || !Array.isArray(file.checksums) || file.checksums.length !== file.sizes.length
-      || file.sizes.some((size: unknown) => !Number.isSafeInteger(size) || (size as number) <= 0)
-      || file.checksums.some((sum: unknown) => typeof sum !== "string" || !/^[A-Za-z0-9+/]{24}$/.test(sum))
-      || file.sizes.reduce((sum: number, size: number) => sum + size, 0) !== statSync(join(dir, windows.installer)).size) throw new Error("NSIS blockmap does not cover the installer.")
+    checkBlockmap(dir, windows.blockmap, windows.installer, "NSIS")
+  }
+
+  if (mac) {
+    const info = JSON.parse(readFileSync(join(dir, SIGNING_INFO), "utf8"))
+    const keys = ["schemaVersion", "status", "teamId", "notarized", "cdHash", "dmgSha256", "zipSha256"].sort()
+    if (!info || JSON.stringify(Object.keys(info).sort()) !== JSON.stringify(keys) || info.schemaVersion !== 1
+      || !["signed", "adhoc"].includes(info.status) || typeof info.cdHash !== "string" || !/^[a-f0-9]{40}$/.test(info.cdHash)
+      || info.dmgSha256 !== await sha(join(dir, mac.dmg), "sha256", "hex")
+      || info.zipSha256 !== await sha(join(dir, mac.zip), "sha256", "hex")) throw new Error("Invalid macOS signing evidence.")
+    if (info.status === "signed" ? typeof info.teamId !== "string" || !/^[A-Z0-9]{10}$/.test(info.teamId) || info.notarized !== true
+      : info.teamId !== null || info.notarized !== false) throw new Error("Invalid macOS Developer ID evidence.")
+    const build = JSON.parse(readFileSync(join(dir, BUILD_INFO), "utf8")) as BuildInfo
+    if (build.releaseTag && info.status !== "signed") throw new Error("A macOS release requires a notarized Developer ID signature.")
+    checkBlockmap(dir, mac.blockmap, mac.zip, "ZIP")
   }
 
   const sums = new Map<string, string>()
@@ -149,6 +171,21 @@ export async function checkAssets(dir: string, version: string, target?: string,
     if (await sha(join(dir, name), "sha256", "hex") !== sums.get(name)) throw new Error(`${name} sha256 does not match ${CHECKSUMS}.`)
   }
   return [...assets, CHECKSUMS]
+}
+
+/**
+ * electron-builder writes a gzip-compressed v2 blockmap. Verify its ranges
+ * cover this payload, rather than accepting any nonempty .blockmap file.
+ */
+function checkBlockmap(dir: string, blockmap: string, payload: string, kind: string) {
+  const map = JSON.parse(gunzipSync(readFileSync(join(dir, blockmap))).toString("utf8"))
+  if (map.version !== "2" || !Array.isArray(map.files) || map.files.length !== 1) throw new Error(`Invalid ${kind} blockmap.`)
+  const file = map.files[0]
+  if (file.name !== "file" || file.offset !== 0 || !Array.isArray(file.sizes) || !file.sizes.length
+    || !Array.isArray(file.checksums) || file.checksums.length !== file.sizes.length
+    || file.sizes.some((size: unknown) => !Number.isSafeInteger(size) || (size as number) <= 0)
+    || file.checksums.some((sum: unknown) => typeof sum !== "string" || !/^[A-Za-z0-9+/]{24}$/.test(sum))
+    || file.sizes.reduce((sum: number, size: number) => sum + size, 0) !== statSync(join(dir, payload)).size) throw new Error(`${kind} blockmap does not cover ${payload}.`)
 }
 
 /** Compares `gh release view --json assets` with the local files before the draft is published. */
