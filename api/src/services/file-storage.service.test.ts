@@ -44,6 +44,17 @@ describe("FileStorageService", () => {
     await expect(storage.remove("..")).rejects.toThrow("Invalid storage path.")
   })
 
+  it("works under a profile path with spaces, non-ASCII and URL syntax", async () => {
+    const root = join(dir, "Usuário Ç #1 %20", "uploads")
+    const profile = new FileStorageService(root)
+    const blob = await profile.save(Buffer.from("olá"), "Recibo de março.pdf")
+
+    expect(await readFile(join(root, blob.storagePath), "utf8")).toBe("olá")
+    expect(await text(profile.stream(blob.storagePath))).toBe("olá")
+    await profile.remove(blob.storagePath)
+    await expect(profile.size(blob.storagePath)).rejects.toThrow()
+  })
+
   it("rethrows unexpected errors when removing", async () => {
     const blob = await storage.save(Buffer.from("x"), "a.txt")
     // Removing the uploads directory itself as a file fails with EISDIR/EPERM, not ENOENT.

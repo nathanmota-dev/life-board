@@ -5,7 +5,16 @@ import * as schema from "./schema"
 
 export type Db = LibSQLDatabase<typeof schema>
 
-/** `url` is a libsql URL: `file:/path/to/life-board.db`, or `:memory:` for tests. */
+/**
+ * The libsql URL of a database file. libsql percent-decodes the path and treats
+ * `?` and `#` as URL syntax, so the whole path is encoded; it then opens exactly
+ * the decoded path, including Windows drive letters and backslashes.
+ */
+export function sqliteFileUrl(path: string) {
+  return `file:${encodeURIComponent(path)}`
+}
+
+/** `url` is a libsql URL: `sqliteFileUrl(path)`, or `:memory:` for tests. */
 export async function createDb(url: string, migrationsFolder: string) {
   const client = createClient({ url })
   await client.execute("PRAGMA foreign_keys = ON")

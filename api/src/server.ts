@@ -2,7 +2,7 @@ import { mkdir } from "node:fs/promises"
 import type { AddressInfo } from "node:net"
 import { join } from "node:path"
 import { buildApp, type AppOptions } from "./app"
-import { createDb } from "./db/client"
+import { createDb, sqliteFileUrl } from "./db/client"
 import { CryptoService } from "./services/crypto.service"
 
 export type ServerOptions = {
@@ -19,7 +19,7 @@ export type ServerOptions = {
 
 export async function startServer({ dataDir, migrationsFolder, secretKey, host = "127.0.0.1", port = 0, logger = true }: ServerOptions) {
   await mkdir(dataDir, { recursive: true })
-  const database = await createDb(`file:${join(dataDir, "life-board.db")}`, migrationsFolder)
+  const database = await createDb(sqliteFileUrl(join(dataDir, "life-board.db")), migrationsFolder)
   const app = await buildApp({ db: database.db, dataDir, crypto: new CryptoService(secretKey), logger })
   app.addHook("onClose", async () => database.close())
 

@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, readFile, writeFile, copyFile, rm } from "node:fs/promi
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it } from "vitest"
-import { createDb } from "./client"
+import { createDb, sqliteFileUrl } from "./client"
 import { migrationsFolder } from "../test/create-test-app"
 import { ProjectsService } from "../services/projects.service"
 
@@ -14,7 +14,7 @@ it("upgrades existing projects to per-column order with a status history", async
   journal.entries = journal.entries.slice(0, 4)
   await writeFile(join(previousFolder, "meta/_journal.json"), JSON.stringify(journal))
   for (const entry of journal.entries) await copyFile(join(migrationsFolder, `${entry.tag}.sql`), join(previousFolder, `${entry.tag}.sql`))
-  const url = `file:${join(dir, "legacy.db")}`
+  const url = sqliteFileUrl(join(dir, "legacy.db"))
   const legacy = await createDb(url, previousFolder)
   const recent = Date.now() - 60_000
   try {

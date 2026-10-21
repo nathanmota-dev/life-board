@@ -2,7 +2,7 @@ import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it } from "vitest"
-import { createDb } from "./client"
+import { createDb, sqliteFileUrl } from "./client"
 import { migrationsFolder } from "../test/create-test-app"
 import { TasksService } from "../services/tasks.service"
 
@@ -14,7 +14,7 @@ it("adds the focus day to existing tasks without picking them", async () => {
   journal.entries = journal.entries.filter((entry: { tag: string }) => entry.tag < "0006")
   await writeFile(join(previousFolder, "meta/_journal.json"), JSON.stringify(journal))
   for (const entry of journal.entries) await copyFile(join(migrationsFolder, `${entry.tag}.sql`), join(previousFolder, `${entry.tag}.sql`))
-  const url = `file:${join(dir, "legacy.db")}`
+  const url = sqliteFileUrl(join(dir, "legacy.db"))
   const legacy = await createDb(url, previousFolder)
   try {
     await legacy.db.run("INSERT INTO tasks (id, title, status, tags, linked_thought_ids, created_at, updated_at) VALUES ('report', 'Report', 'today', '[]', '[]', 1792195200000, 1792195200000)")

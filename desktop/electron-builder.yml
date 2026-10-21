@@ -7,6 +7,8 @@ files:
   - out/**/*
   - package.json
 asar: true
+# Fails the build when the libSQL binary doesn't match the target OS/CPU.
+afterPack: desktop/scripts/after-pack.cjs
 extraResources:
   - from: api/drizzle
     to: migrations
@@ -27,12 +29,23 @@ linux:
   description: >-
     Life Board organizes tasks, projects, calendar events, goals, habits and
     GitHub follow-ups in one desktop app. Data is stored locally.
+# Windows and macOS names carry the OS and architecture; see docs/multiplataforma.md.
 win:
   target: nsis
   icon: desktop/resources/icon.ico
+nsis:
+  artifactName: life-board-${version}-win-${arch}.${ext}
 mac:
-  target: dmg
+  # The updater installs from the ZIP; the DMG is for first installs.
+  target:
+    - dmg
+    - zip
   icon: desktop/resources/icon.icns
+  category: public.app-category.productivity
+  # electron-updater picks the Apple Silicon files by the "arm64" in their names.
+  artifactName: life-board-${version}-mac-${arch}.${ext}
+dmg:
+  artifactName: life-board-${version}-mac-${arch}.${ext}
 
 publish:
   provider: github

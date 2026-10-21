@@ -24,11 +24,17 @@ também usa essa opção. O DEB mantém o sandbox e instala um perfil do AppArmo
 npm run typecheck  # Verifica os tipos do desktop, frontend, backend e E2E
 npm run build      # Compila o app para out/
 npm start          # Abre a versão compilada (execute build antes)
-npm run package    # Gera um instalador para o sistema atual em release/
-npm run package:linux # Gera DEB e AppImage x64 e latest-linux.yml, sem publicar
+npm run package    # Gera um instalador para o sistema atual em release/, sem publicar
+npm run package:linux     # DEB e AppImage x64 e latest-linux.yml
+npm run package:win       # NSIS x64 e latest.yml
+npm run package:mac:x64   # DMG e ZIP Intel em release/mac-x64/
+npm run package:mac:arm64 # DMG e ZIP Apple Silicon em release/mac-arm64/
 ```
 
-O empacotamento usa DEB e AppImage no Linux, NSIS no Windows e DMG no macOS.
+O empacotamento usa DEB e AppImage no Linux, NSIS no Windows e DMG + ZIP no macOS.
+Os comandos específicos não publicam e precisam rodar no mesmo sistema e arquitetura
+do alvo. Veja [Empacotamento multiplataforma](multiplataforma.md) para os nomes dos
+arquivos, os feeds e o registro de validação.
 As releases públicas são geradas pelo workflow de tag; veja
 [Publicação de releases](releases.md).
 
@@ -72,5 +78,7 @@ em PRs para `main` e `release/**` e bloqueia o empacotamento de releases em caso
 [Testes E2E](e2e.md) para dependências Linux, comandos, matriz de cobertura e debug.
 
 `npm run package:linux` gera AppImage e DEB Linux com metadados de atualização.
+`desktop/scripts/packaging.test.ts` cobre a verificação do módulo nativo, os nomes
+dos pacotes e a escolha do ZIP do macOS pelo updater.
 `desktop/scripts/release-checks.test.ts` cobre a validação da tag, do feed, dos
 checksums e dos arquivos enviados usada pelo workflow de release. Para testar instalação real com duas versões e um feed local, consulte [Atualizações](atualizacoes.md).
