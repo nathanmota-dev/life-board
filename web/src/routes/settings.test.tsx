@@ -32,6 +32,16 @@ describe("SettingsPage", () => {
     expect(await screen.findByRole("heading", { name: "Updates" })).toBeInTheDocument()
   })
 
+  it("shows the uploads folder in the Files tab", async () => {
+    mockApi({
+      "GET /settings/files": () => ({ baseDir: null, uploadsDir: "/data/uploads", defaultUploadsDir: "/data/uploads" }),
+    })
+    renderWithProviders(<SettingsPage />)
+    fireEvent.mouseDown(await screen.findByRole("tab", { name: "Files" }))
+    expect(await screen.findByRole("heading", { name: "Upload folder" })).toBeInTheDocument()
+    expect(await screen.findByLabelText("Current folder")).toHaveTextContent("/data/uploads")
+  })
+
   it("switches the theme from the appearance panel", async () => {
     renderWithProviders(<SettingsPage />)
     const dark = await screen.findByRole("button", { name: /dark/i })

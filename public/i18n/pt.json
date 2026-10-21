@@ -130,6 +130,21 @@
         "installation": "O sistema não conseguiu instalar a atualização. O app não foi reiniciado. Verifique as dependências do sistema e tente novamente.",
         "storage": "Não foi possível salvar o histórico. Verifique as permissões e o espaço livre na pasta de dados do aplicativo."
       }
+    },
+    "files": {
+      "tab": "Arquivos",
+      "title": "Pasta de uploads",
+      "description": "As fotos e arquivos enviados no File Board são copiados para cá. Escolha outra pasta para guardá-los em outro lugar; o Life Board cria life-board-app/uploads dentro dela.",
+      "current": "Pasta atual",
+      "default": "Padrão",
+      "location": "Novo local",
+      "placeholder": "/caminho/da/pasta",
+      "choose": "Escolher pasta…",
+      "preview": "Os arquivos serão salvos em {{path}}",
+      "moveHint": "Ao salvar, todos os arquivos existentes são movidos para a nova pasta.",
+      "save": "Salvar e mover arquivos",
+      "moving": "Movendo arquivos…",
+      "reset": "Restaurar padrão"
     }
   },
   "common": {
@@ -794,7 +809,10 @@
     "request_failed": "A solicitação falhou. Tente novamente.",
     "network": "Não foi possível conectar ao serviço do app. Tente novamente.",
     "internal_error": "Algo deu errado.",
-    "focus_limit": "Um dia pode ter no máximo 3 tarefas de foco."
+    "focus_limit": "Um dia pode ter no máximo 3 tarefas de foco.",
+    "relative_dir": "Use o caminho completo da pasta, como /home/voce/Imagens.",
+    "invalid_dir": "Essa pasta não existe ou o Life Board não tem permissão para gravar nela.",
+    "move_failed": "Não foi possível mover os arquivos. Nada mudou, e a pasta atual continua em uso."
   },
   "counts": {
     "task_one": "{{count}} tarefa",

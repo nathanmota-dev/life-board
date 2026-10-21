@@ -130,6 +130,21 @@
         "installation": "The system could not install the update. The app has not restarted. Check system dependencies and try again.",
         "storage": "Update history could not be saved. Check the permissions and free space in your application data directory."
       }
+    },
+    "files": {
+      "tab": "Files",
+      "title": "Upload folder",
+      "description": "Photos and files you upload to File Board are copied here. Pick another folder to keep them somewhere else; Life Board creates life-board-app/uploads inside it.",
+      "current": "Current folder",
+      "default": "Default",
+      "location": "New location",
+      "placeholder": "/path/to/folder",
+      "choose": "Choose folder…",
+      "preview": "Files will be saved in {{path}}",
+      "moveHint": "Saving moves every existing file to the new folder.",
+      "save": "Save and move files",
+      "moving": "Moving files…",
+      "reset": "Restore default"
     }
   },
   "common": {
@@ -794,7 +809,10 @@
     "request_failed": "The request failed. Try again.",
     "network": "Could not connect to the app service. Try again.",
     "internal_error": "Something went wrong.",
-    "focus_limit": "A day can have at most 3 focus tasks."
+    "focus_limit": "A day can have at most 3 focus tasks.",
+    "relative_dir": "Use a full folder path, like /home/you/Pictures.",
+    "invalid_dir": "This folder doesn't exist or Life Board can't write to it.",
+    "move_failed": "Could not move the files. Nothing changed, and the current folder is still in use."
   },
   "counts": {
     "task_one": "{{count}} task",

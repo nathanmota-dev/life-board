@@ -78,6 +78,8 @@ instalada, mantendo os dados.
 
 Os dois formatos usam a mesma pasta de dados, `~/.config/life-board-app/`: banco
 `life-board.db`, uploads, chave criptografada `secret.key.enc` e preferências.
+Se você escolheu outra pasta para os uploads em Configurações > Arquivos, eles
+ficam em `<pasta>/life-board-app/uploads`. Inclua essa pasta nos seus backups.
 A chave só pode ser aberta pelo chaveiro da sessão em que foi criada. As migrations
 pendentes rodam na abertura de uma versão nova.
 
