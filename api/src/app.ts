@@ -12,6 +12,7 @@ import { healthController } from "./controllers/health.controller"
 import { linksController } from "./controllers/links.controller"
 import { moodController } from "./controllers/mood.controller"
 import { projectsController } from "./controllers/projects.controller"
+import { settingsController } from "./controllers/settings.controller"
 import { statsController } from "./controllers/stats.controller"
 import { tasksController } from "./controllers/tasks.controller"
 import { thoughtsController } from "./controllers/thoughts.controller"
@@ -23,6 +24,7 @@ import { CalendarService } from "./services/calendar.service"
 import type { CryptoService } from "./services/crypto.service"
 import { FileBoardsService } from "./services/file-boards.service"
 import { FileStorageService } from "./services/file-storage.service"
+import { FilesSettingsService } from "./services/files-settings.service"
 import { GithubClient } from "./services/github-client.service"
 import { GithubService } from "./services/github.service"
 import { GoalsService } from "./services/goals.service"
@@ -58,6 +60,8 @@ export async function buildApp({ db, dataDir, logger = false, githubClient, cryp
   await app.register(cors, { origin: ALLOWED_ORIGINS, methods: ALLOWED_METHODS, credentials: true })
   await app.register(multipart, { limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 } })
 
+  // Shared so a folder change in Settings > Files applies to the next upload.
+  const storage = new FileStorageService(join(dataDir, "uploads"))
   app.decorate("services", {
     tasks: new TasksService(db),
     thoughts: new ThoughtsService(db),
@@ -74,8 +78,10 @@ export async function buildApp({ db, dataDir, logger = false, githubClient, cryp
       crypto,
       app.log,
     ),
-    fileBoards: new FileBoardsService(db, new FileStorageService(join(dataDir, "uploads"))),
+    fileBoards: new FileBoardsService(db, storage),
+    filesSettings: new FilesSettingsService(db, storage, storage.root),
   })
+  await app.services.filesSettings.load()
   await app.services.fileBoards.purgeDeleted()
 
   // Public routes.
@@ -95,6 +101,7 @@ export async function buildApp({ db, dataDir, logger = false, githubClient, cryp
       statsController,
       githubController,
       fileBoardsController,
+      settingsController,
     ]) {
       await scope.register(controller, { prefix: "/api" })
     }
@@ -115,6 +122,7 @@ export type Services = {
   stats: StatsService
   github: GithubService
   fileBoards: FileBoardsService
+  filesSettings: FilesSettingsService
 }
 
 declare module "fastify" {

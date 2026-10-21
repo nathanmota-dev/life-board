@@ -55,8 +55,11 @@ export function createAppRouter(sidebarLayout: RouteComponent) {
     getParentRoute: () => sidebarRoute,
     path: "settings",
     component: SettingsPage,
-    validateSearch: (search: Record<string, unknown>): { tab?: "general" | "github" | "updates" } => ({
-      tab: search.tab === "updates" || search.tab === "github" || search.tab === "general" ? search.tab : undefined,
+    validateSearch: (search: Record<string, unknown>): { tab?: "general" | "files" | "github" | "updates" } => ({
+      tab:
+        search.tab === "updates" || search.tab === "github" || search.tab === "files" || search.tab === "general"
+          ? search.tab
+          : undefined,
     }),
     staticData: { titleKey: "navigation.settings" },
   })

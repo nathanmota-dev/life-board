@@ -17,6 +17,13 @@ O banco `life-board.db` e os uploads ficam na pasta de dados do Electron
 (`~/.config/life-board-app/` no Linux). As migrations rodam sempre que a API
 inicia.
 
+A pasta dos uploads pode ser trocada em Configurações > Arquivos
+(`/api/settings/files`). A escolha fica na tabela `app_settings`, e os arquivos
+vão para `<pasta>/life-board-app/uploads`. Ao trocar de pasta, a API copia todos
+os arquivos para a nova, salva a escolha e só então apaga os antigos. Se alguma
+cópia falhar, nada muda. Apagar um board ou um arquivo remove as linhas do banco
+e os arquivos do disco de vez.
+
 O token do GitHub é salvo cifrado com AES-256-GCM. A chave fica em
 `secret.key.enc`, protegida pelo chaveiro do sistema via `safeStorage` do
 Electron (libsecret/KWallet no Linux, Keychain no macOS, DPAPI no Windows). O

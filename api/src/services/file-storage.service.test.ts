@@ -30,6 +30,20 @@ describe("FileStorageService", () => {
     await expect(storage.remove(blob.storagePath)).resolves.toBeUndefined()
   })
 
+  it("switches roots and copies files to another storage", async () => {
+    const blob = await storage.save(Buffer.from("hello"), "a.txt")
+    const target = new FileStorageService(join(dir, "other", "uploads"))
+
+    await storage.copyTo(blob.storagePath, target)
+    expect(await readFile(join(dir, "other", "uploads", blob.storagePath), "utf8")).toBe("hello")
+    expect(await storage.size(blob.storagePath)).toBe(5)
+
+    storage.setRoot(join(dir, "other", "uploads"))
+    expect(storage.root).toBe(join(dir, "other", "uploads"))
+    const next = await storage.save(Buffer.from("x"), "b.txt")
+    expect(await readFile(join(dir, "other", "uploads", next.storagePath), "utf8")).toBe("x")
+  })
+
   it("sanitizes hostile names and falls back when nothing is left", async () => {
     const blob = await storage.save(Buffer.from("x"), "../../etc/passwd")
     expect(blob.storagePath).toMatch(/^\w{26}-passwd$/)

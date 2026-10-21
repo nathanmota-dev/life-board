@@ -5,6 +5,7 @@ import backendPath from "./backend-process?modulePath"
 import icon from "../resources/icon.png?asset"
 import { registerAppLifecycle, trackMainWindowClose } from "./app-lifecycle"
 import { registerCaptureShortcut, unregisterCaptureShortcut } from "./capture-window"
+import { registerDirectoryPicker } from "./directory-picker"
 import { registerLocale } from "./locale"
 import { isHiddenStartup } from "./login-item"
 import { registerNotifications } from "./notifications"
@@ -129,6 +130,7 @@ if (!app.requestSingleInstanceLock()) {
     registerNotifications(icon, showMainWindow)
     registerPomodoro(app.getPath("userData"))
     registerStartupSettings(app.getPath("userData"))
+    registerDirectoryPicker()
     registerAppLifecycle()
     registerUpdates()
     registerCaptureShortcut(icon)

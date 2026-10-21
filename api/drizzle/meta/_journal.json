@@ -57,6 +57,13 @@
       "when": 1792433915228,
       "tag": "0007_goal_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792618188882,
+      "tag": "0008_app_settings",
+      "breakpoints": true
     }
   ]
 }
