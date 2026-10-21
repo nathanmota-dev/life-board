@@ -35,6 +35,20 @@ describe("release validation", () => {
   ])("rejects invalid or incompatible metadata", (info) => {
     expect(() => selectUpdate({ ...legacy, ...info }, "deb", "x64")).toThrow("metadata")
   })
+
+  it.each([
+    ["nsis", "x64", "win-x64.exe"], ["mac", "x64", "mac-x64.zip"], ["mac", "arm64", "mac-arm64.zip"],
+  ] as const)("selects only %s %s from mixed OS/architecture metadata", (format, arch, name) => {
+    const files = ["mac-arm64.zip", "mac-x64.dmg", "x64.deb", "win-x64.exe", "mac-x64.zip", "win-arm64.exe"].map(file)
+    expect(selectUpdate({ ...legacy, version: "1.10.0", files }, format, arch).files).toEqual([file(name)])
+  })
+
+  it.each([
+    ["nsis", "x64", "win-arm64.exe"], ["nsis", "x64", "x64.exe"], ["nsis", "arm64", "win-x64.exe"],
+    ["mac", "x64", "mac-arm64.zip"], ["mac", "arm64", "mac-x64.zip"], ["mac", "x64", "mac-x64.dmg"],
+  ] as const)("rejects %s %s fallback to %s", (format, arch, name) => {
+    expect(() => selectUpdate({ ...legacy, version: "1.10.0", files: [file(name)] }, format, arch)).toThrow("metadata")
+  })
   it("restores persisted history and ignores corrupt state", () => {
     const path = directory()
     const store = updateStore(path)
