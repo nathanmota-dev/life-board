@@ -35,6 +35,11 @@ build; não edite nem substitua arquivos de uma release manualmente.
 
 ## O que o workflow faz
 
+Antes de **Check and package**, o job **E2E release gate** chama o workflow
+[Electron E2E](e2e.md) no mesmo commit/tag. Todos os fluxos automatizados precisam
+passar para liberar o empacotamento. A execução manual também exige esse gate.
+Relatórios e evidências de falhas ficam nos artefatos `electron-e2e` por 14 dias.
+
 O job **Check and package** roda no `ubuntu-24.04` com Node.js 24.18.0 (compatível
 com `engines.node`) e `npm ci` a partir do lockfile:
 
