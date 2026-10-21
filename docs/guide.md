@@ -12,7 +12,9 @@ repositório, salvo indicação em contrário.
 - [Backend](backend.md): API, módulos, banco de dados, migrations e credenciais.
 - [Desenvolvimento](desenvolvimento.md): ambiente local, comandos, build,
   empacotamento e testes.
-- [Instalação e atualização no Linux](instalacao-linux.md): instalação do AppImage,
-  integração com o menu e atualização manual.
-
-- [Atualizações do aplicativo](atualizacoes.md): cadência, consentimento, DEB/AppImage, contrato do feed e testes empacotados.
+- [Instalação e atualização no Linux](instalacao-linux.md): DEB e AppImage,
+  requisitos, migração do AppImage manual e build a partir do código.
+- [Atualizações do aplicativo](atualizacoes.md): cadência, consentimento, DEB/AppImage,
+  contrato do feed e testes empacotados.
+- [Publicação de releases](releases.md): workflow por tag, arquivos da release,
+  teste manual antes de publicar e política de novas execuções.

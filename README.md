@@ -24,28 +24,28 @@ personalizáveis. Seus dados ficam armazenados localmente no computador.
 
 ## Instalação
 
-Para executar a partir do código-fonte, você precisa de **Node.js 22.12 ou
-superior**, **npm** e **Git**:
+O Life Board é distribuído para **Linux x64** pelas
+[releases do GitHub](https://github.com/nathanmota-dev/life-board/releases/latest).
+Baixe o
+[`life-board_1.0.0_amd64.deb`](https://github.com/nathanmota-dev/life-board/releases/download/v1.0.0/life-board_1.0.0_amd64.deb)
+e instale com o APT, na pasta do download:
 
 ```bash
-git clone https://github.com/nathanmota-dev/life-board.git
-cd life-board
-npm ci
-npm run dev
+sudo apt install ./life-board_1.0.0_amd64.deb
 ```
 
-Para gerar um instalador, execute na pasta do projeto:
+Depois, abra **Life Board** pelo menu de aplicativos. Não é preciso instalar
+Node.js, npm ou Git. Novas versões aparecem em **Configurações → Atualizações**.
 
-```bash
-npm run package
-```
+O pacote foi testado no Ubuntu 22.04, 24.04 e 26.04 e no Debian 12 e 13. O app
+exige um chaveiro do sistema desbloqueado (GNOME Keyring ou KWallet) para proteger
+credenciais. Também há um
+[AppImage](https://github.com/nathanmota-dev/life-board/releases/download/v1.0.0/life-board-1.0.0-x86_64.AppImage),
+que dispensa instalação, mas requer FUSE. O DEB baixado não cadastra um repositório
+APT: `sudo apt install life-board`, pelo nome do pacote, não funciona.
 
-O pacote fica em `release/`, no formato do sistema em que foi gerado:
-**AppImage** no Linux, **NSIS** no Windows e **DMG** no macOS.
-
-No Linux, é necessário suporte a FUSE e um chaveiro do sistema compatível com
-libsecret ou KWallet. Veja o [guia de instalação e atualização no Linux](docs/instalacao-linux.md)
-para instalar o AppImage e adicionar o Life Board ao menu de aplicativos.
+Veja o [guia de instalação no Linux](docs/instalacao-linux.md) para o AppImage,
+a migração de uma instalação manual, atualizações e execução a partir do código.
 
 Os detalhes de arquitetura, frontend, backend e desenvolvimento estão na
 [documentação técnica](docs/guide.md).
