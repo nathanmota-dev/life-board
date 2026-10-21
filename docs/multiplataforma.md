@@ -59,21 +59,30 @@ arquivos. Por isso, só o nome arm64 contém `arm64`.
 
 Cada build Mac grava um `latest-mac.yml` com apenas o próprio ZIP. Os dois arquivos
 têm o mesmo nome, então ficam em pastas separadas e não podem ser enviados como
-estão. A release central deve publicar um único `latest-mac.yml` com:
+estão. A release central publica um único `latest-mac.yml`, montado por
+`release-checks.mts compose` (`mergeMacFeeds`) a partir dos dois feeds lidos como
+YAML, nunca concatenados:
 
-- `version` igual nos dois feeds;
-- `files` com as entradas `url`, `sha512` e `size` dos dois ZIPs, sem alterá-las;
+- cada feed de origem precisa listar só o ZIP da própria arquitetura;
+- `version` e os demais metadados precisam ser iguais nos dois feeds; qualquer
+  diferença falha em vez de descartar um valor;
+- `files` com as entradas dos dois ZIPs (x64 e depois arm64), sem alterá-las;
 - `path` e `sha512` do ZIP x64 (campos legados);
 - o `releaseDate` mais recente.
 
-`desktop/scripts/packaging.test.ts` aplica o filtro do `MacUpdater` instalado a esse
-feed combinado e confirma que cada arquitetura recebe o próprio ZIP.
+As strings são gravadas entre aspas, para o `js-yaml` do updater não converter
+`releaseDate` em data. `desktop/scripts/packaging.test.ts` aplica o filtro do
+`MacUpdater` instalado a esse feed, e `desktop/scripts/release-compose.test.ts` lê o
+feed gerado com o parser do `electron-updater` e confirma que cada arquitetura
+recebe o próprio ZIP. Um feed sem uma das arquiteturas ou com `path` de outro ZIP
+é recusado por `assets <pasta> all`.
 
 ## Contrato de workflows e artefatos
 
 `build-linux.yml` estabelece a interface para os workflows de Windows (#29) e
 macOS (#30). Cada sistema fará seu build de forma independente; não dependerá do
-smoke Linux nem usará APT fora do Linux. O fan-in multiplataforma é a tarefa #31.
+smoke Linux nem usará APT fora do Linux. O fan-in multiplataforma fica em
+`release.yml`; veja [Publicação de releases](releases.md).
 
 | Interface | Contrato comum |
 | --- | --- |
@@ -152,9 +161,12 @@ Mantenha um diretório e um artefato por alvo (`linux-x64`, `windows-x64`,
 `macos-x64`, `macos-arm64`). O nome do alvo Windows é `windows-x64`, enquanto seu
 `targetOs` no manifesto é `win32`; os alvos Mac usam `darwin`. Checksums e manifestos de arquiteturas diferentes
 nunca são sobrescritos em um download mesclado. Em particular, os feeds Mac com
-mesmo nome precisam continuar separados até a combinação explícita em #31.
+mesmo nome precisam continuar separados até a combinação explícita por `compose`.
 Rascunho, aprovação pelo ambiente `release` e publicação permanecem centralizados
 em `release.yml`, que revalida origem/arquivos antes de criar o rascunho e publicar.
+A release combinada usa ainda `compose <artefatos> <saída>`, `assets <pasta> all` e
+`uploaded <pasta> <assets.json> all`; veja
+[Comandos de verificação](releases.md#comandos-de-verificação).
 
 ### Build Windows x64
 
@@ -224,7 +236,8 @@ credenciais, inclusive quando selecionam uma tag. Não são distribuíveis como
 release de produção. O verificador recusa manifesto com `releaseTag` preenchido
 e `status: unsigned`.
 
-Para #31, a chamada é independente dos outros sistemas:
+Exemplo de chamada independente dos outros sistemas (o `release.yml` repassa os
+secrets apenas no modo release):
 
 ```yaml
 jobs:
@@ -352,13 +365,14 @@ signed, o Team ID tem 10 caracteres e `notarized` é true. O verificador recusa
 a evidência gerada no macOS; revalidá-lo no Linux não repete `codesign`.
 
 Depois dos dois jobs, o job **Verify macOS artifacts** (Ubuntu) baixa cada artefato
-em uma pasta separada, como fará #31, revalida ambos com
+em uma pasta separada, como faz o `release.yml`, revalida ambos com
 `release-checks.mts assets` e exige mesma versão, SHA fonte e estado de assinatura.
 Só então expõe os outputs. Os diagnósticos (`macos-<arquitetura>-diagnostics`:
 smoke, `codesign.txt`, resposta/log do `notarytool` e relatórios do
 electron-builder) são enviados também em falhas.
 
-Para #31, a chamada é independente dos outros sistemas:
+Exemplo de chamada independente dos outros sistemas (o `release.yml` repassa os
+secrets apenas no modo release):
 
 ```yaml
 jobs:
@@ -386,8 +400,8 @@ jobs:
 ```
 
 Os dois `latest-mac.yml` têm o mesmo nome e nunca podem ser baixados na mesma
-pasta. #31 deve combiná-los como descrito em [Feed do macOS](#feed-do-macos) e
-publicar só o feed combinado, com DMGs, ZIPs e blockmaps das duas arquiteturas.
+pasta. O `release.yml` os combina como descrito em [Feed do macOS](#feed-do-macos) e
+publica só o feed combinado, com DMGs, ZIPs e blockmaps das duas arquiteturas.
 O workflow não cria release, tag nem publica feed, e não consome a aprovação do
 ambiente `release`.
 

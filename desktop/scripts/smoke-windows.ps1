@@ -71,8 +71,17 @@ if ($AsDisposableUser) {
                 if ($owner -and $owner.ReturnValue -eq 0 -and $owner.Sid -eq $user.SID.Value) { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
             }
             if ($child) { $child.Dispose() }
-            $userProfileRecord = Get-CimInstance Win32_UserProfile | Where-Object SID -EQ $user.SID.Value
-            if ($userProfileRecord) { $userProfileRecord | Remove-CimInstance }
+            # The profile service can keep the hive loaded for a moment after its
+            # processes exit; a cleanup race must not fail a passed smoke.
+            for ($attempt = 1; $attempt -le 10; $attempt++) {
+                $userProfileRecord = Get-CimInstance Win32_UserProfile | Where-Object SID -EQ $user.SID.Value
+                if (!$userProfileRecord) { break }
+                try { $userProfileRecord | Remove-CimInstance -ErrorAction Stop; break }
+                catch {
+                    if ($attempt -eq 10) { Write-Warning "Could not remove the disposable profile: $_" }
+                    else { Start-Sleep -Seconds 3 }
+                }
+            }
             Remove-LocalUser -SID $user.SID
         }
         if (Test-Path $root) { Remove-Item -LiteralPath $root -Recurse -Force }
