@@ -96,9 +96,12 @@ $defaults = @{
     'Start Menu' = Join-Path $profilePath 'AppData/Roaming/Microsoft/Windows/Start Menu'
     'Programs' = Join-Path $profilePath 'AppData/Roaming/Microsoft/Windows/Start Menu/Programs'
 }
-New-Item -Path $shellFolders -Force | Out-Null
+# New-Item -Force would recreate an existing key and drop its values, and
+# Windows PowerShell 5.1 Get-ItemPropertyValue throws on a missing value.
+if (!(Test-Path -LiteralPath $shellFolders)) { New-Item -Path $shellFolders | Out-Null }
+$shellFoldersKey = Get-Item -LiteralPath $shellFolders
 foreach ($entry in $defaults.GetEnumerator()) {
-    if (!(Get-ItemPropertyValue -LiteralPath $shellFolders -Name $entry.Key -ErrorAction SilentlyContinue)) {
+    if ([string]::IsNullOrWhiteSpace($shellFoldersKey.GetValue($entry.Key))) {
         New-Item -ItemType Directory -Path $entry.Value -Force | Out-Null
         New-ItemProperty -LiteralPath $shellFolders -Name $entry.Key -Value $entry.Value -PropertyType ExpandString -Force | Out-Null
     }
