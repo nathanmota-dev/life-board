@@ -475,7 +475,8 @@ de `api/` usam uma pasta temporária com espaços, acentos, `#` e `%20`. Os uplo
 ## Integração com o sistema
 
 Revisão do código de `desktop/src/`. Windows e macOS ainda precisam ser validados
-nos sistemas reais (#32):
+nos sistemas reais; a situação de cada item está na
+[validação multiplataforma](validacao-multiplataforma.md#matriz-manual):
 
 - **Login:** Linux usa o arquivo de autostart; Windows registra executável e
   argumentos (`--hidden`); macOS usa o item de login e `wasOpenedAtLogin`. No macOS,
@@ -539,9 +540,15 @@ de cada workflow:
 ## Sistemas suportados
 
 Electron 44 requer Windows 10 ou superior e macOS 12 ou superior. No Linux, o DEB
-segue os requisitos de [Instalação no Linux](instalacao-linux.md).
+segue os requisitos de [Instalação no Linux](instalacao-linux.md). Os guias de
+[Windows](instalacao-windows.md) e [macOS](instalacao-macos.md) descrevem instalação,
+permissões, atualizações e recuperação.
 
 ## Registro de validação
+
+Este é o registro do contrato de empacotamento (#26). A validação integrada da
+série, com os runs nativos e os bloqueios, está em
+[Validação multiplataforma](validacao-multiplataforma.md).
 
 Em 2026-10-21, a partir do Linux x64 (Ubuntu, kernel 7.0), com electron-builder 26.15.3.
 "Nativo" é a execução no sistema e na arquitetura do alvo; "cruzado" é o build feito

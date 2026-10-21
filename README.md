@@ -47,5 +47,20 @@ APT: `sudo apt install life-board`, pelo nome do pacote, não funciona.
 Veja o [guia de instalação no Linux](docs/instalacao-linux.md) para o AppImage,
 a migração de uma instalação manual, atualizações e execução a partir do código.
 
+### Windows e macOS
+
+Windows x64 e macOS (Intel e Apple Silicon) chegam na primeira release
+multiplataforma; a 1.0.0 é só para Linux. Cada sistema terá seu pacote na mesma
+release:
+
+| Sistema | Arquivo | Guia |
+| --- | --- | --- |
+| Windows 10/11 x64 | `life-board-<versão>-win-x64.exe` | [Instalação no Windows](docs/instalacao-windows.md) |
+| macOS 12+ Apple Silicon | `life-board-<versão>-mac-arm64.dmg` | [Instalação no macOS](docs/instalacao-macos.md) |
+| macOS 12+ Intel | `life-board-<versão>-mac-x64.dmg` | [Instalação no macOS](docs/instalacao-macos.md) |
+
+Use só os pacotes assinados das releases. A situação dos testes em cada sistema
+está na [validação multiplataforma](docs/validacao-multiplataforma.md).
+
 Os detalhes de arquitetura, frontend, backend e desenvolvimento estão na
 [documentação técnica](docs/guide.md).

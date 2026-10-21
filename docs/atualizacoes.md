@@ -225,3 +225,5 @@ pomodoro em execução/pausado. Após a atualização, confira uma única instâ
 tarefa/upload, histórico diário, preferências, chaveiro e item de login.
 
 Resultados e limites desta implementação ficam em [validação](validacao-atualizacoes.md).
+A matriz integrada dos quatro alvos, com o que falta executar, está em
+[Validação multiplataforma](validacao-multiplataforma.md).
