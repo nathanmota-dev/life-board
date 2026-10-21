@@ -81,4 +81,14 @@ em PRs para `main` e `release/**` e bloqueia o empacotamento de releases em caso
 `desktop/scripts/packaging.test.ts` cobre a verificação do módulo nativo, os nomes
 dos pacotes e a escolha do ZIP do macOS pelo updater.
 `desktop/scripts/release-checks.test.ts` cobre a validação da tag, do feed, dos
-checksums e dos arquivos enviados usada pelo workflow de release. Para testar instalação real com duas versões e um feed local, consulte [Atualizações](atualizacoes.md).
+checksums, da proveniência de `build-info.json` e dos arquivos enviados usada pelos
+workflows de build/release. Para testar instalação real com duas versões e um feed
+local, consulte [Atualizações](atualizacoes.md).
+
+O workflow **Build Linux** pode ser executado em branches sem publicar. Ele mantém
+os gates E2E, unitários, cobertura, inspeção e instalação/smoke do DEB no
+`ubuntu-24.04` com Node.js 24.18.0. Veja
+[Build de branch](releases.md#build-de-branch-sem-publicação) para dispatch/download e
+[contrato de artefatos](multiplataforma.md#contrato-de-workflows-e-artefatos) para
+inputs, outputs, manifesto e verificações locais. O linter de workflows é
+`actionlint .github/workflows/*.yml`.
