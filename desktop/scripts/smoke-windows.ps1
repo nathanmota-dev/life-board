@@ -186,6 +186,13 @@ function Stop-OwnedApp {
         Stop-Process -Force -ErrorAction SilentlyContinue
     if ($appProcess) { $appProcess.WaitForExit(10000) | Out-Null }
 }
+function Close-OwnedApp {
+    # Quit like a user closing the window. Chromium writes the safeStorage key
+    # to Local State lazily, so a forced kill right after the first start can
+    # leave secret.key.enc undecryptable on the next start.
+    if (!$appProcess.CloseMainWindow() -or !$appProcess.WaitForExit(30000)) { throw 'Installed app did not quit after closing its window' }
+    Stop-OwnedApp
+}
 function Invoke-Installer([string]$Path, [string]$Arguments) {
     $process = Start-Process -FilePath $Path -ArgumentList $Arguments -PassThru
     $null = $process.Handle
@@ -239,7 +246,8 @@ function Start-OwnedApp {
         Start-Sleep -Milliseconds 250
     }
     if ($url) { throw "Installed backend is ready at $url but the main window did not appear within 60 seconds" }
-    throw 'Installed backend did not become ready within 60 seconds'
+    $appProcess.Refresh()
+    throw "Installed backend did not become ready within 60 seconds (window: '$($appProcess.MainWindowTitle)')"
 }
 
 try {
@@ -277,12 +285,12 @@ try {
         if ((Get-Item -LiteralPath (Join-Path $data $file)).Length -eq 0) { throw "Empty $file" }
     }
     $keyHash = (Get-FileHash -LiteralPath (Join-Path $data secret.key.enc)).Hash
-    Stop-OwnedApp
+    Close-OwnedApp
     # loadSecretKey must decrypt the existing DPAPI key on this second start.
     $url = Start-OwnedApp 2
     $saved = Invoke-RestMethod "$url/api/tasks/$($task.id)" -TimeoutSec 5
     if ($saved.title -ne 'Installed Windows smoke' -or (Get-FileHash -LiteralPath (Join-Path $data secret.key.enc)).Hash -ne $keyHash) { throw 'Database/DPAPI restart persistence failed' }
-    Stop-OwnedApp
+    Close-OwnedApp
     $status = if ($RequireSignature) { 'signed' } else { 'unsigned' }
     $publisher = if ($RequireSignature) { $PublisherName } else { $null }
     $signing = @{ schemaVersion = 1; status = $status; publisher = $publisher; thumbprint = $appSigner; installerSha256 = (Get-FileHash -Algorithm SHA256 $InstallerPath).Hash.ToLowerInvariant(); executableSha256 = (Get-FileHash -Algorithm SHA256 $exe).Hash.ToLowerInvariant() }
