@@ -118,19 +118,32 @@ Add-Type -Namespace LifeBoardSmoke -Name KnownFolders -MemberDefinition @'
 [DllImport("shell32.dll")]
 public static extern int SHGetKnownFolderPath([MarshalAs(UnmanagedType.LPStruct)] Guid id, uint flags, IntPtr token, out IntPtr path);
 '@
-function Get-KnownFolder([string]$Name, [Guid]$Id) {
+function Resolve-KnownFolder([Guid]$Id, [uint32]$Flags) {
     $pointer = [IntPtr]::Zero
-    # KF_FLAG_CREATE
-    $result = [LifeBoardSmoke.KnownFolders]::SHGetKnownFolderPath($Id, 0x8000, [IntPtr]::Zero, [ref]$pointer)
+    $result = [LifeBoardSmoke.KnownFolders]::SHGetKnownFolderPath($Id, $Flags, [IntPtr]::Zero, [ref]$pointer)
     try {
-        if ($result -ne 0) {
-            $raw = $shellFoldersKey.GetValue($Name, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
-            throw ("Cannot resolve {0}: HRESULT 0x{1:X8}; User Shell Folders value '{2}'; USERPROFILE '{3}'" -f $Name, $result, $raw, $env:USERPROFILE)
-        }
-        return [Runtime.InteropServices.Marshal]::PtrToStringUni($pointer)
+        $path = if ($result -eq 0) { [Runtime.InteropServices.Marshal]::PtrToStringUni($pointer) } else { $null }
+        return [pscustomobject]@{ Result = $result; Path = $path }
     } finally {
         if ($pointer -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::FreeCoTaskMem($pointer) }
     }
+}
+function Get-KnownFolder([string]$Name, [Guid]$Id) {
+    # Chromium resolves app data with default flags (no KF_FLAG_CREATE).
+    $folder = Resolve-KnownFolder $Id 0
+    if ($folder.Result -eq 0) { return $folder.Path }
+    $raw = $shellFoldersKey.GetValue($Name, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+    $expanded = [Environment]::ExpandEnvironmentVariables([string]$raw)
+    # KF_FLAG_CREATE and KF_FLAG_DONT_VERIFY separate ACL from shell failures.
+    foreach ($flags in @(0x8000, 0x4000)) {
+        $probe = Resolve-KnownFolder $Id $flags
+        Write-Host ('{0} flags 0x{1:X4}: HRESULT 0x{2:X8} {3}' -f $Name, $flags, $probe.Result, $probe.Path)
+    }
+    Write-Host "Session $([Diagnostics.Process]::GetCurrentProcess().SessionId); $expanded exists: $(Test-Path -LiteralPath $expanded)"
+    & icacls.exe $profilePath 2>&1 | Out-Host
+    if (Test-Path -LiteralPath $expanded) { & icacls.exe $expanded 2>&1 | Out-Host }
+    & whoami.exe /groups /fo list 2>&1 | Out-Host
+    throw ("Cannot resolve {0}: HRESULT 0x{1:X8}; User Shell Folders value '{2}'; USERPROFILE '{3}'" -f $Name, $folder.Result, $raw, $env:USERPROFILE)
 }
 $env:APPDATA = Get-KnownFolder 'AppData' '3EB685DB-65F9-4CF6-A03A-E3EF65729F3D'
 $env:LOCALAPPDATA = Get-KnownFolder 'Local AppData' 'F1B32785-6FBA-4FCF-9D55-7B8E7F157091'
