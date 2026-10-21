@@ -204,19 +204,33 @@ function Test-AuthenticodeSignature([string]$Path) {
     if ($publisher -cne $PublisherName) { throw "Unexpected publisher on $Path" }
     return $signature.SignerCertificate.Thumbprint
 }
+function Find-OwnedApiUrl {
+    # On Windows the utilityProcess backend's inherited stdout does not reach
+    # the GUI executable's redirected log, so find the port it listens on.
+    $ids = @(Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($install + '\', [StringComparison]::OrdinalIgnoreCase) } | ForEach-Object { $_.Id })
+    $listeners = @(Get-NetTCPConnection -State Listen -LocalAddress 127.0.0.1 -ErrorAction SilentlyContinue | Where-Object { $ids -contains $_.OwningProcess })
+    foreach ($listener in $listeners) {
+        $candidate = "http://127.0.0.1:$($listener.LocalPort)"
+        try {
+            if ((Invoke-RestMethod "$candidate/api/health" -TimeoutSec 2).service -eq 'life-board-api') { return $candidate }
+        } catch { Write-Verbose "Not the API: $candidate" }
+    }
+    return $null
+}
 function Start-OwnedApp {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Internal smoke helper launches only the test installation.')]
     param([int]$Attempt)
     $stdout = Join-Path $EvidenceDirectory "app-$Attempt.stdout.log"
     $stderr = Join-Path $EvidenceDirectory "app-$Attempt.stderr.log"
     $script:appProcess = Start-Process -FilePath $exe -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+    $url = $null
     $deadline = [DateTime]::UtcNow.AddSeconds(60)
     while ([DateTime]::UtcNow -lt $deadline) {
         if ($appProcess.HasExited) { throw "Installed app exited before readiness: $($appProcess.ExitCode)" }
         $logs = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
         if ($logs -match 'Unable to load preload|ERR_FILE_NOT_FOUND') { throw 'Installed renderer/preload failed to load' }
-        if ($logs -match 'API ouvindo em (http://127\.0\.0\.1:\d+)') {
-            $url = $Matches[1]
+        if (!$url) { $url = if ($logs -match 'API ouvindo em (http://127\.0\.0\.1:\d+)') { $Matches[1] } else { Find-OwnedApiUrl } }
+        if ($url) {
             $health = Invoke-RestMethod "$url/api/health" -TimeoutSec 5
             if ($health.ok -ne $true -or $health.service -ne 'life-board-api') { throw 'Unexpected backend health response' }
             $appProcess.Refresh()
@@ -224,6 +238,7 @@ function Start-OwnedApp {
         }
         Start-Sleep -Milliseconds 250
     }
+    if ($url) { throw "Installed backend is ready at $url but the main window did not appear within 60 seconds" }
     throw 'Installed backend did not become ready within 60 seconds'
 }
 
