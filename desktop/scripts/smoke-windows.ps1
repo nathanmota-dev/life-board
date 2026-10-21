@@ -106,8 +106,27 @@ foreach ($entry in $defaults.GetEnumerator()) {
         New-ItemProperty -LiteralPath $shellFolders -Name $entry.Key -Value $entry.Value -PropertyType ExpandString -Force | Out-Null
     }
 }
-$env:APPDATA = [Environment]::GetFolderPath('ApplicationData', 'Create')
-$env:LOCALAPPDATA = [Environment]::GetFolderPath('LocalApplicationData', 'Create')
+# Resolve folders like Electron does; .NET GetFolderPath hides the HRESULT.
+Add-Type -Namespace LifeBoardSmoke -Name KnownFolders -MemberDefinition @'
+[DllImport("shell32.dll")]
+public static extern int SHGetKnownFolderPath([MarshalAs(UnmanagedType.LPStruct)] Guid id, uint flags, IntPtr token, out IntPtr path);
+'@
+function Get-KnownFolder([string]$Name, [Guid]$Id) {
+    $pointer = [IntPtr]::Zero
+    # KF_FLAG_CREATE
+    $result = [LifeBoardSmoke.KnownFolders]::SHGetKnownFolderPath($Id, 0x8000, [IntPtr]::Zero, [ref]$pointer)
+    try {
+        if ($result -ne 0) {
+            $raw = $shellFoldersKey.GetValue($Name, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+            throw ("Cannot resolve {0}: HRESULT 0x{1:X8}; User Shell Folders value '{2}'; USERPROFILE '{3}'" -f $Name, $result, $raw, $env:USERPROFILE)
+        }
+        return [Runtime.InteropServices.Marshal]::PtrToStringUni($pointer)
+    } finally {
+        if ($pointer -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::FreeCoTaskMem($pointer) }
+    }
+}
+$env:APPDATA = Get-KnownFolder 'AppData' '3EB685DB-65F9-4CF6-A03A-E3EF65729F3D'
+$env:LOCALAPPDATA = Get-KnownFolder 'Local AppData' 'F1B32785-6FBA-4FCF-9D55-7B8E7F157091'
 Write-Output "Standard user: $($identity.Name); profile: $profilePath; AppData: $env:APPDATA; LocalAppData: $env:LOCALAPPDATA"
 if ([string]::IsNullOrWhiteSpace($env:APPDATA) -or [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA) -or
     !$env:APPDATA.StartsWith($profilePath + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Windows did not initialize the standard user shell folders.' }
