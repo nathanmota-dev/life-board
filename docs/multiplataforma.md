@@ -69,6 +69,92 @@ estão. A release central deve publicar um único `latest-mac.yml` com:
 `desktop/scripts/packaging.test.ts` aplica o filtro do `MacUpdater` instalado a esse
 feed combinado e confirma que cada arquitetura recebe o próprio ZIP.
 
+## Contrato de workflows e artefatos
+
+`build-linux.yml` estabelece a interface para os workflows de Windows (#29) e
+macOS (#30). Cada sistema fará seu build de forma independente; não dependerá do
+smoke Linux nem usará APT fora do Linux. O fan-in multiplataforma é a tarefa #31.
+
+| Interface | Contrato comum |
+| --- | --- |
+| Eventos | `workflow_call` e `workflow_dispatch` (build-only) |
+| Input `release` | Booleano opcional, padrão `false`; `true` exige tag estável igual à versão e notas não vazias. Dispatch ignora modo release. |
+| Checkout | Commit do caller/dispatch, sem input de ref alternativo; `HEAD` deve ser igual a `GITHUB_SHA` |
+| Output `artifact-name` | Nome determinístico `<sistema>-<arquitetura>`; Linux: `linux-x64` |
+| Output `version` | Versão real do `package.json` do checkout |
+| Output `source-sha` | SHA completo do commit efetivamente compilado |
+| Output `target` | Alvo do artefato; Linux: `linux-x64` |
+| Output `release-tag` | Tag validada ou string vazia em build-only |
+| Permissão | `contents: read`; sem publicação, tags ou uploads de GitHub Release |
+| Retenção | 14 dias, com `if-no-files-found: error`; upload só após todos os gates |
+
+Exemplo de chamada Linux (o modo release só é apropriado em push de tag):
+
+```yaml
+jobs:
+  linux:
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      release: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+  consume:
+    needs: linux
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.linux.outputs.artifact-name }}
+          path: artifacts/linux-x64
+```
+
+Cada artefato contém seus instaladores, feed, blockmaps exigidos pelo updater,
+`SHA256SUMS.txt` e **`build-info.json`**, todos na raiz. O Linux inclui DEB,
+AppImage (blockmap embutido), `latest-linux.yml` e os dois manifestos. Não inclui
+`linux-unpacked/` nem os relatórios internos do electron-builder.
+
+Os checksums usam linhas `sha256  nome`, cobrindo exatamente todos os arquivos
+entregues exceto o próprio `SHA256SUMS.txt`, inclusive `build-info.json`. O manifesto
+JSON tem exatamente este esquema (versão de exemplo; não exige bump):
+
+```json
+{
+  "schemaVersion": 1,
+  "sourceSha": "0123456789abcdef0123456789abcdef01234567",
+  "releaseTag": null,
+  "version": "1.0.0",
+  "targetOs": "linux",
+  "architecture": "x64"
+}
+```
+
+`targetOs` usa os nomes do Node (`linux`, `win32`, `darwin`), `architecture` é `x64`
+ou `arm64`, e `releaseTag` é `null` em build-only ou `vX.Y.Z` no modo release.
+O helper gera o SHA a partir do Git e o compara com `GITHUB_SHA`, quando definido.
+A validação compara o manifesto com a versão e o commit do checkout e com
+`RELEASE_TAG` (padrão vazio/null); não basta confiar no nome do arquivo ou em um
+checksum válido de outro build. Feed e pacotes também têm tamanho e SHA-512
+conferidos antes dos SHA-256.
+
+A interface compartilhada é:
+
+```bash
+node desktop/scripts/release-checks.mts build-info <diretório> <alvo>
+node desktop/scripts/release-checks.mts assets <diretório> <alvo>
+node desktop/scripts/release-checks.mts uploaded <diretório> <assets.json> <alvo>
+```
+
+Nesta etapa só `linux-x64` é implementado; alvos desconhecidos falham. #29/#30
+estenderão essa interface. A chamada antiga `assets <diretório>` continua aceitando
+um build Linux sem `build-info.json`; quando o manifesto existe, é validado e
+precisa constar nos checksums mesmo na chamada antiga. O alvo explícito sempre
+exige o manifesto. O mesmo vale para a chamada antiga `uploaded`.
+
+Mantenha um diretório e um artefato por alvo (`linux-x64`, `win32-x64`,
+`darwin-x64`, `darwin-arm64`). Checksums e manifestos de arquiteturas diferentes
+nunca são sobrescritos em um download mesclado. Em particular, os feeds Mac com
+mesmo nome precisam continuar separados até a combinação explícita em #31.
+Rascunho, aprovação pelo ambiente `release` e publicação permanecem centralizados
+em `release.yml`, que revalida origem/arquivos antes de criar o rascunho e publicar.
+
 ## Caminhos e dados do usuário
 
 O perfil continua em `app.getPath("userData")`, com o nome `life-board-app`:

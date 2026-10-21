@@ -2,15 +2,17 @@
 
 [← Guia da documentação](guide.md)
 
-As releases Linux x64 são geradas por `.github/workflows/release.yml` a partir de
-uma tag `vMAJOR.MINOR.PATCH`. Cada release pública contém exatamente:
+As releases Linux x64 são orquestradas por `.github/workflows/release.yml` a partir
+de uma tag `vMAJOR.MINOR.PATCH`. O build é feito pelo workflow reutilizável
+`.github/workflows/build-linux.yml`. Cada release pública contém exatamente:
 
 | Arquivo | Uso |
 | --- | --- |
 | `life-board_<versão>_amd64.deb` | Instalação com `sudo apt install ./…` e atualização de instalações DEB |
 | `life-board-<versão>-x86_64.AppImage` | Uso sem instalação e atualização de instalações AppImage (blockmap embutido) |
 | `latest-linux.yml` | Feed do `electron-updater`: versão, nomes, tamanhos e SHA-512 dos dois pacotes |
-| `SHA256SUMS.txt` | SHA-256 dos dois pacotes e do feed, para conferência manual com `sha256sum -c` |
+| `build-info.json` | Commit, versão, sistema, arquitetura e tag (ou `null` em build sem publicação) |
+| `SHA256SUMS.txt` | SHA-256 dos dois pacotes, do feed e de `build-info.json`; confira com `sha256sum -c` |
 
 O app instalado lê `latest-linux.yml` da release marcada como mais recente em
 `nathanmota-dev/life-board` (provedor `github`, canal `latest`) e escolhe somente
@@ -35,33 +37,39 @@ build; não edite nem substitua arquivos de uma release manualmente.
 
 ## O que o workflow faz
 
-Antes de **Check and package**, o job **E2E release gate** chama o workflow
-[Electron E2E](e2e.md) no mesmo commit/tag. Todos os fluxos automatizados precisam
-passar para liberar o empacotamento. A execução manual também exige esse gate.
-Relatórios e evidências de falhas ficam nos artefatos `electron-e2e` por 14 dias.
+O job **Check and package Linux** chama `build-linux.yml` no mesmo commit/tag.
+O filho chama primeiro o [Electron E2E](e2e.md) como **E2E build gate** e exige
+sucesso antes de empacotar. Esse gate também se aplica à execução manual do filho.
+Relatórios e evidências de falhas ficam no artefato `electron-e2e` por 14 dias.
 
-O job **Check and package** roda no `ubuntu-24.04` com Node.js 24.18.0 (compatível
-com `engines.node`) e `npm ci` a partir do lockfile:
+O job **Check and package Linux x64** mantém `ubuntu-24.04`, Node.js 24.18.0
+(verificados em execução) e `npm ci` a partir do lockfile:
 
-1. Rejeita a tag se não for `vX.Y.Z` estável (sem pré-release ou metadados de build)
-   ou se for diferente da versão do `package.json`. Exige as notas da versão.
+1. Em chamadas com `release: true`, exige uma referência de tag `vX.Y.Z` estável,
+   igual à versão do `package.json`, e notas não vazias. O orquestrador só ativa
+   esse modo em eventos de push de tags; dispatch manual sempre usa build-only.
 2. Roda `npm run typecheck`, `npm test` e `npm run test:coverage` (API ≥ 80%).
 3. Gera DEB, AppImage e `latest-linux.yml` com `npm run package:linux`
-   (`--publish never`: o electron-builder nunca publica sozinho) e escreve `SHA256SUMS.txt`.
-4. `node desktop/scripts/release-checks.mts assets release` confere que o feed
-   anuncia a versão da tag, lista exatamente os dois pacotes, que tamanhos e SHA-512
-   batem com os arquivos e que os checksums cobrem todos os arquivos.
+   (`--publish never`), grava `build-info.json` a partir de `git rev-parse HEAD`
+   (exigindo igualdade com `GITHUB_SHA`) e escreve `SHA256SUMS.txt`.
+4. `node desktop/scripts/release-checks.mts assets release linux-x64` confere
+   commit, versão, alvo e tag, os nomes exatos do feed, os tamanhos e SHA-512
+   dos pacotes e os SHA-256 dos quatro arquivos. Manifesto malformado, origem
+   divergente, arquivo ausente/corrompido ou checksum duplicado faz o build falhar.
 5. Inspeciona o DEB com `dpkg-deb` (pacote `life-board`, versão, `amd64`, app,
-   `app.asar`, migrations, `app-update.yml`, atalho e ícone), instala com
-   `apt-get install ./…`, valida o atalho e roda `desktop/scripts/smoke-deb.sh`:
-   abre o app instalado sem interface gráfica, com um GNOME Keyring desbloqueado,
-   e confere a API, o banco criado pelas migrations e a chave no chaveiro.
-6. Guarda os quatro arquivos como artefato `linux-x64` da execução.
+   `app.asar`, migrations, `app-update.yml`, `package-type`, atalho e ícone), instala
+   com `apt-get install ./…`, valida o atalho e roda `desktop/scripts/smoke-deb.sh`:
+   abre o app instalado com GNOME Keyring desbloqueado e confere API, banco e
+   chave criptografada. Em falhas, exibe os logs do app/backend.
+6. Só depois de todos os gates envia os cinco arquivos como artefato `linux-x64`,
+   com `if-no-files-found: error` e retenção de 14 dias. O AppImage contém seu
+   blockmap; não há blockmap externo para Linux.
 
 O job **Stage draft release** cria uma release em rascunho para a tag, com as notas
-da versão, envia os quatro arquivos e confere que a lista e os tamanhos enviados
-são exatamente os do build. Rascunhos não são públicos, então o feed estável
-continua apontando para a versão anterior.
+da versão, valida novamente o artefato baixado contra o commit/tag do checkout,
+envia os cinco arquivos e confere que a lista e os tamanhos enviados são exatamente
+os do build. Esse job depende do sucesso de todo o workflow Linux. Rascunhos não
+são públicos, então o feed estável continua apontando para a versão anterior.
 
 O job **Publish after smoke-test approval** usa o ambiente `release`. Configure em
 **Settings → Environments → release** a aprovação obrigatória pelo mantenedor.
@@ -70,8 +78,41 @@ aprovação, o job confere o rascunho de novo, publica como release mais recente
 baixa cada arquivo e `releases/latest/download/latest-linux.yml` sem autenticação,
 comparando byte a byte com o build.
 
-Uma execução manual (**Run workflow**) roda somente o primeiro job: verificações,
-empacotamento e artefatos, sem criar release. Use-a para testar o processo.
+Uma execução manual (**Run workflow**) do orquestrador ou de **Build Linux** roda
+E2E, verificações, empacotamento e artefatos, sem criar tags, rascunhos ou releases,
+inclusive quando o dispatch seleciona uma tag. O filho tem somente `contents: read`,
+não recebe credenciais de publicação e não cria/envia assets de GitHub Releases.
+O feed gerado fica apenas no artefato da execução.
+
+## Build de branch sem publicação
+
+O contrato de inputs/outputs e do manifesto está em
+[Workflows e artefatos](multiplataforma.md#contrato-de-workflows-e-artefatos).
+Para validar uma branch sem mudar a versão ou criar uma tag:
+
+```bash
+gh workflow run build-linux.yml --ref <branch>
+gh run list --workflow build-linux.yml --branch <branch>
+gh run view <run-id> --log
+# Escolha um diretório vazio; não misture plataformas ou execuções.
+gh run download <run-id> --name linux-x64 --dir /tmp/life-board-linux-<run-id>
+# No checkout do mesmo commit, com npm ci já executado:
+node desktop/scripts/release-checks.mts assets /tmp/life-board-linux-<run-id> linux-x64
+```
+
+`build-info.json.sourceSha` deve ser igual ao `headSha` da execução e ao commit
+selecionado, `releaseTag` deve ser `null`, e `gh release list` deve continuar sem
+novo rascunho/release. `assets` compara o manifesto com o checkout local, não usa
+o SHA do próprio manifesto como origem esperada. `RELEASE_TAG` vazio é o padrão;
+para conferir um artefato de release use `RELEASE_TAG=vX.Y.Z` no checkout da tag.
+
+O [GitHub exige](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)
+que um workflow com dispatch esteja registrado na branch padrão.
+Antes da primeira integração de `build-linux.yml`, use o orquestrador já registrado:
+`gh workflow run release.yml --ref <branch>`. Ele chama o filho da mesma branch em
+modo build-only. Depois de integrado, o dispatch direto fica disponível.
+Valide ambos os YAMLs com `actionlint .github/workflows/*.yml` (inclui a resolução
+das chamadas locais); não é necessário produzir uma tag de teste.
 
 ## Teste manual antes de aprovar
 
