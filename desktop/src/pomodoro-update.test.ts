@@ -30,4 +30,17 @@ describe("pomodoro update restart", () => {
     pomodoro.registerPomodoro(directory)
     expect(pomodoro.getPomodoroState().status).toBe("idle")
   })
+
+  it("discards a failed installation snapshot before an ordinary launch", async () => {
+    let pomodoro = await import("./pomodoro")
+    pomodoro.registerPomodoro(directory)
+    pomodoro.dispatchPomodoro({ type: "start" })
+    pomodoro.preservePomodoroForUpdate()
+    pomodoro.cancelPomodoroUpdate()
+    vi.clearAllTimers()
+    vi.resetModules()
+    pomodoro = await import("./pomodoro")
+    pomodoro.registerPomodoro(directory)
+    expect(pomodoro.getPomodoroState().status).toBe("idle")
+  })
 })

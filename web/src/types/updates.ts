@@ -4,7 +4,7 @@ export type UpdateRelease = { version: string; releaseDate: string | null; notes
 export type UpdateState = {
   status: UpdateStatus
   installedVersion: string
-  format: "deb" | "AppImage" | null
+  format: "deb" | "AppImage" | "nsis" | "mac" | null
   lastAttempt: number | null
   lastSuccess: number | null
   release: UpdateRelease | null
