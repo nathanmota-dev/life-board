@@ -82,16 +82,46 @@ if ($AsDisposableUser) {
 
 if ($isAdmin) { throw 'Install/launch must run as a standard user, not an administrator.' }
 if ($RequireSignature -and [string]::IsNullOrWhiteSpace($PublisherName)) { throw 'A production publisher is required.' }
-$profilePath = [Environment]::GetFolderPath('UserProfile')
+$profilePath = (Get-ItemProperty -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$($identity.User.Value)").ProfileImagePath
 if ([string]::IsNullOrWhiteSpace($profilePath) -or !$profilePath.Contains(' ')) { throw 'Smoke requires a real user profile with spaces.' }
-$env:USERPROFILE = $profilePath
-# Start-Process -Credential inherits runneradmin's environment; rebase the
-# per-user variables (TEMP is also used by Add-Type) onto this profile.
-$env:HOMEDRIVE = Split-Path -Qualifier $profilePath
-$env:HOMEPATH = $profilePath.Substring($env:HOMEDRIVE.Length)
-$env:TEMP = Join-Path $profilePath 'AppData\Local\Temp'
-$env:TMP = $env:TEMP
+$powershell = Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe'
+# Add-Type compiles under TEMP, which must belong to this account.
+$env:TEMP = $env:TMP = Join-Path $profilePath 'AppData\Local\Temp'
 New-Item -ItemType Directory -Force -Path $env:TEMP | Out-Null
+Add-Type -Namespace LifeBoardSmoke -Name Native -MemberDefinition @'
+[DllImport("userenv.dll", SetLastError = true)]
+public static extern bool CreateEnvironmentBlock(out IntPtr environment, IntPtr token, bool inherit);
+[DllImport("userenv.dll", SetLastError = true)]
+public static extern bool DestroyEnvironmentBlock(IntPtr environment);
+[DllImport("shell32.dll")]
+public static extern int SHGetKnownFolderPath([MarshalAs(UnmanagedType.LPStruct)] Guid id, uint flags, IntPtr token, out IntPtr path);
+'@
+# Start-Process -Credential hands this process runneradmin's environment and
+# the shell resolves known folders (AppData) from it. Build the account's own
+# logon environment and rerun the smoke in a process that starts with it.
+if ($env:LIFE_BOARD_SMOKE_LOGON_ENVIRONMENT -ne '1') {
+    $block = [IntPtr]::Zero
+    if (![LifeBoardSmoke.Native]::CreateEnvironmentBlock([ref]$block, $identity.Token, $false)) { throw [ComponentModel.Win32Exception]::new() }
+    $logonEnvironment = @{}
+    try {
+        $cursor = $block
+        while ($entry = [Runtime.InteropServices.Marshal]::PtrToStringUni($cursor)) {
+            $separator = $entry.IndexOf('=', 1)
+            if ($separator -gt 0) { $logonEnvironment[$entry.Substring(0, $separator)] = $entry.Substring($separator + 1) }
+            $cursor = [IntPtr]::Add($cursor, ($entry.Length + 1) * 2)
+        }
+    } finally { [void][LifeBoardSmoke.Native]::DestroyEnvironmentBlock($block) }
+    foreach ($name in @([Environment]::GetEnvironmentVariables().Keys)) {
+        if (!$logonEnvironment.ContainsKey($name)) { [Environment]::SetEnvironmentVariable($name, $null) }
+    }
+    foreach ($variable in $logonEnvironment.GetEnumerator()) { [Environment]::SetEnvironmentVariable($variable.Key, $variable.Value) }
+    $env:LIFE_BOARD_SMOKE_LOGON_ENVIRONMENT = '1'
+    $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-InstallerPath', $InstallerPath, '-Version', $Version, '-EvidenceDirectory', $EvidenceDirectory)
+    if ($RequireSignature) { $arguments += @('-RequireSignature', '-PublisherName', $PublisherName) }
+    & $powershell @arguments
+    exit $LASTEXITCODE
+}
+if ($env:USERPROFILE -ne $profilePath) { throw "Logon environment belongs to another profile: $env:USERPROFILE" }
 # Secondary logon loads the new user's hive but does not run Explorer's first
 # logon initialization. Provision that account's default shell folders before
 # NSIS/Electron query them; do not inherit runneradmin's AppData locations.
@@ -114,13 +144,9 @@ foreach ($entry in $defaults.GetEnumerator()) {
     }
 }
 # Resolve folders like Electron does; .NET GetFolderPath hides the HRESULT.
-Add-Type -Namespace LifeBoardSmoke -Name KnownFolders -MemberDefinition @'
-[DllImport("shell32.dll")]
-public static extern int SHGetKnownFolderPath([MarshalAs(UnmanagedType.LPStruct)] Guid id, uint flags, IntPtr token, out IntPtr path);
-'@
 function Resolve-KnownFolder([Guid]$Id, [uint32]$Flags) {
     $pointer = [IntPtr]::Zero
-    $result = [LifeBoardSmoke.KnownFolders]::SHGetKnownFolderPath($Id, $Flags, [IntPtr]::Zero, [ref]$pointer)
+    $result = [LifeBoardSmoke.Native]::SHGetKnownFolderPath($Id, $Flags, [IntPtr]::Zero, [ref]$pointer)
     try {
         $path = if ($result -eq 0) { [Runtime.InteropServices.Marshal]::PtrToStringUni($pointer) } else { $null }
         return [pscustomobject]@{ Result = $result; Path = $path }
@@ -133,17 +159,9 @@ function Get-KnownFolder([string]$Name, [Guid]$Id) {
     $folder = Resolve-KnownFolder $Id 0
     if ($folder.Result -eq 0) { return $folder.Path }
     $raw = $shellFoldersKey.GetValue($Name, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
-    $expanded = [Environment]::ExpandEnvironmentVariables([string]$raw)
-    # KF_FLAG_CREATE and KF_FLAG_DONT_VERIFY separate ACL from shell failures.
-    foreach ($flags in @(0x8000, 0x4000)) {
-        $probe = Resolve-KnownFolder $Id $flags
-        Write-Host ('{0} flags 0x{1:X4}: HRESULT 0x{2:X8} {3}' -f $Name, $flags, $probe.Result, $probe.Path)
-    }
-    Write-Host "Session $([Diagnostics.Process]::GetCurrentProcess().SessionId); $expanded exists: $(Test-Path -LiteralPath $expanded)"
-    & icacls.exe $profilePath 2>&1 | Out-Host
-    if (Test-Path -LiteralPath $expanded) { & icacls.exe $expanded 2>&1 | Out-Host }
-    & whoami.exe /groups /fo list 2>&1 | Out-Host
-    throw ("Cannot resolve {0}: HRESULT 0x{1:X8}; User Shell Folders value '{2}'; USERPROFILE '{3}'" -f $Name, $folder.Result, $raw, $env:USERPROFILE)
+    # KF_FLAG_DONT_VERIFY shows which profile the shell expanded the value against.
+    $unverified = Resolve-KnownFolder $Id 0x4000
+    throw ("Cannot resolve {0}: HRESULT 0x{1:X8}; User Shell Folders value '{2}'; unverified path '{3}'" -f $Name, $folder.Result, $raw, $unverified.Path)
 }
 $env:APPDATA = Get-KnownFolder 'AppData' '3EB685DB-65F9-4CF6-A03A-E3EF65729F3D'
 $env:LOCALAPPDATA = Get-KnownFolder 'Local AppData' 'F1B32785-6FBA-4FCF-9D55-7B8E7F157091'
