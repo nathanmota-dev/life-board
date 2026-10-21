@@ -47,8 +47,15 @@ mac:
   category: public.app-category.productivity
   # electron-updater picks the Apple Silicon files by the "arm64" in their names.
   artifactName: life-board-${version}-mac-${arch}.${ext}
+  # Developer ID builds need the hardened runtime. Helpers get the same minimal
+  # entitlements; build-only workflow runs override both with the ad-hoc file.
+  hardenedRuntime: true
+  entitlements: desktop/resources/entitlements.mac.plist
+  entitlementsInherit: desktop/resources/entitlements.mac.plist
 dmg:
   artifactName: life-board-${version}-mac-${arch}.${ext}
+  # Only the ZIP goes in latest-mac.yml, so no DMG blockmap is produced.
+  writeUpdateInfo: false
 
 publish:
   provider: github

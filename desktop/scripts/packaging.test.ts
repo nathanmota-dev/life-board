@@ -128,6 +128,20 @@ describe("package contract", () => {
     ])
   })
 
+  it("signs Mac builds with the hardened runtime and only the JIT exception", () => {
+    const keys = (file: string) => [...readFileSync(file, "utf8").matchAll(/<key>([^<]+)<\/key>/g)].map((match) => match[1])
+    expect(config.mac).toMatchObject({
+      hardenedRuntime: true,
+      entitlements: "desktop/resources/entitlements.mac.plist",
+      entitlementsInherit: "desktop/resources/entitlements.mac.plist",
+    })
+    expect(keys(config.mac.entitlements)).toEqual(["com.apple.security.cs.allow-jit"])
+    // Ad-hoc code has no Team ID, so only build-only packages relax library validation.
+    expect(keys("desktop/resources/entitlements.mac.adhoc.plist")).toEqual(["com.apple.security.cs.allow-jit", "com.apple.security.cs.disable-library-validation"])
+    expect(config.mac.identity).toBeUndefined()
+    expect(config.dmg.writeUpdateInfo).toBe(false)
+  })
+
   // Both Mac builds write latest-mac.yml; the release publishes one with both ZIPs.
   it.each([[false, "life-board-1.1.0-mac-x64.zip"], [true, "life-board-1.1.0-mac-arm64.zip"]])(
     "lets the Mac updater pick its ZIP from the combined feed (arm64 Mac: %s)",
