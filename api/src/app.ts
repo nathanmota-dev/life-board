@@ -76,6 +76,7 @@ export async function buildApp({ db, dataDir, logger = false, githubClient, cryp
     ),
     fileBoards: new FileBoardsService(db, new FileStorageService(join(dataDir, "uploads"))),
   })
+  await app.services.fileBoards.purgeDeleted()
 
   // Public routes.
   await app.register(healthController, { prefix: "/api" })

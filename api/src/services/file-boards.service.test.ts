@@ -1,6 +1,8 @@
+import { eq } from "drizzle-orm"
 import { join } from "node:path"
 import { text } from "node:stream/consumers"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { fileBoards, fileItems } from "../db/schema"
 import { createTestDb } from "../test/create-test-app"
 import { NotFoundError } from "./errors"
 import { FileBoardsService } from "./file-boards.service"
@@ -20,7 +22,7 @@ afterEach(() => ctx.cleanup())
 const png = { buffer: Buffer.from("png-bytes"), filename: "photo.png", mime: "image/png" }
 
 describe("FileBoardsService", () => {
-  it("creates, updates, lists and soft deletes boards", async () => {
+  it("creates, updates, lists and deletes boards", async () => {
     const board = await service.createBoard({ name: "Receipts", kind: "receipts" })
     expect(board).toMatchObject({ color: "#06b6d4", description: null })
 
@@ -74,5 +76,51 @@ describe("FileBoardsService", () => {
     vi.spyOn(storage, "remove").mockRejectedValueOnce(new Error("disk"))
     await expect(service.removeItem(item.id)).resolves.toBeUndefined()
     expect(await service.listItems(board.id)).toEqual([])
+  })
+
+  it("deletes a board with its item rows and files", async () => {
+    const board = await service.createBoard({ name: "Trip" })
+    const other = await service.createBoard({ name: "Other" })
+    const first = await service.addItem(board.id, png, { title: "Beach", notes: "Sunset" })
+    const second = await service.addItem(board.id, png, {})
+    const kept = await service.addItem(other.id, png, {})
+
+    await service.removeBoard(board.id)
+
+    expect(await ctx.db.select().from(fileBoards)).toEqual([expect.objectContaining({ id: other.id })])
+    expect(await ctx.db.select().from(fileItems)).toEqual([expect.objectContaining({ id: kept.id })])
+    await expect(storage.size(first.storagePath)).rejects.toThrow()
+    await expect(storage.size(second.storagePath)).rejects.toThrow()
+    expect(await storage.size(kept.storagePath)).toBe(9)
+    await expect(service.openItemFile(first.id)).rejects.toBeInstanceOf(NotFoundError)
+  })
+
+  it("removes item rows for good and clears the board cover", async () => {
+    const board = await service.createBoard({ name: "Board" })
+    const item = await service.addItem(board.id, png, {})
+    await service.updateBoard(board.id, { coverItemId: item.id })
+
+    await service.removeItem(item.id)
+
+    expect(await ctx.db.select().from(fileItems)).toEqual([])
+    expect((await service.listBoards())[0].coverItemId).toBeNull()
+  })
+
+  it("purges rows soft deleted by earlier versions", async () => {
+    const board = await service.createBoard({ name: "Old" })
+    const live = await service.createBoard({ name: "Live" })
+    const orphan = await service.addItem(board.id, png, {})
+    const trashed = await service.addItem(live.id, png, {})
+    const kept = await service.addItem(live.id, png, {})
+    await ctx.db.update(fileBoards).set({ deletedAt: new Date() }).where(eq(fileBoards.id, board.id))
+    await ctx.db.update(fileItems).set({ deletedAt: new Date() }).where(eq(fileItems.id, trashed.id))
+
+    await service.purgeDeleted()
+
+    expect(await ctx.db.select({ id: fileBoards.id }).from(fileBoards)).toEqual([{ id: live.id }])
+    expect(await ctx.db.select({ id: fileItems.id }).from(fileItems)).toEqual([{ id: kept.id }])
+    await expect(storage.size(orphan.storagePath)).rejects.toThrow()
+    await expect(storage.size(trashed.storagePath)).rejects.toThrow()
+    expect(await storage.size(kept.storagePath)).toBe(9)
   })
 })
