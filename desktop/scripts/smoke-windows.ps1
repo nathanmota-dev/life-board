@@ -226,7 +226,9 @@ function Find-OwnedApiUrl {
 }
 function Start-OwnedApp {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Internal smoke helper launches only the test installation.')]
-    param([int]$Attempt)
+    # -AllowRecovery returns $null when the main process logs that the secret key
+    # can't be read; it then waits on the recovery dialog instead of the API.
+    param([int]$Attempt, [switch]$AllowRecovery)
     $stdout = Join-Path $EvidenceDirectory "app-$Attempt.stdout.log"
     $stderr = Join-Path $EvidenceDirectory "app-$Attempt.stderr.log"
     $script:appProcess = Start-Process -FilePath $exe -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
@@ -236,6 +238,8 @@ function Start-OwnedApp {
         if ($appProcess.HasExited) { throw "Installed app exited before readiness: $($appProcess.ExitCode)" }
         $logs = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
         if ($logs -match 'Unable to load preload|ERR_FILE_NOT_FOUND') { throw 'Installed renderer/preload failed to load' }
+        # ASCII part of the main-process log line; Windows PowerShell reads the UTF-8 log as ANSI.
+        if ($AllowRecovery -and $logs -match 'carregar a chave dos segredos') { return $null }
         if (!$url) { $url = if ($logs -match 'API ouvindo em (http://127\.0\.0\.1:\d+)') { $Matches[1] } else { Find-OwnedApiUrl } }
         if ($url) {
             $health = Invoke-RestMethod "$url/api/health" -TimeoutSec 5
@@ -291,11 +295,42 @@ try {
     $saved = Invoke-RestMethod "$url/api/tasks/$($task.id)" -TimeoutSec 5
     if ($saved.title -ne 'Installed Windows smoke' -or (Get-FileHash -LiteralPath (Join-Path $data secret.key.enc)).Hash -ne $keyHash) { throw 'Database/DPAPI restart persistence failed' }
     Close-OwnedApp
+
+    # Forced exit right after a fresh first start (#38). Chromium may not have
+    # saved its safeStorage key to Local State yet, so secret.key.enc can become
+    # undecryptable. The next start must be healthy (the pending key is replaced
+    # and the database kept) or reach the logged recovery dialog.
+    Remove-Item -LiteralPath $data -Recurse -Force
+    $url = Start-OwnedApp 3
+    $task = Invoke-RestMethod "$url/api/tasks" -Method Post -ContentType 'application/json' -Body '{"title":"Forced exit smoke"}' -TimeoutSec 5
+    Stop-OwnedApp
+    $localState = Join-Path $data 'Local State'
+    $osCryptSaved = (Test-Path -LiteralPath $localState) -and ((Get-Content -LiteralPath $localState -Raw) -match '"encrypted_key"')
+    $keyPending = Test-Path -LiteralPath (Join-Path $data secret.key.pending)
+    $keyHash = (Get-FileHash -LiteralPath (Join-Path $data secret.key.enc)).Hash
+    Write-Output "Forced exit after first start: Local State has os_crypt.encrypted_key=$osCryptSaved; key pending=$keyPending"
+    $url = Start-OwnedApp 4 -AllowRecovery
+    if (!$url) {
+        $forcedExit = 'recovery-dialog'
+        Stop-OwnedApp
+    } else {
+        $forcedExit = if ((Get-FileHash -LiteralPath (Join-Path $data secret.key.enc)).Hash -eq $keyHash) { 'healthy-same-key' } else { 'healthy-new-key' }
+        if ((Invoke-RestMethod "$url/api/tasks/$($task.id)" -TimeoutSec 5).title -ne 'Forced exit smoke') { throw 'Database did not survive the forced exit' }
+        $keyHash = (Get-FileHash -LiteralPath (Join-Path $data secret.key.enc)).Hash
+        Close-OwnedApp
+        # After a clean quit the key must decrypt and stop being pending.
+        $url = Start-OwnedApp 5
+        if ((Invoke-RestMethod "$url/api/tasks/$($task.id)" -TimeoutSec 5).title -ne 'Forced exit smoke' -or
+            (Get-FileHash -LiteralPath (Join-Path $data secret.key.enc)).Hash -ne $keyHash -or
+            (Test-Path -LiteralPath (Join-Path $data secret.key.pending))) { throw 'Secret key did not settle after the forced-exit recovery' }
+        Close-OwnedApp
+    }
+    Write-Output "Forced exit outcome: $forcedExit"
     $status = if ($RequireSignature) { 'signed' } else { 'unsigned' }
     $publisher = if ($RequireSignature) { $PublisherName } else { $null }
     $signing = @{ schemaVersion = 1; status = $status; publisher = $publisher; thumbprint = $appSigner; installerSha256 = (Get-FileHash -Algorithm SHA256 $InstallerPath).Hash.ToLowerInvariant(); executableSha256 = (Get-FileHash -Algorithm SHA256 $exe).Hash.ToLowerInvariant() }
     [IO.File]::WriteAllText((Join-Path $EvidenceDirectory signing-info.json), ($signing | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
-    $evidence = @{ windowsVersion = [Environment]::OSVersion.VersionString; user = $identity.Name; administrator = $isAdmin; profile = $profilePath; version = $Version; signing = $status; health = $true; databaseRestart = $true; dpapiRestart = $true }
+    $evidence = @{ windowsVersion = [Environment]::OSVersion.VersionString; user = $identity.Name; administrator = $isAdmin; profile = $profilePath; version = $Version; signing = $status; health = $true; databaseRestart = $true; dpapiRestart = $true; forcedExit = @{ localStateKeySaved = $osCryptSaved; keyPending = $keyPending; outcome = $forcedExit } }
     [IO.File]::WriteAllText((Join-Path $EvidenceDirectory smoke.json), ($evidence | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
     $completed = $true
     Write-Output "Installed Windows smoke passed ($status): $exe"
