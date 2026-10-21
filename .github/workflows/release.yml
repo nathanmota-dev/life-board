@@ -31,6 +31,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
+      - run: npm ci
+
+      # Runs after npm ci: the checks import yaml.
       - name: Validate tag
         if: github.ref_type == 'tag'
         run: node desktop/scripts/release-checks.mts tag "$GITHUB_REF_NAME"
@@ -39,7 +42,6 @@ jobs:
         if: github.ref_type == 'tag'
         run: test -s "docs/release-notes/${GITHUB_REF_NAME#v}.md"
 
-      - run: npm ci
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:coverage
