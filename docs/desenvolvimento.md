@@ -82,8 +82,12 @@ em PRs para `main` e `release/**` e bloqueia o empacotamento de releases em caso
 dos pacotes, a assinatura do macOS e a escolha do ZIP do macOS pelo updater.
 `desktop/scripts/release-checks.test.ts` cobre a validação da tag, do feed, dos
 checksums, da proveniência de `build-info.json` e dos arquivos enviados usada pelos
-workflows de build/release. Para testar instalação real com duas versões e um feed
-local, consulte [Atualizações](atualizacoes.md).
+workflows de build/release. `desktop/scripts/release-compose.test.ts` cobre a release
+combinada: fan-in dos builds, montagem da pasta de upload, `latest-mac.yml` com as
+duas arquiteturas, `SHA256SUMS.txt` global e recusa de plataforma ausente, checksum
+alterado, origem/versão misturadas, arquivo duplicado, assinatura inelegível e
+versão já publicada. Para testar instalação real com duas versões e um feed local,
+consulte [Atualizações](atualizacoes.md).
 
 O workflow **Build Linux** pode ser executado em branches sem publicar. Ele mantém
 os gates E2E, unitários, cobertura, inspeção e instalação/smoke do DEB no
@@ -91,7 +95,9 @@ os gates E2E, unitários, cobertura, inspeção e instalação/smoke do DEB no
 [Build de branch](releases.md#build-de-branch-sem-publicação) para dispatch/download e
 [contrato de artefatos](multiplataforma.md#contrato-de-workflows-e-artefatos) para
 inputs, outputs, manifesto e verificações locais. O linter de workflows é
-`actionlint .github/workflows/*.yml`.
+`actionlint .github/workflows/*.yml`. O orquestrador **Release** chama os três
+builds; executado manualmente em uma branch, só compila e valida a release
+combinada, sem rascunho nem publicação (veja [Publicação de releases](releases.md)).
 
 O workflow **Build Windows** executa checks e NSIS nativamente no
 `windows-2022`, também com Node.js 24.18.0. Pode ser chamado por outro workflow ou

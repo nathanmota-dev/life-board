@@ -2,32 +2,49 @@
 
 [← Guia da documentação](guide.md)
 
-As releases Linux x64 são orquestradas por `.github/workflows/release.yml` a partir
-de uma tag `vMAJOR.MINOR.PATCH`. O build é feito pelo workflow reutilizável
-`.github/workflows/build-linux.yml`. Cada release pública contém exatamente:
+As releases são orquestradas por `.github/workflows/release.yml` a partir de uma
+tag `vMAJOR.MINOR.PATCH`. Um único run chama os workflows reutilizáveis
+`build-linux.yml`, `build-windows.yml` e `build-macos.yml` no mesmo commit, junta os
+quatro alvos em **um** rascunho e só o publica depois da aprovação do mantenedor.
+Nenhum build publica sozinho e não existe release separada por sistema. Cada
+release pública contém exatamente:
 
 | Arquivo | Uso |
 | --- | --- |
 | `life-board_<versão>_amd64.deb` | Instalação com `sudo apt install ./…` e atualização de instalações DEB |
 | `life-board-<versão>-x86_64.AppImage` | Uso sem instalação e atualização de instalações AppImage (blockmap embutido) |
-| `latest-linux.yml` | Feed do `electron-updater`: versão, nomes, tamanhos e SHA-512 dos dois pacotes |
-| `build-info.json` | Commit, versão, sistema, arquitetura e tag (ou `null` em build sem publicação) |
-| `SHA256SUMS.txt` | SHA-256 dos dois pacotes, do feed e de `build-info.json`; confira com `sha256sum -c` |
+| `latest-linux.yml` | Feed Linux do `electron-updater` (DEB e AppImage), igual ao da 1.0.0 |
+| `life-board-<versão>-win-x64.exe` | Instalador NSIS e pacote de atualização do Windows |
+| `life-board-<versão>-win-x64.exe.blockmap` | Blockmap do instalador, para download diferencial |
+| `latest.yml` | Feed do Windows |
+| `life-board-<versão>-mac-x64.dmg` / `-mac-arm64.dmg` | Primeira instalação no macOS Intel / Apple Silicon |
+| `life-board-<versão>-mac-x64.zip` / `-mac-arm64.zip` | Pacotes de atualização do macOS |
+| `life-board-<versão>-mac-x64.zip.blockmap` / `-mac-arm64.zip.blockmap` | Blockmaps dos ZIPs |
+| `latest-mac.yml` | Feed único do macOS com os dois ZIPs ([formato](multiplataforma.md#feed-do-macos)) |
+| `SHA256SUMS.txt` | SHA-256 de todos os arquivos acima; confira com `sha256sum -c` |
 
-O app instalado lê `latest-linux.yml` da release marcada como mais recente em
-`nathanmota-dev/life-board` (provedor `github`, canal `latest`) e escolhe somente
-o arquivo do seu formato e arquitetura. O feed e os pacotes vêm sempre do mesmo
-build; não edite nem substitua arquivos de uma release manualmente.
+O app instalado lê o feed do seu sistema na release marcada como mais recente em
+`nathanmota-dev/life-board` (provedor `github`, canal `latest`) e escolhe somente o
+arquivo do seu formato e arquitetura. Feeds e pacotes vêm sempre dos builds do mesmo
+run; não edite nem substitua arquivos de uma release manualmente.
+
+`build-info.json`, `signing-info.json` e o `SHA256SUMS.txt` de cada build são
+internos: ficam nos artefatos do Actions (14 dias) e são validados antes de montar
+a pasta de upload, mas não são publicados. A 1.0.0 publicou o `build-info.json` do
+Linux; a partir da release multiplataforma ele deixa a release, porque os quatro
+manifestos teriam o mesmo nome. Nenhum cliente o lê.
 
 ## Preparar uma versão
 
 1. Atualize `version` em `package.json` e `package-lock.json` (`npm version <x.y.z> --no-git-tag-version`).
-2. Crie `docs/release-notes/<x.y.z>.md` com as funcionalidades, plataforma e
-   arquitetura suportadas, instalação e limitações conhecidas. O texto vira as notas
+2. Crie `docs/release-notes/<x.y.z>.md` com as funcionalidades, plataformas e
+   arquiteturas suportadas, instalação e limitações conhecidas. O texto vira as notas
    da release e aparece em **Configurações → Atualizações**.
 3. Atualize os links da versão no `README.md`.
 4. Integre essas mudanças à `main` por PR, com as verificações abaixo aprovadas.
-5. Crie e envie a tag no commit integrado:
+5. Confira os pré-requisitos de [assinatura](multiplataforma.md#assinatura): sem os
+   secrets de Windows e macOS, os builds de release falham e nada é publicado.
+6. Crie e envie a tag no commit integrado:
 
    ```bash
    git switch main && git pull --ff-only
@@ -37,118 +54,178 @@ build; não edite nem substitua arquivos de uma release manualmente.
 
 ## O que o workflow faz
 
-O job **Check and package Linux** chama `build-linux.yml` no mesmo commit/tag.
-O filho chama primeiro o [Electron E2E](e2e.md) como **E2E build gate** e exige
-sucesso antes de empacotar. Esse gate também se aplica à execução manual do filho.
-Relatórios e evidências de falhas ficam no artefato `electron-e2e` por 14 dias.
+```text
+validate ─┬─ Linux (E2E → build) ─┐
+          ├─ Windows ─────────────┼─ verify ─ draft ─ [aprovação] ─ publish
+          └─ macOS x64 + arm64 ───┘
+```
 
-O job **Check and package Linux x64** mantém `ubuntu-24.04`, Node.js 24.18.0
-(verificados em execução) e `npm ci` a partir do lockfile:
+1. **Validate release request** escolhe o modo pelo evento. Só um push de tag é
+   release: a tag precisa ser estável, igual à versão do `package.json` e ter notas
+   não vazias, antes de qualquer build ou credencial. Qualquer outro evento é
+   build-only. Não há input de texto que ignore essas regras.
+2. **Linux**, **Windows** e **macOS** chamam os workflows reutilizáveis com
+   `release: true|false`. Eles rodam em paralelo e não dependem uns dos outros. O
+   Linux mantém o [E2E](e2e.md) como gate. Cada build roda typecheck, testes,
+   cobertura, empacotamento, instalação e smoke no próprio sistema, grava
+   `build-info.json`/`signing-info.json` e envia o artefato da sua plataforma
+   (`linux-x64`, `windows-x64`, `macos-x64`, `macos-arm64`). Os secrets de
+   assinatura só são repassados em release; o build Linux não recebe nenhum.
+3. **Verify complete release assets** depende dos três builds. Falha, cancelamento
+   ou build pulado impede esse job e, portanto, o rascunho e a publicação. Ele:
+   - confere as saídas de cada build (`release-checks.mts builds`): resultado
+     `success`, nomes dos artefatos, versão, commit, tag e, em release, Windows e
+     macOS `signed`;
+   - baixa os quatro artefatos **deste run** em pastas separadas (nunca de outro
+     run ou de "o último build com sucesso");
+   - executa `compose`, que valida cada artefato contra o checkout (commit, versão,
+     alvo, tag, assinatura exigida, feeds, blockmaps e checksums), recusa arquivos
+     inesperados, copia só os arquivos públicos sem sobrescrever nenhum, combina
+     `latest-mac.yml` e escreve o `SHA256SUMS.txt` global;
+   - valida a pasta resultante com `assets release all` e a envia como artefato
+     `release-assets`, com os checksums no resumo do run.
+4. **Stage draft release** (só em release) recompõe a pasta a partir dos mesmos
+   artefatos, cria ou reaproveita o rascunho da tag com as notas, envia os arquivos
+   e confere o rascunho: lista e tamanhos (`uploaded release assets.json all`) e
+   download de cada arquivo comparado byte a byte. Rascunhos não são públicos;
+   os feeds estáveis continuam na versão anterior.
+5. **Publish after maintainer approval** é o único job com `environment: release`.
+   Ele espera a aprovação. Depois dela, recompõe a pasta, exige que a release ainda
+   seja rascunho, confere de novo lista, tamanhos e bytes do rascunho e só então
+   publica como mais recente. Nada é recompilado após a aprovação. Por fim baixa
+   cada arquivo sem token, compara byte a byte, valida a pasta pública com
+   `assets public all` e confere que `releases/latest/download/` serve
+   `latest-linux.yml`, `latest.yml` e `latest-mac.yml` desta versão. Qualquer
+   diferença falha o job com uma anotação de erro.
 
-1. Em chamadas com `release: true`, exige uma referência de tag `vX.Y.Z` estável,
-   igual à versão do `package.json`, e notas não vazias. O orquestrador só ativa
-   esse modo em eventos de push de tags; dispatch manual sempre usa build-only.
-2. Roda `npm run typecheck`, `npm test` e `npm run test:coverage` (API ≥ 80%).
-3. Gera DEB, AppImage e `latest-linux.yml` com `npm run package:linux`
-   (`--publish never`), grava `build-info.json` a partir de `git rev-parse HEAD`
-   (exigindo igualdade com `GITHUB_SHA`) e escreve `SHA256SUMS.txt`.
-4. `node desktop/scripts/release-checks.mts assets release linux-x64` confere
-   commit, versão, alvo e tag, os nomes exatos do feed, os tamanhos e SHA-512
-   dos pacotes e os SHA-256 dos quatro arquivos. Manifesto malformado, origem
-   divergente, arquivo ausente/corrompido ou checksum duplicado faz o build falhar.
-5. Inspeciona o DEB com `dpkg-deb` (pacote `life-board`, versão, `amd64`, app,
-   `app.asar`, migrations, `app-update.yml`, `package-type`, atalho e ícone), instala
-   com `apt-get install ./…`, valida o atalho e roda `desktop/scripts/smoke-deb.sh`:
-   abre o app instalado com GNOME Keyring desbloqueado e confere API, banco e
-   chave criptografada. Em falhas, exibe os logs do app/backend.
-6. Só depois de todos os gates envia os cinco arquivos como artefato `linux-x64`,
-   com `if-no-files-found: error` e retenção de 14 dias. O AppImage contém seu
-   blockmap; não há blockmap externo para Linux.
+### Aprovação
 
-O job **Stage draft release** cria uma release em rascunho para a tag, com as notas
-da versão, valida novamente o artefato baixado contra o commit/tag do checkout,
-envia os cinco arquivos e confere que a lista e os tamanhos enviados são exatamente
-os do build. Esse job depende do sucesso de todo o workflow Linux. Rascunhos não
-são públicos, então o feed estável continua apontando para a versão anterior.
+O ambiente **release** precisa ter revisores obrigatórios; o nome no YAML sozinho
+não cria a aprovação. Em **Settings → Environments → release**, mantenha
+**Required reviewers** com o mantenedor e, de preferência, restrinja
+**Deployment branches and tags** a tags `v*`. Para conferir:
 
-O job **Publish after smoke-test approval** usa o ambiente `release`. Configure em
-**Settings → Environments → release** a aprovação obrigatória pelo mantenedor.
-Antes de aprovar, faça o teste manual abaixo com os arquivos do rascunho. Depois da
-aprovação, o job confere o rascunho de novo, publica como release mais recente e
-baixa cada arquivo e `releases/latest/download/latest-linux.yml` sem autenticação,
-comparando byte a byte com o build.
+```bash
+gh api repos/nathanmota-dev/life-board/environments/release \
+  --jq '.protection_rules[] | {type, reviewers: [.reviewers[]?.reviewer.login]}'
+```
 
-Uma execução manual (**Run workflow**) do orquestrador ou de **Build Linux** roda
-E2E, verificações, empacotamento e artefatos, sem criar tags, rascunhos ou releases,
-inclusive quando o dispatch seleciona uma tag. O filho tem somente `contents: read`,
-não recebe credenciais de publicação e não cria/envia assets de GitHub Releases.
-O feed gerado fica apenas no artefato da execução.
+O resultado deve conter `required_reviewers` com o mantenedor. Em 2026-10-21 o
+ambiente exige `nathanmota-dev`, sem política de branches/tags.
+
+Quando o rascunho estiver pronto, o run fica em **Waiting** no job de publicação.
+Faça o [teste manual](#teste-manual-antes-de-aprovar) com os arquivos do rascunho e
+use **Review deployments** para aprovar ou rejeitar. Os artefatos expiram em 14
+dias; aprove antes disso ou reexecute o workflow.
 
 ## Build de branch sem publicação
 
 O contrato de inputs/outputs e do manifesto está em
 [Workflows e artefatos](multiplataforma.md#contrato-de-workflows-e-artefatos).
-Para validar uma branch sem mudar a versão ou criar uma tag:
+Uma execução manual do orquestrador roda os quatro builds, o fan-in e a validação
+combinada no commit escolhido, sem criar tags, rascunhos ou releases e sem tocar nos
+feeds, inclusive quando o dispatch seleciona uma tag. Os jobs de rascunho e de
+publicação aparecem como pulados. Os builds Windows e macOS saem sem assinatura
+de produção (unsigned/ad-hoc), aceitos apenas nesse modo. É assim que as tarefas
+multiplataforma são validadas juntas em uma branch de integração:
 
 ```bash
-gh workflow run build-linux.yml --ref <branch>
-gh run list --workflow build-linux.yml --branch <branch>
+gh workflow run release.yml --ref <branch>
+gh run list --workflow release.yml --branch <branch>
 gh run view <run-id> --log
-# Escolha um diretório vazio; não misture plataformas ou execuções.
-gh run download <run-id> --name linux-x64 --dir /tmp/life-board-linux-<run-id>
+# Escolha um diretório vazio; não misture execuções.
+gh run download <run-id> --name release-assets --dir /tmp/life-board-release-<run-id>
+for target in linux-x64 windows-x64 macos-x64 macos-arm64; do
+  gh run download <run-id> --name "$target" --dir "/tmp/life-board-artifacts-<run-id>/$target"
+done
 # No checkout do mesmo commit, com npm ci já executado:
-node desktop/scripts/release-checks.mts assets /tmp/life-board-linux-<run-id> linux-x64
+node desktop/scripts/release-checks.mts assets /tmp/life-board-artifacts-<run-id>/linux-x64 linux-x64
+node desktop/scripts/release-checks.mts compose /tmp/life-board-artifacts-<run-id> /tmp/life-board-combined-<run-id>
+node desktop/scripts/release-checks.mts assets /tmp/life-board-release-<run-id> all
+diff -r /tmp/life-board-release-<run-id> /tmp/life-board-combined-<run-id>
 ```
 
-`build-info.json.sourceSha` deve ser igual ao `headSha` da execução e ao commit
-selecionado, `releaseTag` deve ser `null`, e `gh release list` deve continuar sem
-novo rascunho/release. `assets` compara o manifesto com o checkout local, não usa
-o SHA do próprio manifesto como origem esperada. `RELEASE_TAG` vazio é o padrão;
-para conferir um artefato de release use `RELEASE_TAG=vX.Y.Z` no checkout da tag.
+`build-info.json.sourceSha` de cada artefato deve ser igual ao `headSha` da
+execução, `releaseTag` deve ser `null`, e `gh release list` deve continuar sem novo
+rascunho/release. As verificações comparam os manifestos com o checkout local, não
+usam o SHA do próprio manifesto como origem. `RELEASE_TAG` vazio é o padrão; para
+conferir artefatos de release use `RELEASE_TAG=vX.Y.Z` no checkout da tag.
 
-O [GitHub exige](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)
-que um workflow com dispatch esteja registrado na branch padrão.
-Antes da primeira integração de `build-linux.yml`, use o orquestrador já registrado:
-`gh workflow run release.yml --ref <branch>`. Ele chama o filho da mesma branch em
-modo build-only. Depois de integrado, o dispatch direto fica disponível.
-Valide ambos os YAMLs com `actionlint .github/workflows/*.yml` (inclui a resolução
-das chamadas locais); não é necessário produzir uma tag de teste.
+Cada build também pode rodar sozinho (`gh workflow run build-linux.yml --ref <branch>`
+e equivalentes), com o mesmo artefato. O [GitHub exige](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)
+que um workflow com dispatch esteja registrado na branch padrão; antes disso, use
+o orquestrador já registrado. Valide os YAMLs com `actionlint .github/workflows/*.yml`,
+que também confere inputs, outputs e secrets das chamadas locais.
+
+## Comandos de verificação
+
+Execute a partir da raiz do checkout do commit compilado, depois de `npm ci`:
+
+| Comando | Verifica |
+| --- | --- |
+| `assets <pasta> <alvo>` | Um artefato de build: instaladores, feed, blockmaps, proveniência, assinatura e checksums |
+| `builds` | `toJSON(needs)` em `BUILDS`: resultado, nomes, versão, commit, tag e assinatura dos três builds |
+| `compose <artefatos> <saída>` | Valida `<artefatos>/{linux-x64,windows-x64,macos-x64,macos-arm64}` e monta a pasta de upload vazia `<saída>` |
+| `assets <pasta> all` | Pasta combinada: exatamente os arquivos públicos, todos os feeds e blockmaps, `SHA256SUMS.txt` global |
+| `uploaded <pasta> <assets.json> all` | Assets do rascunho (`gh release view --json assets`): mesmos nomes, sem duplicados, mesmos tamanhos |
+| `draft-action <tag> <true\|false\|missing>` | `create`, `reuse` ou erro para release já publicada |
+
+O comando é `node desktop/scripts/release-checks.mts …`. Os alvos individuais
+continuam aceitos por `assets` e `uploaded`.
 
 ## Teste manual antes de aprovar
 
-Em um desktop Linux de teste (GNOME com chaveiro e agente PolicyKit), com os
-arquivos baixados do rascunho:
+Baixe os arquivos do rascunho (`gh release download v<x.y.z> --dir <pasta>`) e
+confira `sha256sum -c SHA256SUMS.txt`. Depois, em máquinas de teste:
 
-1. `sha256sum -c SHA256SUMS.txt`.
-2. Instalação limpa: `sudo apt install ./life-board_<versão>_amd64.deb`, abertura
-   pelo menu, primeira criação do banco, chaveiro, bandeja, instância única,
-   pomodoro e inicialização com o sistema.
-3. Migração a partir do AppImage manual, conforme
+1. **Linux** (GNOME com chaveiro e agente PolicyKit): instalação limpa com
+   `sudo apt install ./life-board_<versão>_amd64.deb`, abertura pelo menu, banco,
+   chaveiro, bandeja, instância única, pomodoro e inicialização com o sistema;
+   migração a partir do AppImage manual conforme
    [Instalação no Linux](instalacao-linux.md#migrar-do-appimage-manual-para-o-deb).
-4. A partir da segunda release, atualização pelo app de uma instalação DEB
-   (cancelando e depois autorizando o PolicyKit) e de um AppImage. Antes da primeira
-   release, use o teste com feed local de [Atualizações](atualizacoes.md#testes-com-pacotes-controlados).
+2. **Windows x64**: instalador assinado com o publisher esperado, instalação em
+   usuário comum, abertura e dados.
+3. **macOS Intel e Apple Silicon**: DMG de cada arquitetura com Gatekeeper,
+   abertura e Keychain.
+4. A partir da segunda release, atualização pelo app em cada formato (DEB
+   cancelando e depois autorizando o PolicyKit, AppImage, NSIS e os dois Macs).
+   Antes disso, use o teste com feed local de
+   [Atualizações](atualizacoes.md#testes-com-pacotes-controlados).
 
-Se algo falhar, rejeite a aprovação. O rascunho continua invisível para os usuários.
+A matriz completa e as evidências da validação integrada ficam com a #32. Se algo
+falhar, rejeite a aprovação. O rascunho continua invisível para os usuários.
 
 ## Falhas e novas execuções
 
-- **Verificações ou empacotamento falham:** nenhuma release é criada. Corrija na
-  `main`; se a correção mudar o código, apague a tag (`git push --delete origin v<x.y.z>`
-  e `git tag -d v<x.y.z>`), recrie no commit corrigido e envie de novo.
+- **Algum build falha, é cancelado ou não roda:** o fan-in não roda e nenhum
+  rascunho é criado. Um Windows ou macOS bem-sucedido nunca é publicado sem os
+  outros alvos. Corrija na `main`; se a correção mudar o código, apague a tag
+  (`git push --delete origin v<x.y.z>` e `git tag -d v<x.y.z>`), recrie no commit
+  corrigido e envie de novo.
+- **Artefato incompatível** (outro commit, versão ou tag, assinatura ausente,
+  arquivo faltando, extra ou duplicado, checksum alterado, feed inválido): o
+  `verify` ou o `draft` falha e o job de publicação nunca é alcançado.
 - **Falha ao enviar ou conferir o rascunho:** reexecute o workflow. Um rascunho
-  existente é reaproveitado: os arquivos dele são removidos e reenviados a partir
-  do novo build, sem criar uma segunda release.
-- **Aprovação rejeitada:** corrija, apague o rascunho e a tag e recomece.
-- **Release já publicada:** o workflow recusa a tag. Binários publicados nunca são
+  existente da mesma tag é reaproveitado: seus arquivos são removidos e reenviados a
+  partir do novo run, sem criar uma segunda release.
+- **Aprovação rejeitada:** o job de publicação falha, o rascunho continua não
+  publicado e os feeds públicos não mudam. Corrija, apague o rascunho e a tag e
+  recomece, ou reexecute para aprovar depois.
+- **Release já publicada:** o workflow recusa a tag (`draft-action`), e a publicação
+  exige que a release ainda seja rascunho. Binários publicados nunca são
   substituídos, porque instalações podem ter baixado e conferido o SHA-512 deles.
   Uma correção depois da publicação sai em uma nova versão de patch.
+- **Entrega pública incompleta:** se um arquivo ou feed não puder ser baixado sem
+  token ou diferir do build, o último job falha visivelmente. Investigue antes de
+  anunciar a versão; não substitua os arquivos publicados.
 - Execuções da mesma tag não rodam em paralelo (`concurrency`).
 
 ## Permissões e credenciais
 
 O workflow tem `contents: read` por padrão; somente os jobs de rascunho e de
-publicação recebem `contents: write`, usando o `GITHUB_TOKEN` da execução. Nenhum
-segredo é embutido no app: `app-update.yml` contém só o dono, o repositório e o
-canal, e o updater lê a release pública sem token. O token da integração GitHub do
-usuário nunca é usado para atualizações.
+publicação recebem `contents: write`, usando o `GITHUB_TOKEN` da execução. Os
+secrets de assinatura são repassados apenas aos builds Windows/macOS em release e
+apenas ao passo de empacotamento; os jobs com permissão de escrita não recebem
+nenhum deles. Nenhum segredo é embutido no app: `app-update.yml` contém só o dono,
+o repositório e o canal, e o updater lê a release pública sem token. O token da
+integração GitHub do usuário nunca é usado para atualizações.

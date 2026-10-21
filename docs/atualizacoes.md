@@ -38,8 +38,8 @@ verificado do updater.
 
 O updater reconhece Windows x64 instalado via NSIS, apps macOS Intel/Apple Silicon
 e Linux DEB/AppImage x64 e ARM64. A publicação dos novos alvos depende dos workflows
-#29–#31; as releases Linux existentes continuam x64. `APPIMAGE` identifica um AppImage;
-`resources/package-type=deb`, gerado pelo electron-builder, identifica DEB.
+#29–#30 e da release central #31; as releases Linux existentes continuam x64.
+`APPIMAGE` identifica um AppImage; `resources/package-type=deb`, gerado pelo electron-builder, identifica DEB.
 No Windows, exige `app-update.yml` e o desinstalador NSIS ao lado do executável;
 no macOS, exige um bundle `.app` com `app-update.yml`. Builds de desenvolvimento,
 prévia no navegador, Windows portátil/desempacotado, lojas, Snap e Flatpak
@@ -133,11 +133,13 @@ sob Rosetta usa arm64, como o `MacUpdater` instalado. Um feed somente Intel não
 pode servir como fallback em Apple Silicon. DMG é para instalação inicial, não
 payload de atualização. Nenhum driver nativo executa APT/PolicyKit ou troca AppImages.
 
-O [workflow de release](releases.md) gera DEB, AppImage e `latest-linux.yml` em um
-único build x64 e confere o feed antes de publicar, preservando os dois formatos.
-Se o build for dividido por alvo/arquitetura, combine os metadados antes de
-publicar para não sobrescrever a lista de um formato com a de outro. Não publique
-releases fictícias para testar.
+O [workflow de release](releases.md) publica uma única release com os quatro alvos.
+DEB, AppImage e `latest-linux.yml` continuam saindo de um único build x64, então o
+feed Linux mantém os dois formatos e é publicado sem alteração, como na 1.0.0.
+`latest.yml` vem do build Windows, e os feeds dos dois builds Mac são combinados em
+um `latest-mac.yml` estruturado, sem sobrescrever a lista de uma arquitetura com a
+de outra. Todos os feeds são conferidos antes do rascunho, antes da publicação e,
+sem token, depois dela. Não publique releases fictícias para testar.
 
 As notas são exibidas como texto, sem HTML da rede. O link de release é construído
 para este repositório. O renderer recebe somente estado e ações fixas; não pode
