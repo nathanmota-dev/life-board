@@ -2,7 +2,7 @@ import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it } from "vitest"
-import { createDb } from "./client"
+import { createDb, sqliteFileUrl } from "./client"
 import { migrationsFolder } from "../test/create-test-app"
 import { GoalsService } from "../services/goals.service"
 
@@ -14,7 +14,7 @@ it.each(["0006", "0007"])("upgrades from before %s keeping manual progress and s
   journal.entries = journal.entries.filter((entry: { tag: string }) => entry.tag < nextMigration)
   await writeFile(join(previousFolder, "meta/_journal.json"), JSON.stringify(journal))
   for (const entry of journal.entries) await copyFile(join(migrationsFolder, `${entry.tag}.sql`), join(previousFolder, `${entry.tag}.sql`))
-  const url = `file:${join(dir, "legacy.db")}`
+  const url = sqliteFileUrl(join(dir, "legacy.db"))
   const legacy = await createDb(url, previousFolder)
   try {
     await legacy.db.run("INSERT INTO goals (id, title, progress, linked_task_ids, linked_thought_ids, created_at, updated_at) VALUES ('books', 'Read books', 60, '[]', '[]', 1792195200000, 1792195200000)")
