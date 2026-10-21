@@ -12,6 +12,8 @@ repositório, salvo indicação em contrário.
 - [Backend](backend.md): API, módulos, banco de dados, migrations e credenciais.
 - [Desenvolvimento](desenvolvimento.md): ambiente local, comandos, build,
   empacotamento e testes.
+- [Testes E2E](e2e.md): Playwright com Electron em segundo plano, isolamento,
+  cobertura funcional, diagnóstico e CI.
 - [Instalação e atualização no Linux](instalacao-linux.md): DEB e AppImage,
   requisitos, migração do AppImage manual e build a partir do código.
 - [Atualizações do aplicativo](atualizacoes.md): cadência, consentimento, DEB/AppImage,

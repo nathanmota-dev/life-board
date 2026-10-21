@@ -21,7 +21,7 @@ também usa essa opção. O DEB mantém o sandbox e instala um perfil do AppArmo
 ## Comandos
 
 ```bash
-npm run typecheck  # Verifica os tipos do desktop, frontend e backend
+npm run typecheck  # Verifica os tipos do desktop, frontend, backend e E2E
 npm run build      # Compila o app para out/
 npm start          # Abre a versão compilada (execute build antes)
 npm run package    # Gera um instalador para o sistema atual em release/
@@ -63,6 +63,13 @@ ou `*.test.tsx` ao lado do código testado em `web/src/` (o padrão `*.spec.*`
 também é aceito). Importe `describe`, `it` e `expect` de `vitest`.
 O alias `@/` aponta para `web/src/`, e o setup em `web/src/test/setup.ts`
 registra os matchers de DOM e limpa os componentes renderizados após cada teste.
+
+## Testes E2E
+
+`npm run test:e2e` compila e executa os fluxos de todas as páginas no Electron
+real, em segundo plano pelo Xvfb, com dados e chaveiro temporários. A suíte roda
+em PRs para `main` e `release/**` e bloqueia o empacotamento de releases em caso de falha. Veja
+[Testes E2E](e2e.md) para dependências Linux, comandos, matriz de cobertura e debug.
 
 `npm run package:linux` gera AppImage e DEB Linux com metadados de atualização.
 `desktop/scripts/release-checks.test.ts` cobre a validação da tag, do feed, dos

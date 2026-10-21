@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "baseUrl": ".",
+    "paths": { "@/*": ["web/src/*"] }
+  },
+  "include": ["playwright.config.ts", "e2e/**/*.ts", "web/src/vite-env.d.ts"]
+}

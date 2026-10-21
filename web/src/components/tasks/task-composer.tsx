@@ -49,7 +49,10 @@ export function TaskComposer() {
           aria-label={open ? t("common.title") : t("tasks.takeATask")}
           placeholder={open ? t("common.title") : t("tasks.takeATask")}
           onFocus={() => setOpen(true)}
-          onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+          onChange={(event) => {
+            setOpen(true)
+            setDraft({ ...draft, title: event.target.value })
+          }}
           onKeyDown={(event) => {
             if (event.key !== "Enter" || draft.checklist) return
             event.preventDefault()

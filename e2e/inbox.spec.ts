@@ -1,0 +1,88 @@
+import { test, expect } from "./fixtures"
+import { closeWindowWithKey } from "./ui"
+import type { Task } from "../web/src/types/task"
+
+test("capture: task tokens, ignored tokens and thoughts reach their pages", async ({ workspace, page }) => {
+  await workspace.go("Caixa de entrada")
+  const input = page.getByRole("textbox", { name: "Texto da captura" })
+  await input.fill("Buy milk amanhã !alta #home")
+  await expect(page.getByText("Prioridade Alta", { exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Capturar", exact: true }).click()
+  await expect(input).toBeEmpty()
+  await expect(page.getByText("Buy milk", { exact: true })).toBeVisible()
+  expect((await workspace.list<Task>("tasks"))[0]).toMatchObject({ title: "Buy milk", priority: "high", tags: ["home"], dueAt: "2026-10-22T00:00:00.000Z" })
+  await input.fill("Keep today #literal")
+  await page.getByRole("button", { name: "Manter “today” como texto" }).click()
+  await page.getByRole("button", { name: "Capturar", exact: true }).click()
+  await expect(page.getByText("Keep today", { exact: true })).toBeVisible()
+  await page.getByRole("tab", { name: "Ideia", exact: true }).click()
+  await input.fill("Remember this #memory")
+  await input.press("Enter")
+  await expect(input).toBeEmpty()
+  await workspace.go("Ideias")
+  await expect(page.getByText("Remember this #memory", { exact: true }).first()).toBeVisible()
+  await workspace.go("Etiquetas")
+  await expect(page.getByRole("button", { name: /memory/ })).toBeVisible()
+})
+
+test("inbox: triage statuses, date, skip, edit and undo", async ({ workspace, page }) => {
+  for (const title of ["Today item", "Later item", "Scheduled item"]) await workspace.create("tasks", { title })
+  await workspace.go("Caixa de entrada")
+  await page.getByRole("button", { name: "Organizar", exact: true }).click()
+  await page.getByRole("button", { name: "Pular", exact: false }).click()
+  await page.getByRole("button", { name: "Hoje", exact: false }).click()
+  await page.getByRole("button", { name: "Desfazer", exact: false }).click()
+  await page.getByRole("button", { name: "Algum dia", exact: false }).click()
+  await page.getByRole("button", { name: "Editar", exact: false }).click()
+  await page.getByLabel("Título", { exact: true }).fill("Edited triage item")
+  await page.getByRole("button", { name: "Salvar", exact: true }).click()
+  await page.getByRole("button", { name: "Próximas", exact: false }).click()
+  await page.getByLabel("Prazo", { exact: true }).fill("2026-10-25")
+  await page.getByRole("button", { name: "Definir data", exact: true }).click()
+  await page.getByRole("button", { name: "Hoje", exact: false }).click()
+  await expect(page.getByText("Caixa de entrada vazia", { exact: true })).toBeVisible()
+  const tasks = await workspace.list<Task>("tasks")
+  expect(tasks.map(task => task.status).sort()).toEqual(["someday", "today", "upcoming"])
+  expect(tasks.find(task => task.title === "Edited triage item")?.dueAt).toBe("2026-10-25T00:00:00.000Z")
+})
+
+test("inbox: thought conversion, deletion, undo and keyboard shortcuts", async ({ workspace, page }) => {
+  await workspace.create("tasks", { title: "Convertible", tags: ["triage"], description: "Preserve this note" })
+  await workspace.create("tasks", { title: "Disposable" })
+  await workspace.go("Caixa de entrada")
+  await page.getByRole("button", { name: "Organizar", exact: true }).click()
+  await page.getByRole("button", { name: "Transformar em ideia", exact: false }).click()
+  await expect.poll(async () => (await workspace.list("thoughts")).length).toBe(1)
+  await page.getByRole("button", { name: "Desfazer", exact: false }).click()
+  await expect.poll(async () => (await workspace.list("thoughts")).length).toBe(0)
+  await page.getByRole("button", { name: "Excluir", exact: false }).click()
+  await page.getByRole("button", { name: "Desfazer", exact: false }).click()
+  await expect(page.getByRole("button", { name: "Hoje", exact: true })).toBeEnabled()
+  await page.keyboard.press("Escape")
+  await expect(page.getByRole("button", { name: "Organizar", exact: true })).toBeVisible()
+  expect(await workspace.list("tasks")).toHaveLength(2)
+})
+
+test("capture window: registered shortcut, autofocus, save, synchronization and Escape", async ({ workspace, page }) => {
+  await workspace.go("Caixa de entrada")
+  const open = async () => {
+    const window = workspace.app.waitForEvent("window")
+    await workspace.app.evaluate(() => {
+      const callback = globalThis.e2e.shortcuts["CommandOrControl+Shift+Space"]
+      if (!callback) throw new Error("Capture shortcut was not registered")
+      callback()
+    })
+    return window
+  }
+  const capture = await open()
+  await expect(capture.getByRole("textbox", { name: "Texto da captura" })).toBeFocused()
+  await capture.getByRole("textbox", { name: "Texto da captura" }).fill("From global window #capture")
+  await closeWindowWithKey(capture, "Enter")
+  await expect(page.getByText("From global window", { exact: true })).toBeVisible()
+  const second = await open()
+  await expect(second.getByRole("textbox", { name: "Texto da captura" })).toBeFocused()
+  await workspace.app.evaluate(() => globalThis.e2e.shortcuts["CommandOrControl+Shift+Space"]())
+  expect(workspace.app.windows()).toHaveLength(2)
+  await closeWindowWithKey(second, "Escape")
+  expect(workspace.app.windows()).toHaveLength(1)
+})
