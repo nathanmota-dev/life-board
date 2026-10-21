@@ -234,7 +234,11 @@ try {
     $appSigner = Test-AuthenticodeSignature $exe
     if ($installerSigner -cne $appSigner) { throw 'Installer and installed app use different certificates' }
     $metadata = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
-    if ($metadata.ProductName -ne 'Life Board' -or $metadata.ProductVersion -ne $Version) { throw 'Wrong installed app identity/version' }
+    # electron-builder stamps the four-part Windows form (major.minor.patch.build).
+    $productVersion = '{0}.{1}.{2}' -f $metadata.ProductMajorPart, $metadata.ProductMinorPart, $metadata.ProductBuildPart
+    if ($metadata.ProductName -ne 'Life Board' -or $productVersion -ne ($Version -replace '[-+].*$')) {
+        throw "Wrong installed app identity/version: $($metadata.ProductName) $($metadata.ProductVersion)"
+    }
     $stream = [IO.File]::OpenRead($exe)
     $reader = [IO.BinaryReader]::new($stream)
     try {
