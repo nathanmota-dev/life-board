@@ -1,13 +1,12 @@
-import { mkdtemp, mkdir, readFile, writeFile, copyFile, rm } from "node:fs/promises"
-import { tmpdir } from "node:os"
+import { mkdtemp, mkdir, readFile, writeFile, copyFile } from "node:fs/promises"
 import { join } from "node:path"
 import { expect, it } from "vitest"
 import { createDb, sqliteFileUrl } from "./client"
-import { migrationsFolder } from "../test/create-test-app"
+import { migrationsFolder, removeTestDirectory, testTemporaryRoot } from "../test/create-test-app"
 import { ProjectsService } from "../services/projects.service"
 
 it("upgrades existing projects to per-column order with a status history", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "projects-migration-"))
+  const dir = await mkdtemp(join(testTemporaryRoot, "projects-migration-"))
   const previousFolder = join(dir, "previous")
   await mkdir(join(previousFolder, "meta"), { recursive: true })
   const journal = JSON.parse(await readFile(join(migrationsFolder, "meta/_journal.json"), "utf8"))
@@ -34,6 +33,6 @@ it("upgrades existing projects to per-column order with a status history", async
     expect((await service.history("b")).items).toEqual([expect.objectContaining({ status: "done", changedAt: new Date(recent) })])
   } finally {
     upgraded.close()
-    await rm(dir, { recursive: true, force: true })
+    await removeTestDirectory(dir)
   }
 })

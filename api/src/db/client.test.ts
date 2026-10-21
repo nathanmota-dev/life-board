@@ -1,9 +1,8 @@
-import { mkdir, mkdtemp, readdir, rm } from "node:fs/promises"
-import { tmpdir } from "node:os"
+import { mkdir, mkdtemp, readdir } from "node:fs/promises"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { createDb, sqliteFileUrl } from "./client"
-import { migrationsFolder } from "../test/create-test-app"
+import { migrationsFolder, removeTestDirectory, testTemporaryRoot } from "../test/create-test-app"
 
 // `?` is valid in POSIX folder names only; the other names exist on every OS.
 const folders = ["com espaço", "não-ascii ç日本", "C# projetos", "100%20 off", "50% off", "a&b=c;d"]
@@ -11,7 +10,7 @@ if (process.platform !== "win32") folders.push("what?")
 
 describe("sqliteFileUrl", () => {
   it.each(folders)("opens the database exactly at %s", async (folder) => {
-    const root = await mkdtemp(join(tmpdir(), "life-board-url-"))
+    const root = await mkdtemp(join(testTemporaryRoot, "life-board-url-"))
     const dir = join(root, folder)
     await mkdir(dir)
     const database = await createDb(sqliteFileUrl(join(dir, "life-board.db")), migrationsFolder)
@@ -20,7 +19,7 @@ describe("sqliteFileUrl", () => {
       expect(await readdir(dir)).toContain("life-board.db")
     } finally {
       database.close()
-      await rm(root, { recursive: true, force: true })
+      await removeTestDirectory(root)
     }
   }, 15_000)
 

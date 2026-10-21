@@ -1,13 +1,12 @@
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
+import { copyFile, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { expect, it } from "vitest"
 import { createDb, sqliteFileUrl } from "./client"
-import { migrationsFolder } from "../test/create-test-app"
+import { migrationsFolder, removeTestDirectory, testTemporaryRoot } from "../test/create-test-app"
 import { TasksService } from "../services/tasks.service"
 
 it("adds the focus day to existing tasks without picking them", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "focus-day-migration-"))
+  const dir = await mkdtemp(join(testTemporaryRoot, "focus-day-migration-"))
   const previousFolder = join(dir, "previous")
   await mkdir(join(previousFolder, "meta"), { recursive: true })
   const journal = JSON.parse(await readFile(join(migrationsFolder, "meta/_journal.json"), "utf8"))
@@ -29,6 +28,6 @@ it("adds the focus day to existing tasks without picking them", async () => {
     expect((await service.list({ limit: 50, focusDay: "2026-10-19" })).map((task) => task.id)).toEqual(["report"])
   } finally {
     upgraded.close()
-    await rm(dir, { recursive: true, force: true })
+    await removeTestDirectory(dir)
   }
 })

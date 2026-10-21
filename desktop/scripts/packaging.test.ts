@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process"
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
@@ -76,7 +77,12 @@ describe("afterPack native module check", () => {
       const dir = join(resources, "app.asar.unpacked/node_modules/@libsql", HOST_TARGET!)
       mkdirSync(dir, { recursive: true })
       copyFileSync(join("node_modules/@libsql", HOST_TARGET!, "index.node"), join(dir, "index.node"))
-      expect(checkPackagedResources(resources, process.platform, process.arch)).toBe(HOST_TARGET)
+      // Windows keeps a loaded .node DLL locked until the process exits. Load
+      // the real copied binary in a child so teardown can remove its directory.
+      const output = execFileSync(process.execPath, ["-e",
+        'console.log(require(process.argv[1]).checkPackagedResources(process.argv[2], process.platform, process.arch))',
+        join(process.cwd(), "desktop/scripts/after-pack.cjs"), resources], { encoding: "utf8" })
+      expect(output.trim()).toBe(HOST_TARGET)
     })
 
     it("refuses a binary that loads without the libSQL API", () => {

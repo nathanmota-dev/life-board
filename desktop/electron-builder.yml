@@ -35,6 +35,9 @@ win:
   icon: desktop/resources/icon.ico
 nsis:
   artifactName: life-board-${version}-win-${arch}.${ext}
+  perMachine: false
+  allowElevation: false
+  runAfterFinish: false
 mac:
   # The updater installs from the ZIP; the DMG is for first installs.
   target:

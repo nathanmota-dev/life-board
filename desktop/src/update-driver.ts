@@ -40,7 +40,7 @@ export async function replaceAppImage(source: string, destination: string, sha51
     await copyFile(source, staged, constants.COPYFILE_EXCL)
     await verifyArtifact(staged, sha512)
     await chmod(staged, 0o755)
-    const handle = await open(staged, "r")
+    const handle = await open(staged, "r+")
     try { await handle.sync() } finally { await handle.close() }
     await rename(staged, destination)
   } finally { await rm(staged, { force: true }) }
