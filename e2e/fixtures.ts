@@ -7,7 +7,8 @@ import type { ChildProcess } from "node:child_process"
 export { expect }
 export const EPOCH = Date.parse("2026-10-21T12:00:00Z")
 export const DAY = "2026-10-21"
-export type Scenario = { github?: "empty" | "error" | "unauthorized" | "rate-limit"; weather?: "error" | "fallback"; updates?: "available" | "current" | "network" | "hold-download" | "download-error" | "integrity" }
+// "live" lets the backend reach the real GitHub API. Only the demo recording uses it.
+export type Scenario = { github?: "empty" | "error" | "unauthorized" | "rate-limit" | "live"; weather?: "error" | "fallback"; updates?: "available" | "current" | "network" | "hold-download" | "download-error" | "integrity" }
 type NativeState = {
   external: string[]
   notifications: { options: { title: string; body: string }; emit: (event: string) => void }[]
@@ -88,7 +89,7 @@ export class Workspace {
         } })
       }
       // Avatars are optional images. Every other external request is a test failure.
-      if (url.includes("avatars.githubusercontent.com")) return route.fulfill({ status: 404, body: "" })
+      if (url.includes("avatars.githubusercontent.com")) return this.scenario.github === "live" ? route.continue() : route.fulfill({ status: 404, body: "" })
       this.errors.push(`Unexpected external renderer request: ${url}`)
       return route.abort()
     })

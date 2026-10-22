@@ -7,6 +7,8 @@ globalThis.fetch = async (input, init) => {
   const url = String(input instanceof Request ? input.url : input)
   record({ kind: "github", url, method: init?.method || "GET" })
   if (url.startsWith("https://api.github.com/")) {
+    const scenario = JSON.parse(readFileSync(process.env.LIFE_BOARD_E2E_SCENARIO, "utf8"))
+    if (scenario.github === "live") return originalFetch(input, init)
     try { return github(url, init, JSON.parse(readFileSync(process.env.LIFE_BOARD_E2E_SCENARIO, "utf8"))) }
     catch (error) { record({ kind: "unexpected", url, message: error.message }); throw error }
   }

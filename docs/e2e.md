@@ -130,3 +130,20 @@ npm run test:coverage
 npm run test:e2e:infra
 npm run test:e2e
 ```
+
+## Vídeo de demonstração do README
+
+`npm run demo:record` compila o app e grava `web/src/public/life-board-demo.mp4`
+com o roteiro de `e2e/demo/demo.record.ts`. A gravação usa o mesmo ambiente
+isolado da suíte (Xvfb, keyring temporário e perfil descartável), dados de
+exemplo e `ffmpeg` para capturar o display virtual; ela não faz parte de
+`npm run test:e2e`. Sem `LIFE_BOARD_DEMO_GITHUB_TOKEN`, as telas do GitHub usam
+os dados sintéticos; com a variável, o backend acessa a API real do GitHub
+apenas durante a gravação.
+
+O README exibe o vídeo por uma URL `user-attachments`. Depois de regravar, anexe
+o novo arquivo a um comentário de issue e troque a URL no README:
+
+```bash
+gh issue comment <número> --attach web/src/public/life-board-demo.mp4
+```
