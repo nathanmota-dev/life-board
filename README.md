@@ -49,18 +49,21 @@ a migração de uma instalação manual, atualizações e execução a partir do
 
 ### Windows e macOS
 
-Windows x64 e macOS (Intel e Apple Silicon) chegam na primeira release
-multiplataforma; a 1.0.0 é só para Linux. Cada sistema terá seu pacote na mesma
-release:
+O código está adaptado para Windows x64 e macOS (Intel e Apple Silicon),
+incluindo empacotamento, integração nativa e atualizações. **A distribuição oficial
+é somente Linux x64 (DEB e AppImage).** Não há instaladores oficiais nem workflows
+de build/release para Windows e macOS no momento.
 
-| Sistema | Arquivo | Guia |
-| --- | --- | --- |
-| Windows 10/11 x64 | `life-board-<versão>-win-x64.exe` | [Instalação no Windows](docs/instalacao-windows.md) |
-| macOS 12+ Apple Silicon | `life-board-<versão>-mac-arm64.dmg` | [Instalação no macOS](docs/instalacao-macos.md) |
-| macOS 12+ Intel | `life-board-<versão>-mac-x64.dmg` | [Instalação no macOS](docs/instalacao-macos.md) |
+A distribuição assinada para Windows exige um certificado/serviço de assinatura;
+no macOS, exige adesão ao Apple Developer Program, certificado Developer ID e
+notarização. Os custos e a manutenção dessas credenciais ficam fora do escopo
+atual do projeto. Isso não impede executar ou compilar o código nesses sistemas.
 
-Use só os pacotes assinados das releases. A situação dos testes em cada sistema
-está na [validação multiplataforma](docs/validacao-multiplataforma.md).
+Os guias de [Windows](docs/instalacao-windows.md) e
+[macOS](docs/instalacao-macos.md) descrevem builds locais para desenvolvimento e
+suas limitações. A [validação multiplataforma](docs/validacao-multiplataforma.md)
+registra os testes históricos; ela não representa suporte oficial ou validação
+contínua dessas plataformas.
 
 Os detalhes de arquitetura, frontend, backend e desenvolvimento estão na
 [documentação técnica](docs/guide.md).

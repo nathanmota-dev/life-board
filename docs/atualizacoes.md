@@ -2,6 +2,10 @@
 
 [← Guia da documentação](guide.md)
 
+As releases oficiais publicam somente Linux (DEB/AppImage e `latest-linux.yml`).
+As seções Windows/macOS abaixo documentam a implementação preservada no código
+para desenvolvimento; não há feeds ou atualizações oficiais dessas plataformas.
+
 **Configurações → Atualizações** mostra a versão instalada, a última verificação
 bem-sucedida e os detalhes da versão disponível. A indicação no cabeçalho continua
 visível fora das configurações. A notificação nativa abre `/settings?tab=updates`,

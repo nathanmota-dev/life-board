@@ -3,9 +3,11 @@
 [← Guia da documentação](guide.md)
 
 Contrato de empacotamento e compatibilidade de execução para Linux x64, Windows x64,
-macOS x64 (Intel) e macOS arm64 (Apple Silicon). Os workflows de cada sistema e a
-release central usam estes nomes e comandos. Binário universal do macOS, Windows ARM64
-e Linux ARM64 ficam fora do escopo.
+macOS x64 (Intel) e macOS arm64 (Apple Silicon). A distribuição oficial e os
+workflows atuais são somente Linux. Windows/macOS permanecem como suporte no
+código e builds locais, sem instaladores oficiais, devido aos custos de
+certificados e serviços de assinatura e do Apple Developer Program. Binário
+universal do macOS, Windows ARM64 e Linux ARM64 ficam fora do escopo.
 
 ## Comandos
 
@@ -59,7 +61,8 @@ arquivos. Por isso, só o nome arm64 contém `arm64`.
 
 Cada build Mac grava um `latest-mac.yml` com apenas o próprio ZIP. Os dois arquivos
 têm o mesmo nome, então ficam em pastas separadas e não podem ser enviados como
-estão. A release central publica um único `latest-mac.yml`, montado por
+estão. Para testes de composição multiplataforma, o helper gera um único
+`latest-mac.yml`, montado por
 `release-checks.mts compose` (`mergeMacFeeds`) a partir dos dois feeds lidos como
 YAML, nunca concatenados:
 
@@ -79,20 +82,19 @@ recebe o próprio ZIP. Um feed sem uma das arquiteturas ou com `path` de outro Z
 
 ## Contrato de workflows e artefatos
 
-`build-linux.yml` estabelece a interface para os workflows de Windows (#29) e
-macOS (#30). Cada sistema fará seu build de forma independente; não dependerá do
-smoke Linux nem usará APT fora do Linux. O fan-in multiplataforma fica em
-`release.yml`; veja [Publicação de releases](releases.md).
+`build-linux.yml` é o único workflow de empacotamento ativo. `release.yml`
+consome somente seu artefato; veja [Publicação de releases](releases.md).
+Os validadores nativos dos demais alvos permanecem para desenvolvimento local.
 
 | Interface | Contrato comum |
 | --- | --- |
-| Eventos | `workflow_call` e `workflow_dispatch` (build-only) |
+| Eventos | `pull_request`, `workflow_call` e `workflow_dispatch` (build-only) |
 | Input `release` | Booleano opcional, padrão `false`; `true` exige tag estável igual à versão e notas não vazias. Dispatch ignora modo release. |
 | Checkout | Commit do caller/dispatch, sem input de ref alternativo; `HEAD` deve ser igual a `GITHUB_SHA` |
-| Output `artifact-name` | Nome determinístico `<sistema>-<arquitetura>`: `linux-x64` ou `windows-x64`. O macOS expõe `artifact-names` (`["macos-x64","macos-arm64"]`) |
+| Output `artifact-name` | `linux-x64` |
 | Output `version` | Versão real do `package.json` do checkout |
 | Output `source-sha` | SHA completo do commit efetivamente compilado |
-| Output `target` | Alvo do artefato: `linux-x64` ou `windows-x64` (no macOS, os próprios `artifact-names`) |
+| Output `target` | `linux-x64` |
 | Output `release-tag` | Tag validada ou string vazia em build-only |
 | Permissão | `contents: read`; sem publicação, tags ou uploads de GitHub Release |
 | Retenção | 14 dias, com `if-no-files-found: error`; upload só após todos os gates |
@@ -164,263 +166,33 @@ nunca são sobrescritos em um download mesclado. Em particular, os feeds Mac com
 mesmo nome precisam continuar separados até a combinação explícita por `compose`.
 Rascunho, aprovação pelo ambiente `release` e publicação permanecem centralizados
 em `release.yml`, que revalida origem/arquivos antes de criar o rascunho e publicar.
-A release combinada usa ainda `compose <artefatos> <saída>`, `assets <pasta> all` e
-`uploaded <pasta> <assets.json> all`; veja
+A release pública usa `compose <artefatos> <saída> linux`, `assets <pasta> linux` e
+`uploaded <pasta> <assets.json> linux`; o modo `all` fica restrito a testes locais. Veja
 [Comandos de verificação](releases.md#comandos-de-verificação).
 
 ### Build Windows x64
 
-`.github/workflows/build-windows.yml` usa `windows-2022` (Windows Server 2022,
-build 20348) e Node.js **24.18.0**. O job verifica esses valores e registra a
-versão exata da imagem do runner no resumo. Não depende de Linux/macOS e não usa
-APT ou Bash. Executa `npm ci`, typecheck, todos os testes Vitest e cobertura da
-API (mínimo de 80% em cada métrica) antes de `npm run package:win`. O E2E completo
-continua no workflow próprio, com Linux/Xvfb/chaveiro; não é desabilitado nem
-apresentado como evidência nativa do Windows.
+O workflow `build-windows.yml` foi removido. Não há dispatch ou artefato Windows
+nas releases atuais. O comando `npm run package:win`, o script
+`desktop/scripts/windows-package.cjs` e o smoke nativo permanecem no código.
+Veja [Windows](instalacao-windows.md#gerar-a-partir-do-código) e
+[Desenvolvimento](desenvolvimento.md) para compilar e testar localmente.
 
-Os testes usam os separadores nativos ao extrair arquivos do ASAR e fixtures de
-sistema operacional explícitas. A prova do módulo nativo ocorre em subprocesso,
-pois o Windows mantém uma DLL carregada bloqueada. O launcher de testes da API
-também remove a sessão temporária depois de o Vitest encerrar: o libSQL 0.5.29
-pode reter handles de statements após `close()` ([limitação conhecida](https://github.com/tursodatabase/libsql-js/issues/228)).
-As asserções, os bancos reais por teste e a cobertura permanecem ativos; não há
-supressão de erro de limpeza nem alteração das dependências de produção.
-
-O hook `after-pack.cjs` carrega o libSQL da máquina e exige PE x64 no executável e
-no módulo nativo. Inspeciona o ASAR: identidade do app, AppUserModelID, backend
-do `utilityProcess`, preload e renderer. O NSIS instala por usuário, sem elevação
-e sem abrir o app automaticamente ao terminar.
-
-O smoke usa uma conta local descartável **sem privilégios de administrador**,
-com espaços no nome do perfil. O runner administrador apenas cria/remove essa
-conta. O script copia instalador e teste para uma pasta acessível pela conta,
-carrega seu perfil e remove Node.js/npm/Git do PATH antes de instalar/abrir o app.
-Confere versão/arquitetura do executável instalado, migrations, libSQL, recursos
-e o AppUserModelID do atalho. Consulta `/api/health`, grava uma tarefa pela API,
-encerra o app e abre novamente: a tarefa e o hash de `secret.key.enc` precisam
-permanecer iguais. O segundo início exige descriptografar a chave existente pelo
-`safeStorage`/DPAPI, sem adaptadores ou chaveiro sintético.
-
-Depois, o smoke apaga o perfil e repete o primeiro início, grava uma tarefa e
-encerra o app à força (`Stop-Process -Force`, como `taskkill /F`) logo depois
-que a janela aparece. Registra se o `Local State` já tinha `os_crypt.encrypted_key`
-e se a chave ainda estava pendente. O início seguinte precisa ficar saudável, com a
-tarefa preservada, ou chegar ao diálogo de recuperação, detectado pelo log do
-processo principal. Quando fica saudável, o app é fechado normalmente e aberto mais
-uma vez: a chave precisa decifrar com o mesmo hash e deixar de estar pendente. O
-resultado vai em `forcedExit` no `smoke.json`.
-
-Instalação tem limite de 90 segundos; cada início espera até 60 segundos pela
-API; o processo da conta inteira tem limite de seis minutos. O cleanup só encerra
-processos da pasta de instalação exclusiva ou do SID criado pelo teste, remove
-perfil/conta e preserva logs em `windows-x64-smoke` por 14 dias, inclusive em
-falhas. O artefato de build só é enviado após o smoke e a verificação passarem.
-
-`windows-x64` contém exatamente os arquivos entregáveis abaixo, na raiz:
-
-- `life-board-<versão>-win-x64.exe` e `.exe.blockmap`;
-- `latest.yml`, `build-info.json`, `signing-info.json` e `SHA256SUMS.txt`.
-
-O feed deve conter apenas o instalador x64 completo, com tamanho/SHA-512 exatos;
-pacotes web auxiliares são recusados. O blockmap gzip v2 precisa conter faixas
-válidas que cubram todo o instalador. Os SHA-256 cobrem também blockmap e ambos
-os manifestos. Checksums com LF ou CRLF são aceitos. `signing-info.json` usa
-`schemaVersion: 1`, `status: "signed" | "unsigned"`, `publisher`, `thumbprint`,
-`installerSha256` e `executableSha256`. Em unsigned, publisher/thumbprint são
-null. Esse arquivo é a evidência gerada pela inspeção nativa de assinaturas;
-revalidar um JSON no Linux não executa a verificação Authenticode do Windows.
-
-O output adicional `signing-status` e o resumo marcam explicitamente o estado.
-Dispatch e chamadas com `release: false` geram builds **unsigned**, sem acesso a
-credenciais, inclusive quando selecionam uma tag. Não são distribuíveis como
-release de produção. O verificador recusa manifesto com `releaseTag` preenchido
-e `status: unsigned`.
-
-Exemplo de chamada independente dos outros sistemas (o `release.yml` repassa os
-secrets apenas no modo release):
-
-```yaml
-jobs:
-  windows:
-    uses: ./.github/workflows/build-windows.yml
-    with:
-      release: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
-    secrets:
-      WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-      WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-```
-
-O workflow não cria release, tag nem publica feed. A aprovação do ambiente
-`release` continua no orquestrador; não é consumida para executar esses checks.
-
-Para uma branch já enviada, quando o workflow estiver registrado na branch
-padrão do GitHub:
-
-```powershell
-gh workflow run build-windows.yml --ref ci/reusable-windows-build
-gh run list --workflow build-windows.yml --branch ci/reusable-windows-build
-gh run view <run-id> --log
-gh run download <run-id> --name windows-x64 --dir artifacts/windows-x64
-node desktop/scripts/release-checks.mts assets artifacts/windows-x64 windows-x64
-```
-
-O checkout local usado para revalidar deve ser o mesmo SHA do run; `RELEASE_TAG`
-deve estar vazio em build-only. Antes de o workflow estar na branch padrão,
-dispatch direto pode retornar 404. Pushes para branches `ci/**` que alteram o
-workflow, `desktop/`, `api/`, `web/` ou a configuração de build também executam
-esse workflow em build-only, permitindo validar antes da integração. Não criar
-versão/tag de produção para testar branches.
+O NSIS de desenvolvimento não tem assinatura de produção. Uma futura distribuição
+assinada exigirá integrar certificado/serviço compatível; o caminho PFX existente
+não substitui a integração com provedores que usam HSM ou assinatura em nuvem.
 
 ### Build macOS x64 e arm64
 
-`.github/workflows/build-macos.yml` executa um job nativo por arquitetura, com
-Node.js **24.18.0** e macOS 15:
+O workflow `build-macos.yml` foi removido. Não há dispatch nem DMGs/ZIPs oficiais.
+Os comandos `npm run package:mac:x64` e `npm run package:mac:arm64`, o empacotamento,
+os validadores e o smoke nativo permanecem disponíveis para desenvolvimento.
 
-| Alvo | Runner | `uname -m` | Saída | Artefato |
-| --- | --- | --- | --- | --- |
-| macOS x64 | `macos-15-intel` | `x86_64` | `release/mac-x64/` | `macos-x64` |
-| macOS arm64 | `macos-15` | `arm64` | `release/mac-arm64/` | `macos-arm64` |
-
-O job não confia no rótulo: exige `process.arch`, `uname -m` e
-`sysctl.proc_translated = 0` (sem Rosetta) e registra no resumo versão/build do
-macOS, CPU, imagem do runner, Xcode, Node e SHA fonte. Não depende de Linux nem
-de Windows. Cada job executa `npm ci`, typecheck, todos os testes Vitest e a
-cobertura da API (mínimo de 80% em cada métrica) antes de `npm run package:mac:<arquitetura>`.
-O E2E completo continua no workflow Linux; não é apresentado como evidência do macOS.
-
-O hook `after-pack.cjs` carrega o libSQL da própria máquina e
-`desktop/scripts/macos-package.cjs` exige Mach-O **thin** da arquitetura no executável,
-no Electron Framework, nos quatro helpers (`Life Board Helper`, `(GPU)`, `(Plugin)`,
-`(Renderer)`) e em `@libsql/darwin-<arquitetura>/index.node`. Também inspeciona o
-ASAR: identidade do app, backend do `utilityProcess`, preload e renderer.
-Binários universais e builds de uma arquitetura em outra são recusados.
-
-**Smoke do app instalado.** `desktop/scripts/smoke-macos.sh` roda com o bash 3.2
-do sistema:
-
-```bash
-bash desktop/scripts/smoke-macos.sh release/mac-arm64/life-board-<versão>-mac-arm64.dmg \
-  [--team-id <TEAMID>] [--evidence test-results/macos-arm64]
-```
-
-1. Lê versão e arquitetura do nome do DMG e recusa outra arquitetura ou Rosetta.
-2. Monta o DMG somente leitura, sem Finder (`hdiutil attach -nobrowse`), confere o
-   link `Applications` e copia o app com `ditto` para uma pasta temporária com
-   espaços. O teste usa essa cópia, não a saída do electron-builder.
-3. Confere `CFBundleIdentifier` (`dev.nathanmota.lifeboard`), versão, `file`/`lipo`
-   do executável, helpers e libSQL, `app.asar`, `app-update.yml` e as migrations.
-4. `codesign --verify --deep --strict` no app; exige hardened runtime e
-   `allow-jit`. Extrai o ZIP do updater e exige o mesmo CDHash do app do DMG.
-5. Cria um keychain temporário, desbloqueado e sem timeout, e o torna o padrão do
-   usuário. Abre o executável instalado com `--user-data-dir` em uma pasta com
-   espaços, acento, `#` e `%20`. Espera até 60 segundos por `/api/health`, grava
-   uma tarefa e exige `life-board.db`, `secret.key.enc` e exatamente um item
-   `… Safe Storage` no keychain temporário.
-6. Encerra com `SIGTERM` (até 30 segundos) e abre de novo: a tarefa, o hash de
-   `secret.key.enc` e o item do Keychain devem continuar iguais. O segundo início
-   só funciona descriptografando a chave existente pelo Keychain.
-7. Restaura keychain padrão e lista de busca, apaga keychain, perfil e cópia, e
-   grava `smoke.json`, `signing-info.json`, `codesign.txt` e os logs do app em
-   `--evidence` (padrão `test-results/macos-smoke`).
-
-O smoke altera o keychain padrão do usuário durante a execução. Use uma conta
-descartável ou um runner; não interrompa o script com `kill -9`.
-
-**Modos de assinatura.** Dispatch, push em `ci/**` e chamadas com `release: false`
-geram builds **ad-hoc** (`--config.mac.identity=-`), sem nenhuma credencial. Mantêm o
-hardened runtime e o `allow-jit` de produção; só acrescentam
-`disable-library-validation` (`desktop/resources/entitlements.mac.adhoc.plist`),
-porque código ad-hoc não tem Team ID. O smoke exige `Signature=adhoc` e
-`TeamIdentifier=not set`. Esses artefatos não são distribuíveis: o Gatekeeper os
-bloqueia em downloads e o updater do macOS não os instala. Também não comprovam
-Keychain/item de login/atualização com assinatura estável. O
-`CSC_FOR_PULL_REQUEST=true` desse passo só impede que o electron-builder
-pule a assinatura ad-hoc quando o caller vem de um pull request.
-
-No modo release, o caller precisa ser um push de tag do próprio repositório; tag,
-versão e notas são conferidas. Só o passo de empacotamento recebe os secrets.
-Ele importa o `.p12` em um keychain temporário, exige uma identidade
-`Developer ID Application` válida do time `APPLE_TEAM_ID` e passa seu hash ao
-electron-builder com `forceCodeSigning`. O electron-builder assina app, helpers e
-o libSQL com hardened runtime, `allow-jit` e timestamp, notariza o app pelo
-`notarytool` e grampeia o ticket antes de gerar DMG e ZIP. Em seguida, o
-workflow assina o DMG com timestamp, envia-o ao `notarytool --wait`, exige
-`Accepted` e grampeia o ticket. Credenciais ausentes, identidade de outro time
-ou rejeição da Apple falham antes do smoke. Com `--team-id`, o smoke exige ainda
-`Authority=Developer ID Application`, o mesmo time no app e no libSQL,
-`spctl --assess` e `xcrun stapler validate` no app e no DMG.
-
-`macos-x64` e `macos-arm64` contêm exatamente estes arquivos, na raiz:
-
-- `life-board-<versão>-mac-<arquitetura>.dmg`, `.zip` e `.zip.blockmap`;
-- `latest-mac.yml`, `build-info.json`, `signing-info.json` e `SHA256SUMS.txt`.
-
-O `latest-mac.yml` de cada artefato lista apenas o ZIP da própria arquitetura, com
-tamanho/SHA-512 exatos; o DMG e o ZIP da outra arquitetura são recusados. O
-blockmap gzip v2 precisa cobrir todo o ZIP. `signing-info.json` usa
-`schemaVersion: 1`, `status: "signed" | "adhoc"`, `teamId`, `notarized`, `cdHash` e
-os SHA-256 do DMG e do ZIP. Em ad-hoc, `teamId` é null e `notarized` é false; em
-signed, o Team ID tem 10 caracteres e `notarized` é true. O verificador recusa
-`releaseTag` preenchido com `status: "adhoc"`. Assim como no Windows, esse JSON é
-a evidência gerada no macOS; revalidá-lo no Linux não repete `codesign`.
-
-Depois dos dois jobs, o job **Verify macOS artifacts** (Ubuntu) baixa cada artefato
-em uma pasta separada, como faz o `release.yml`, revalida ambos com
-`release-checks.mts assets` e exige mesma versão, SHA fonte e estado de assinatura.
-Só então expõe os outputs. Os diagnósticos (`macos-<arquitetura>-diagnostics`:
-smoke, `codesign.txt`, resposta/log do `notarytool` e relatórios do
-electron-builder) são enviados também em falhas.
-
-Exemplo de chamada independente dos outros sistemas (o `release.yml` repassa os
-secrets apenas no modo release):
-
-```yaml
-jobs:
-  macos:
-    uses: ./.github/workflows/build-macos.yml
-    with:
-      release: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
-    secrets:
-      MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
-      MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
-      APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
-      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-  consume:
-    needs: macos
-    runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        artifact: ${{ fromJSON(needs.macos.outputs.artifact-names) }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}
-          path: artifacts/${{ matrix.artifact }}
-```
-
-Os dois `latest-mac.yml` têm o mesmo nome e nunca podem ser baixados na mesma
-pasta. O `release.yml` os combina como descrito em [Feed do macOS](#feed-do-macos) e
-publica só o feed combinado, com DMGs, ZIPs e blockmaps das duas arquiteturas.
-O workflow não cria release, tag nem publica feed, e não consome a aprovação do
-ambiente `release`.
-
-Para uma branch já enviada, quando o workflow estiver registrado na branch padrão:
-
-```bash
-gh workflow run build-macos.yml --ref ci/reusable-macos-build
-gh run list --workflow build-macos.yml --branch ci/reusable-macos-build
-gh run view <run-id> --log
-gh run download <run-id> --name macos-x64 --dir artifacts/macos-x64
-gh run download <run-id> --name macos-arm64 --dir artifacts/macos-arm64
-node desktop/scripts/release-checks.mts assets artifacts/macos-x64 macos-x64
-node desktop/scripts/release-checks.mts assets artifacts/macos-arm64 macos-arm64
-```
-
-O checkout local deve estar no SHA do run e `RELEASE_TAG` vazio em build-only.
-Antes de o workflow estar na branch padrão, o dispatch pode retornar 404; pushes
-para `ci/**` que alteram o workflow, `desktop/`, `api/`, `web/` ou a configuração
-de build executam o workflow em build-only.
+Compile na arquitetura do alvo, com as opções ad-hoc descritas em
+[Desenvolvimento](desenvolvimento.md). Veja também o guia de
+[macOS](instalacao-macos.md#gerar-a-partir-do-código). Builds ad-hoc não comprovam
+Gatekeeper, notarização ou atualização assinada de produção. Essas capacidades
+precisam de validação nativa caso a distribuição seja retomada.
 
 ## Caminhos e dados do usuário
 
@@ -495,13 +267,14 @@ nos sistemas reais; a situação de cada item está na
 
 ## Assinatura
 
-Os comandos geram pacotes sem assinatura quando não há certificado. Os pré-requisitos
-de cada workflow:
+Os comandos permitem builds de desenvolvimento sem certificado de produção.
+Os requisitos abaixo são referência para uma futura retomada da distribuição
+assinada; nenhum workflow atual configura ou consome esses secrets:
 
 - **Windows:** o caminho implementado usa Authenticode por certificado PFX,
   suportado pelo electron-builder 26. O mantenedor deve escolher/provisionar uma
   identidade compatível com sua autoridade certificadora e política de custódia;
-  nenhum serviço de nuvem é presumido nem provisionado por este workflow.
+  nenhum serviço de nuvem é presumido nem provisionado pelo projeto.
   Configurar os secrets `WIN_CSC_LINK` (PFX codificado em base64) e
   `WIN_CSC_KEY_PASSWORD`, e a variável de repositório `WINDOWS_PUBLISHER_NAME`
   exatamente igual ao nome comum do certificado. Não adicionar PFX/senha ao Git.
@@ -524,8 +297,8 @@ de cada workflow:
   `APPLE_API_KEY_P8` (conteúdo do `AuthKey_<id>.p8`), `APPLE_API_KEY_ID` e
   `APPLE_API_ISSUER`. A chave de API foi escolhida em vez de Apple ID e senha de
   app: pode ser revogada sozinha e não depende da conta pessoal. Não adicionar
-  `.p12`, `.p8` ou senhas ao Git; o workflow os grava só no diretório temporário
-  do runner e remove keychain e chave ao terminar. O app não recebe nenhuma
+  `.p12`, `.p8` ou senhas ao Git; uma futura automação deve gravá-los apenas em diretório temporário
+  e remover keychain e chave ao terminar. O app não recebe nenhuma
   dessas variáveis. Renovação deve manter o mesmo Team ID: o Keychain, o item
   de login e o updater dependem da mesma identidade (`dev.nathanmota.lifeboard` +
   Team ID) entre versões. Para conferir:
@@ -561,27 +334,11 @@ em outro sistema; "inspeção" é a leitura do arquivo gerado.
 | macOS x64 | cruzado + inspeção | Só o ZIP (o DMG exige macOS). `life-board-1.0.0-mac-x64.zip`, `.zip.blockmap` e `latest-mac.yml` em `release/mac-x64/`. Executável Mach-O x86_64, `@libsql/darwin-x64/index.node` Mach-O x86_64, migrations e `CFBundleIdentifier` `dev.nathanmota.lifeboard`. |
 | macOS arm64 | cruzado + inspeção | Só o ZIP. `life-board-1.0.0-mac-arm64.zip`, `.zip.blockmap` e `latest-mac.yml` em `release/mac-arm64/`, listando apenas o ZIP arm64. Executável e `@libsql/darwin-arm64/index.node` Mach-O arm64. |
 
-Ainda não validado: execução nativa no Windows e no macOS (instalação, `/api/health`,
-DPAPI/Keychain, `utilityProcess` e integração com o sistema) e o DMG. Esses itens
-ficam para os workflows de Windows e macOS e para a validação integrada.
-
-O workflow macOS executa build, smoke do DMG instalado e Keychain nativamente nas
-duas arquiteturas, em modo ad-hoc. Registrar run-id, versão do macOS/imagem,
-`uname -m`, SHA fonte, hashes dos artefatos baixados e `smoke.json` de cada
-arquitetura. Um runner não comprova: Gatekeeper em um download real com
-quarentena, prompts do Keychain com assinatura Developer ID estável entre
-versões, item de login após reiniciar (`status === "enabled"` só a partir do
-macOS 13; verificar o macOS 12), permissão de notificações, ícone da bandeja,
-atalho global e a atualização assinada pelo ZIP (#27). Esses itens ficam para a
-matriz manual de #32, em Intel e Apple Silicon reais.
-
-A implementação do workflow Windows não substitui a evidência de execução:
-registrar run-id, versão da imagem, SHA fonte, hashes do artefato baixado e
-`windows-x64-smoke/smoke.json` após o primeiro run nativo. Produção assinada
-continua pendente da identidade/credenciais do mantenedor. A matriz manual de
-#32 deve cobrir Windows 10/11 em usuário comum sem ferramentas de desenvolvimento,
-tray, notificações/permissões, login real após reboot, SmartScreen, upgrade
-assinado e preservação dos dados. Um runner Server 2022 não comprova esses itens.
+Este registro é histórico. As execuções nativas posteriores e os bloqueios de
+assinatura constam em [Validação multiplataforma](validacao-multiplataforma.md).
+Os workflows Windows/macOS foram removidos; não há validação contínua desses
+alvos. Retomar a distribuição exige validar assinatura, instalação e atualização
+em sistemas reais, além dos testes unitários preservados.
 
 Observação para a validação integrada: em um container sem namespaces de usuário,
 o `postinst` do DEB usa o `chrome-sandbox` com SUID e o app não abriu

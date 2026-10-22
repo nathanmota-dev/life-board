@@ -35,7 +35,7 @@ O empacotamento usa DEB e AppImage no Linux, NSIS no Windows e DMG + ZIP no macO
 Os comandos específicos não publicam e precisam rodar no mesmo sistema e arquitetura
 do alvo. Veja [Empacotamento multiplataforma](multiplataforma.md) para os nomes dos
 arquivos, os feeds e o registro de validação.
-As releases públicas são geradas pelo workflow de tag; veja
+As releases públicas são somente Linux, geradas pelo workflow de tag; veja
 [Publicação de releases](releases.md).
 
 ## Testes do backend
@@ -95,19 +95,14 @@ os gates E2E, unitários, cobertura, inspeção e instalação/smoke do DEB no
 [Build de branch](releases.md#build-de-branch-sem-publicação) para dispatch/download e
 [contrato de artefatos](multiplataforma.md#contrato-de-workflows-e-artefatos) para
 inputs, outputs, manifesto e verificações locais. O linter de workflows é
-`actionlint .github/workflows/*.yml`. O orquestrador **Release** chama os três
-builds; executado manualmente em uma branch, só compila e valida a release
-combinada, sem rascunho nem publicação (veja [Publicação de releases](releases.md)).
+`actionlint .github/workflows/*.yml`. O orquestrador **Release** chama somente o
+build Linux; dispatch manual valida DEB e AppImage sem publicar. Veja
+[Publicação de releases](releases.md).
 
-O workflow **Build Windows** executa checks e NSIS nativamente no
-`windows-2022`, também com Node.js 24.18.0. Pode ser chamado por outro workflow ou
-executado em uma branch sem publicar. A suíte E2E completa permanece no workflow
-Linux; o Windows acrescenta smoke do app instalado com perfil comum e DPAPI real.
-Consulte [Build Windows x64](multiplataforma.md#build-windows-x64) para interface,
-artefatos, dispatch e assinatura de produção. Para validar os quatro alvos juntos
-em uma branch de integração, dispare o orquestrador como em
-[Build de branch](releases.md#build-de-branch-sem-publicação) e registre o resultado
-em [Validação multiplataforma](validacao-multiplataforma.md).
+Os workflows Windows/macOS foram removidos. Os comandos e testes nativos abaixo
+permanecem para desenvolvimento local; não há validação contínua, instaladores
+oficiais ou feeds públicos dessas plataformas. As evidências anteriores ficam em
+[Validação multiplataforma](validacao-multiplataforma.md).
 
 Para validar numa máquina Windows descartável, em PowerShell:
 
@@ -125,17 +120,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File desktop/scripts/smoke-window
 conta temporária. O teste falha se o instalador/app executar como administrador.
 Para usar uma conta padrão descartável já criada, omita a opção; o perfil deve
 ter espaços e nenhum dado existente do Life Board. Não use um perfil pessoal.
-Os logs e evidências ficam em `test-results/windows-smoke/`. O workflow copia a
-evidência de assinatura para `release/`, escreve proveniência/checksums e executa
-`node desktop/scripts/release-checks.mts assets release windows-x64` antes de enviar
-o artefato. Para produção, o smoke também exige `-RequireSignature -PublisherName`
-e verifica Authenticode no instalador e app instalado.
-
-O workflow **Build macOS** executa checks, DMG + ZIP e o smoke do app instalado
-nativamente em `macos-15-intel` (x64) e `macos-15` (arm64), com Node.js 24.18.0.
-Branches geram builds ad-hoc sem credenciais; só tags de release assinam com
-Developer ID e notarizam. Consulte [Build macOS x64 e arm64](multiplataforma.md#build-macos-x64-e-arm64)
-para runners, interface, artefatos e assinatura.
+Os logs e evidências ficam em `test-results/windows-smoke/`. Para uma futura
+distribuição assinada, o smoke suporta `-RequireSignature -PublisherName` e verifica
+Authenticode no instalador e no app instalado. Consulte
+[Assinatura](multiplataforma.md#assinatura) antes de integrar um provedor.
 
 Para validar num Mac da mesma arquitetura do alvo (Intel para x64, Apple
 Silicon sem Rosetta para arm64), em uma conta descartável:
@@ -156,7 +144,4 @@ Sem as opções `--config.mac.*`, o electron-builder procura um certificado no
 keychain e, sem nenhum, gera um app sem assinatura, que o smoke recusa. O smoke
 troca temporariamente o keychain padrão e grava as evidências em
 `test-results/macos-smoke/`. Para um build Developer ID notarizado, acrescente
-`--team-id <TEAMID>`. O workflow copia `signing-info.json` para a pasta de saída,
-escreve proveniência/checksums e executa
-`node desktop/scripts/release-checks.mts assets release/mac-arm64 macos-arm64`
-antes de enviar cada artefato.
+`--team-id <TEAMID>`. Não há workflow atual para enviar ou publicar esses artefatos.

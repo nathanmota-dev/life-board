@@ -2,56 +2,36 @@
 
 [← Guia da documentação](guide.md)
 
-O Life Board para **macOS** é distribuído nas
-[releases do GitHub](https://github.com/nathanmota-dev/life-board/releases/latest),
-a partir da primeira release multiplataforma. A 1.0.0 é só para Linux. Há um
-pacote para cada processador:
+**Não há instalador oficial para macOS nas releases atuais.** A distribuição
+oficial é somente [Linux](instalacao-linux.md). O código mantém suporte a Intel e
+Apple Silicon, mas o workflow de build/publicação dessa plataforma foi removido.
 
-| Mac | Instalação | Atualização |
-| --- | --- | --- |
-| Apple Silicon (M1 ou posterior) | `life-board-<versão>-mac-arm64.dmg` | `life-board-<versão>-mac-arm64.zip` |
-| Intel | `life-board-<versão>-mac-x64.dmg` | `life-board-<versão>-mac-x64.zip` |
-
-Para saber qual é o seu, abra **Menu Apple → Sobre Este Mac**: "Chip Apple M…" é
-Apple Silicon; "Processador Intel…" é Intel. Não há binário universal. O ZIP é
-usado pelo próprio app nas atualizações; para instalar, baixe o DMG.
+A distribuição com Developer ID e notarização exige participação paga no Apple
+Developer Program e manutenção de certificados e credenciais. Esse custo fica
+fora do escopo atual; não impede compilar o código localmente para desenvolvimento.
 
 ## Requisitos
 
-- macOS 12 ou superior (requisito do Electron 44).
-- Não é preciso instalar Node.js, npm ou Git.
+- Um Mac da mesma arquitetura do alvo, Node.js 22.12 ou superior, npm e Git.
+- Uma conta descartável para testes de instalação e Keychain.
 
-A validação nativa feita até agora foi no macOS 15.7.9 dos runners do GitHub,
-em Intel e Apple Silicon, com builds ad-hoc. Macs reais e builds notarizados ainda
-não foram testados; veja a [validação multiplataforma](validacao-multiplataforma.md).
+Os testes anteriores nos runners macOS com assinatura ad-hoc são históricos. Não
+comprovam uma distribuição notarizada nem validação contínua de Macs de usuário.
+Veja a [validação multiplataforma](validacao-multiplataforma.md).
 
 ## Instalar
 
-1. Baixe o DMG do seu processador e, se quiser, confira o SHA-256 com o
-   `SHA256SUMS.txt` da mesma release:
+Gere o pacote local conforme [Gerar a partir do código](#gerar-a-partir-do-código).
+Use `life-board-<versão>-mac-arm64.dmg` em Apple Silicon ou
+`life-board-<versão>-mac-x64.dmg` em Intel, na pasta de saída do respectivo build.
+Abra o DMG, arraste **Life Board** para **Applications**, ejete o DMG e abra o app.
 
-   ```bash
-   shasum -a 256 life-board-<versão>-mac-arm64.dmg
-   ```
-
-2. Abra o DMG e arraste **Life Board** para **Applications**.
-3. Ejete o DMG e abra **Life Board** pela pasta Aplicativos ou pelo Launchpad.
-
-Releases de produção são assinadas com Developer ID e notarizadas pela Apple. Na
-primeira abertura, o macOS confirma que o app foi baixado da internet; escolha
-**Abrir**. Para conferir a assinatura:
-
-```bash
-codesign --verify --deep --strict --verbose=2 "/Applications/Life Board.app"
-spctl --assess --type execute --verbose=2 "/Applications/Life Board.app"
-```
-
-O `spctl` deve mostrar `accepted` e `source=Notarized Developer ID`.
-
-Builds de branch e de desenvolvimento têm só assinatura **ad-hoc** e não são
-notarizados. O Gatekeeper os bloqueia quando baixados, e o updater não os instala.
-Servem só para testes em contas descartáveis; não remova a quarentena de apps de
-origem desconhecida.
+Esses builds de desenvolvimento não têm Developer ID nem notarização. A assinatura
+ad-hoc usada nos testes não equivale à aprovação da Apple, e o Gatekeeper pode
+bloquear a execução. Não há pacote oficial notarizado para baixar nem garantia de
+instalação sem avisos. Teste somente builds próprios em contas descartáveis.
+Os requisitos para uma futura distribuição ficam em
+[Assinatura](multiplataforma.md#assinatura).
 
 ## Uso no macOS
 
@@ -68,16 +48,14 @@ origem desconhecida.
 
 ## Atualizações
 
-**Configurações → Atualizações** verifica a release mais recente, baixa o ZIP do
-mesmo processador, confere a assinatura e pede confirmação antes de instalar.
-Depois de **Instalar e reiniciar**, o app fecha uma vez e abre na versão nova. Em
-um Apple Silicon, o app baixa o pacote arm64 mesmo se estiver rodando pelo Rosetta.
-Detalhes em [Atualizações](atualizacoes.md).
+A implementação do atualizador macOS permanece no código, mas as releases
+oficiais não publicam ZIPs nem o feed `latest-mac.yml`. Portanto, **não há
+atualizações oficiais pelo aplicativo no macOS**. Builds ad-hoc não validam o
+fluxo de atualização assinado de produção.
 
-O app precisa estar em uma pasta onde seu usuário possa escrever, como
-`/Applications` em uma conta de administrador. Se a atualização pelo app falhar,
-feche o Life Board pelo menu (**Sair**), baixe o DMG mais novo e substitua o app em
-Aplicativos. Os dados são mantidos.
+Para atualizar um build local, compile novamente, feche o app pelo menu (**Sair**)
+e substitua o aplicativo usando o novo DMG. Preserve um backup dos dados e do
+ambiente de teste. Consulte [Atualizações](atualizacoes.md) para feeds controlados.
 
 ## Dados do usuário
 

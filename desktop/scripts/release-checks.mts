@@ -33,7 +33,7 @@ const TARGETS: Record<string, { targetOs: string, architecture: string }> = {
   "macos-x64": { targetOs: "darwin", architecture: "x64" },
   "macos-arm64": { targetOs: "darwin", architecture: "arm64" },
 }
-/** Every stable release contains all of these builds; x64 precedes arm64 in the Mac feed. */
+/** Supported build targets; public releases currently select the Linux scope. */
 export const RELEASE_TARGETS = Object.keys(TARGETS)
 
 function targetInfo(target: string) {
@@ -235,7 +235,17 @@ function publicFiles(target: string, version: string) {
 }
 
 /** The public asset set of a complete release, without the global SHA256SUMS.txt. */
-export function combinedFiles(version: string) {
+export type ReleaseScope = "all" | "linux"
+
+function releaseTargets(scope: ReleaseScope) {
+  if (scope === "linux") return ["linux-x64"]
+  if (scope === "all") return RELEASE_TARGETS
+  throw new Error(`Unsupported release scope ${scope}.`)
+}
+
+export function combinedFiles(version: string, scope: ReleaseScope = "all") {
+  if (scope === "linux") return publicFiles("linux-x64", version)
+  releaseTargets(scope)
   return [...RELEASE_TARGETS.flatMap((target) => publicFiles(target, version)), MAC_FEED]
 }
 
@@ -243,8 +253,10 @@ type BuildJob = { result?: string, outputs?: Record<string, string> }
 const BUILD_JOBS: Record<string, string[]> = { linux: ["linux-x64"], windows: ["windows-x64"], macos: ["macos-x64", "macos-arm64"] }
 
 /** Checks the reusable workflows' results (`toJSON(needs)`) against this checkout before any artifact is downloaded. */
-export function checkBuildOutputs(needs: Record<string, BuildJob>, version: string, expected: Provenance) {
+export function checkBuildOutputs(needs: Record<string, BuildJob>, version: string, expected: Provenance, scope: ReleaseScope = "all") {
+  const selected = releaseTargets(scope)
   for (const [job, targets] of Object.entries(BUILD_JOBS)) {
+    if (!targets.some((target) => selected.includes(target))) continue
     const { result, outputs = {} } = needs[job] ?? {}
     if (result !== "success") throw new Error(`The ${job} build did not succeed (${result ?? "missing"}).`)
     const names = targets.length === 1 ? [outputs["artifact-name"], outputs.target] : JSON.parse(outputs["artifact-names"] ?? "null")
@@ -280,16 +292,17 @@ export function mergeMacFeeds(x64: Feed, arm64: Feed, version: string) {
  * Verifies every build in `<root>/<target>` against this checkout and copies only their public files
  * into the empty `out` directory, with one merged Mac feed and a global SHA256SUMS.txt.
  */
-export async function composeRelease(root: string, out: string, version: string, provenance = checkoutProvenance()) {
+export async function composeRelease(root: string, out: string, version: string, provenance = checkoutProvenance(), scope: ReleaseScope = "all") {
+  const targets = releaseTargets(scope)
   const found = readdirSync(root).sort()
-  if (JSON.stringify(found) !== JSON.stringify([...RELEASE_TARGETS].sort())) {
-    throw new Error(`${root} must contain exactly ${RELEASE_TARGETS.join(", ")}; found ${found.join(", ") || "nothing"}.`)
+  if (JSON.stringify(found) !== JSON.stringify([...targets].sort())) {
+    throw new Error(`${root} must contain exactly ${targets.join(", ")}; found ${found.join(", ") || "nothing"}.`)
   }
   mkdirSync(out, { recursive: true })
   if (readdirSync(out).length) throw new Error(`${out} must be empty.`)
   const copied = new Set<string>()
   const macFeeds: Feed[] = []
-  for (const target of RELEASE_TARGETS) {
+  for (const target of targets) {
     const dir = join(root, target)
     const names = await checkAssets(dir, version, target, provenance)
     const extra = readdirSync(dir).filter((name) => !names.includes(name))
@@ -302,17 +315,20 @@ export async function composeRelease(root: string, out: string, version: string,
     if (TARGETS[target].targetOs === "darwin") macFeeds.push(parse(readFileSync(join(dir, MAC_FEED), "utf8")))
   }
   // Quoted strings keep js-yaml (used by electron-updater) from turning releaseDate into a Date.
-  const feed = stringify(mergeMacFeeds(macFeeds[0], macFeeds[1], version), { defaultStringType: "QUOTE_DOUBLE", defaultKeyType: "PLAIN", lineWidth: 0 })
-  writeFileSync(join(out, MAC_FEED), feed, { flag: "wx" })
-  const names = [...copied, MAC_FEED]
+  if (macFeeds.length) {
+    const feed = stringify(mergeMacFeeds(macFeeds[0], macFeeds[1], version), { defaultStringType: "QUOTE_DOUBLE", defaultKeyType: "PLAIN", lineWidth: 0 })
+    writeFileSync(join(out, MAC_FEED), feed, { flag: "wx" })
+    copied.add(MAC_FEED)
+  }
+  const names = [...copied]
   const lines = await Promise.all(names.map(async (name) => `${await sha(join(out, name), "sha256", "hex")}  ${name}`))
   writeFileSync(join(out, CHECKSUMS), `${lines.join("\n")}\n`, { flag: "wx" })
-  return checkRelease(out, version)
+  return checkRelease(out, version, scope)
 }
 
 /** Validates a composed upload directory: exactly the public set, every feed and blockmap, and the global checksums. */
-export async function checkRelease(dir: string, version: string) {
-  const names = combinedFiles(version)
+export async function checkRelease(dir: string, version: string, scope: ReleaseScope = "all") {
+  const names = combinedFiles(version, scope)
   const found = readdirSync(dir).sort()
   if (JSON.stringify(found) !== JSON.stringify([...names, CHECKSUMS].sort())) {
     throw new Error(`${dir} must contain exactly ${[...names, CHECKSUMS].join(", ")}; found ${found.join(", ")}.`)
@@ -321,13 +337,15 @@ export async function checkRelease(dir: string, version: string) {
     if (!lstatSync(join(dir, name)).isFile() || statSync(join(dir, name)).size === 0) throw new Error(`${name} must be a nonempty regular file.`)
   }
   const linux = releaseFiles(version)
-  const windows = windowsFiles(version)
-  const [intel, apple] = [macFiles(version, "x64"), macFiles(version, "arm64")]
   await checkFeed(dir, FEED, version, [linux.deb, linux.appImage])
-  await checkFeed(dir, windows.feed, version, [windows.installer])
-  await checkFeed(dir, MAC_FEED, version, [intel.zip, apple.zip], intel.zip)
-  checkBlockmap(dir, windows.blockmap, windows.installer, "NSIS")
-  for (const mac of [intel, apple]) checkBlockmap(dir, mac.blockmap, mac.zip, "ZIP")
+  if (scope === "all") {
+    const windows = windowsFiles(version)
+    const [intel, apple] = [macFiles(version, "x64"), macFiles(version, "arm64")]
+    await checkFeed(dir, windows.feed, version, [windows.installer])
+    await checkFeed(dir, MAC_FEED, version, [intel.zip, apple.zip], intel.zip)
+    checkBlockmap(dir, windows.blockmap, windows.installer, "NSIS")
+    for (const mac of [intel, apple]) checkBlockmap(dir, mac.blockmap, mac.zip, "ZIP")
+  }
   await checkChecksums(dir, names)
   return [...names, CHECKSUMS]
 }
@@ -342,7 +360,7 @@ export function draftAction(tag: string, state: string) {
 
 async function main([command, ...args]: string[]) {
   const { version } = JSON.parse(readFileSync("package.json", "utf8")) as { version: string }
-  const verify = (dir: string, target?: string) => target === "all" ? checkRelease(dir, version) : checkAssets(dir, version, target)
+  const verify = (dir: string, target?: string) => (target === "all" || target === "linux") ? checkRelease(dir, version, target) : checkAssets(dir, version, target)
   if (command === "tag") console.log(checkTag(args[0] ?? "", version))
   else if (command === "build-info") console.log(JSON.stringify(writeBuildInfo(args[0], version, args[1])))
   else if (command === "assets") console.log((await verify(args[0], args[1])).join("\n"))
@@ -351,13 +369,13 @@ async function main([command, ...args]: string[]) {
     checkUploaded(args[0], await verify(args[0], args[2]), assets)
     console.log(`Release assets match ${args[0]}.`)
   } else if (command === "builds") {
-    checkBuildOutputs(JSON.parse(process.env.BUILDS ?? "{}"), version, checkoutProvenance())
+    checkBuildOutputs(JSON.parse(process.env.BUILDS ?? "{}"), version, checkoutProvenance(), (args[0] ?? "all") as ReleaseScope)
     console.log(`All builds match ${version}.`)
-  } else if (command === "compose") console.log((await composeRelease(args[0], args[1], version)).join("\n"))
+  } else if (command === "compose") console.log((await composeRelease(args[0], args[1], version, checkoutProvenance(), (args[2] ?? "all") as ReleaseScope)).join("\n"))
   else if (command === "draft-action") console.log(draftAction(args[0] ?? "", args[1] ?? ""))
   else {
-    throw new Error("Usage: release-checks.mts tag <tag> | build-info <dir> <target> | assets <dir> [target|all] | uploaded <dir> <assets.json> [target|all]"
-      + " | builds | compose <artifacts> <out> | draft-action <tag> <true|false|missing>")
+    throw new Error("Usage: release-checks.mts tag <tag> | build-info <dir> <target> | assets <dir> [target|all|linux] | uploaded <dir> <assets.json> [target|all|linux]"
+      + " | builds [all|linux] | compose <artifacts> <out> [all|linux] | draft-action <tag> <true|false|missing>")
   }
 }
 

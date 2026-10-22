@@ -2,6 +2,12 @@
 
 [← Guia da documentação](guide.md)
 
+**Registro histórico:** a distribuição atual é somente Linux (DEB e AppImage).
+Os workflows Windows/macOS foram removidos, mas as adaptações do código e as
+evidências abaixo permanecem. Os bloqueios de assinatura dessas plataformas
+impedem sua futura distribuição, não a release Linux. Para o fluxo atual, veja
+[Publicação de releases](releases.md).
+
 Registro da validação integrada da série multiplataforma (#26–#31), pedida pela
 #32. Cada item diz **passou**, **falhou** ou **não executado**, com o motivo. Um alvo
 só é considerado validado com execução nativa no sistema e na arquitetura dele;
@@ -21,7 +27,8 @@ criado (`gh release list` mostra só `v1.0.0`).
 | macOS arm64 | Smoke do DMG no runner `macos-15` (ad-hoc) | Bloqueada: sem Developer ID | Não executada | Parcial; produção bloqueada |
 
 O suporte multiplataforma **ainda não está pronto para release**. Os bloqueios estão
-em [Bloqueios](#bloqueios) e precisam ser resolvidos antes de aprovar a 1.1.0.
+em [Bloqueios](#bloqueios) e precisam ser resolvidos antes de retomar uma release
+multiplataforma. A 1.1.0 passou a ter escopo de publicação somente Linux.
 
 ## Verificações locais
 

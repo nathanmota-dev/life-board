@@ -2,54 +2,36 @@
 
 [← Guia da documentação](guide.md)
 
-O Life Board para **Windows x64** é distribuído como instalador NSIS nas
-[releases do GitHub](https://github.com/nathanmota-dev/life-board/releases/latest),
-a partir da primeira release multiplataforma. A 1.0.0 é só para Linux.
+**Não há instalador oficial para Windows nas releases atuais.** A distribuição
+oficial é somente [Linux](instalacao-linux.md). O código mantém suporte a Windows
+x64, mas o workflow de build/publicação dessa plataforma foi removido.
 
-| Arquivo | Uso |
-| --- | --- |
-| `life-board-<versão>-win-x64.exe` | Instalação e atualização |
-
-Não há versão ARM64, portátil ou da Microsoft Store.
+A assinatura pública do instalador exige certificado ou serviço de assinatura,
+com custos e integração que não fazem parte do escopo atual. Não é uma licença
+necessária para executar o código: você pode compilar localmente para uso e testes.
 
 ## Requisitos
 
-- Windows 10 ou 11 x64 (requisito do Electron 44).
-- Uma conta de usuário comum. O instalador não pede privilégios de administrador.
-- Não é preciso instalar Node.js, npm ou Git.
+- Windows x64, Node.js 22.12 ou superior, npm e Git para compilar.
+- Uma conta descartável para testes de instalação; o aplicativo instalado usa uma
+  conta comum, sem privilégios de administrador.
 
-A validação nativa feita até agora foi no Windows Server 2022 (build 20348) dos
-runners do GitHub. Windows 10 e 11 de usuário ainda não foram testados; veja a
-[validação multiplataforma](validacao-multiplataforma.md).
+Os testes anteriores nos runners Windows são evidências históricas, não uma
+validação contínua nem garantia de funcionamento em Windows 10/11 de usuário.
+Veja a [validação multiplataforma](validacao-multiplataforma.md).
 
 ## Instalar
 
-1. Baixe `life-board-<versão>-win-x64.exe` da release e, se quiser, confira o
-   SHA-256 com o `SHA256SUMS.txt` da mesma release:
+Primeiro gere seu próprio instalador conforme [Gerar a partir do código](#gerar-a-partir-do-código).
+O arquivo local será `release\life-board-<versão>-win-x64.exe`.
+Ele instala para o usuário atual em `%LOCALAPPDATA%\Programs\Life Board` e cria
+atalhos no menu Iniciar e na área de trabalho. Abra o app pelo menu Iniciar.
 
-   ```powershell
-   Get-FileHash .\life-board-<versão>-win-x64.exe -Algorithm SHA256
-   ```
-
-2. Abra o instalador. Ele instala só para o usuário atual, em
-   `%LOCALAPPDATA%\Programs\Life Board`, e cria os atalhos do menu Iniciar e da área
-   de trabalho. O app não abre sozinho ao terminar.
-3. Abra **Life Board** pelo menu Iniciar.
-
-Releases de produção são assinadas com Authenticode. Antes de executar, confira
-o editor em **Propriedades → Assinaturas digitais** ou com:
-
-```powershell
-Get-AuthenticodeSignature .\life-board-<versão>-win-x64.exe | Format-List Status, SignerCertificate
-```
-
-`Status` deve ser `Valid`. O SmartScreen ainda pode exibir um aviso para um
-instalador assinado recém-publicado; nesse caso, use **Mais informações → Executar
-assim mesmo** só se a assinatura e o checksum conferirem.
-
-Builds de branch e de desenvolvimento **não são assinados** e não devem ser
-distribuídos. Eles mostram "Editor desconhecido" no SmartScreen e servem só para
-testes em contas descartáveis.
+O build local não tem assinatura de produção e pode aparecer como **Editor
+desconhecido**. Não há certificado oficial ou checksum de release Windows para
+conferir. Use apenas o pacote que você compilou e teste em uma conta descartável.
+Os requisitos de uma futura distribuição assinada ficam em
+[Assinatura](multiplataforma.md#assinatura).
 
 ## Uso no Windows
 
@@ -66,13 +48,13 @@ testes em contas descartáveis.
 
 ## Atualizações
 
-**Configurações → Atualizações** verifica a release mais recente, baixa o
-instalador da mesma arquitetura e pede confirmação antes de instalar. O instalador
-substitui a versão atual na mesma pasta e abre a versão nova. Nada é instalado
-sem confirmação. Detalhes em [Atualizações](atualizacoes.md).
+A implementação do atualizador Windows permanece no código, mas as releases
+oficiais não publicam o instalador nem o feed `latest.yml`. Portanto, **não há
+atualizações oficiais pelo aplicativo no Windows**.
 
-Se a atualização pelo app falhar, feche o Life Board pela bandeja (**Sair**) e
-execute o instalador mais novo baixado da release. Ele mantém os dados.
+Para atualizar um build local, gere um novo instalador, feche o app pela bandeja
+(**Sair**) e instale na mesma conta. Preserve um backup dos dados. Testes com feed
+controlado são descritos em [Atualizações](atualizacoes.md).
 
 ## Dados do usuário
 
