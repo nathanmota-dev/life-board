@@ -27,11 +27,11 @@ personalizáveis. Seus dados ficam armazenados localmente no computador.
 O Life Board é distribuído para **Linux x64** pelas
 [releases do GitHub](https://github.com/nathanmota-dev/life-board/releases/latest).
 Baixe o
-[`life-board_1.0.0_amd64.deb`](https://github.com/nathanmota-dev/life-board/releases/download/v1.0.0/life-board_1.0.0_amd64.deb)
+[`life-board_1.1.0_amd64.deb`](https://github.com/nathanmota-dev/life-board/releases/download/v1.1.0/life-board_1.1.0_amd64.deb)
 e instale com o APT, na pasta do download:
 
 ```bash
-sudo apt install ./life-board_1.0.0_amd64.deb
+sudo apt install ./life-board_1.1.0_amd64.deb
 ```
 
 Depois, abra **Life Board** pelo menu de aplicativos. Não é preciso instalar
@@ -40,7 +40,7 @@ Node.js, npm ou Git. Novas versões aparecem em **Configurações → Atualizaç
 O pacote foi testado no Ubuntu 22.04, 24.04 e 26.04 e no Debian 12 e 13. O app
 exige um chaveiro do sistema desbloqueado (GNOME Keyring ou KWallet) para proteger
 credenciais. Também há um
-[AppImage](https://github.com/nathanmota-dev/life-board/releases/download/v1.0.0/life-board-1.0.0-x86_64.AppImage),
+[AppImage](https://github.com/nathanmota-dev/life-board/releases/download/v1.1.0/life-board-1.1.0-x86_64.AppImage),
 que dispensa instalação, mas requer FUSE. O DEB baixado não cadastra um repositório
 APT: `sudo apt install life-board`, pelo nome do pacote, não funciona.
 
