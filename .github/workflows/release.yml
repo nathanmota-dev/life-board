@@ -211,13 +211,14 @@ jobs:
       - name: Verify public downloads and feeds without a token
         run: |
           base="https://github.com/${GH_REPO}/releases"
-          mkdir public
+          public_dir=$(mktemp -d "${RUNNER_TEMP}/life-board-public.XXXXXX")
+          trap 'rm -rf "$public_dir"' EXIT
           for name in $(cd release && ls); do
-            curl -fsSL --retry 5 --retry-delay 10 "$base/download/${TAG}/$name" -o "public/$name" \
+            curl -fsSL --retry 5 --retry-delay 10 "$base/download/${TAG}/$name" -o "$public_dir/$name" \
               || { echo "::error::$name is not publicly downloadable"; exit 1; }
           done
-          diff -r release public || { echo "::error::Public assets differ from the verified build"; exit 1; }
-          node desktop/scripts/release-checks.mts assets public linux
+          diff -r release "$public_dir" || { echo "::error::Public assets differ from the verified build"; exit 1; }
+          node desktop/scripts/release-checks.mts assets "$public_dir" linux
           for feed in latest-linux.yml; do
             curl -fsSL --retry 5 --retry-delay 10 "$base/latest/download/$feed" | cmp - "release/$feed" \
               || { echo "::error::The stable $feed does not serve $TAG"; exit 1; }
