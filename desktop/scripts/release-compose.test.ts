@@ -269,3 +269,52 @@ describe("draft state", () => {
     expect(() => draftAction("v1.0.0", state)).toThrow("Unexpected")
   })
 })
+
+
+describe("Linux-only public release", () => {
+  const linuxRelease = async (provenance = release) => {
+    const root = temp()
+    await artifact(root, "linux-x64", { provenance })
+    const out = join(temp(), "release")
+    await composeRelease(root, out, "1.0.0", provenance, "linux")
+    return { root, out }
+  }
+
+  it.each([release, buildOnly])("composes only Linux public files for %j", async (provenance) => {
+    const { root, out } = await linuxRelease(provenance)
+    expect(readdirSync(out).sort()).toEqual([
+      "life-board_1.0.0_amd64.deb", "life-board-1.0.0-x86_64.AppImage", FEED, CHECKSUMS,
+    ].sort())
+    expect(readFileSync(join(out, FEED))).toEqual(readFileSync(join(root, "linux-x64", FEED)))
+    const names = await checkRelease(out, "1.0.0", "linux")
+    expect(() => checkUploaded(out, names, names.map((name) => ({ name, size: statSync(join(out, name)).size })))).not.toThrow()
+    writeFileSync(join(out, "life-board_1.0.0_amd64.deb"), "tampered")
+    await expect(checkRelease(out, "1.0.0", "linux")).rejects.toThrow()
+  })
+
+  it("rejects artifacts from another commit and unexpected platform directories", async () => {
+    const { root } = await linuxRelease()
+    await expect(composeRelease(root, join(temp(), "release"), "1.0.0", { ...release, sourceSha: "b".repeat(40) }, "linux"))
+      .rejects.toThrow("source")
+    mkdirSync(join(root, "windows-x64"))
+    await expect(composeRelease(root, join(temp(), "release"), "1.0.0", release, "linux")).rejects.toThrow("must contain exactly")
+  })
+
+  it("requires the Linux job and its provenance without requiring other platforms", () => {
+    const needs = { linux: { result: "success", outputs: {
+      "artifact-name": "linux-x64", target: "linux-x64", version: "1.0.0",
+      "source-sha": release.sourceSha, "release-tag": release.releaseTag!,
+    } } }
+    expect(() => checkBuildOutputs(needs, "1.0.0", release, "linux")).not.toThrow()
+    expect(() => checkBuildOutputs({}, "1.0.0", release, "linux")).toThrow("linux build did not succeed")
+    needs.linux.outputs["source-sha"] = "b".repeat(40)
+    expect(() => checkBuildOutputs(needs, "1.0.0", release, "linux")).toThrow("different version, commit or tag")
+  })
+
+  it("rejects extra public files and misspelled scopes", async () => {
+    const { root, out } = await linuxRelease()
+    writeFileSync(join(out, "latest.yml"), "unexpected")
+    await expect(checkRelease(out, "1.0.0", "linux")).rejects.toThrow("must contain exactly")
+    await expect(composeRelease(root, temp(), "1.0.0", release, "linxu" as never)).rejects.toThrow("Unsupported release scope")
+  })
+})

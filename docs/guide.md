@@ -20,7 +20,7 @@ repositório, salvo indicação em contrário.
   assinatura, bandeja, notificações, dados e recuperação.
 - [Instalação e atualização no macOS](instalacao-macos.md): DMG por processador,
   Gatekeeper, Keychain, itens de login e recuperação.
-- [Empacotamento multiplataforma](multiplataforma.md): comandos, nomes dos arquivos
+- [Empacotamento multiplataforma](multiplataforma.md): builds locais e distribuição Linux, nomes dos arquivos
   e feeds de Linux, Windows e macOS, módulos nativos, caminhos e validação.
 - [Atualizações do aplicativo](atualizacoes.md): cadência, consentimento, DEB/AppImage,
   contrato do feed e testes empacotados.

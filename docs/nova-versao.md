@@ -42,10 +42,9 @@ passando.
 
 ## 4. Criar e enviar a tag
 
-Antes, confira se os secrets de [assinatura](multiplataforma.md#assinatura) do
-Windows e do macOS estão configurados e se a
-[validação multiplataforma](validacao-multiplataforma.md) não tem bloqueios
-abertos. Sem os secrets, os builds Windows e macOS falham e nada é publicado.
+A publicação é somente Linux x64 (DEB e AppImage). Não são necessários
+certificados Windows ou credenciais Apple. Confira os testes Linux e as notas
+da versão antes de enviar a tag.
 
 ```bash
 git switch main && git pull --ff-only
@@ -62,10 +61,10 @@ publicar nada.
 1. Acompanhe em **Actions → Release**.
 2. Quando o job **Publish after maintainer approval** mostrar *Waiting for review*,
    abra **Releases** e baixe os arquivos do rascunho. No Linux, instale o `.deb`:
-   `sudo apt install ./life-board_1.1.0_amd64.deb`. No Windows e nos Macs, use o
-   `.exe` e o `.dmg` de cada arquitetura, conforme os guias de
-   [Windows](instalacao-windows.md) e [macOS](instalacao-macos.md).
-3. Em cada sistema, confira se o app abre, se os dados continuam lá e se a versão
+   `sudo apt install ./life-board_1.1.0_amd64.deb`. Para o
+   AppImage, confira também abertura e atualização conforme o guia de
+   [Linux](instalacao-linux.md).
+3. Nos dois formatos Linux, confira se o app abre, se os dados continuam lá e se a versão
    nova aparece em **Configurações → Atualizações**. O teste completo está em
    [Teste manual antes de aprovar](releases.md#teste-manual-antes-de-aprovar).
 4. Tudo certo: **Review deployments → release → Approve and deploy**.

@@ -1,4 +1,4 @@
-# Tag-driven multiplatform release: one commit, every build, one reviewed draft and
+# Tag-driven Linux release: one commit, one build, one reviewed draft and
 # one publication after maintainer approval. See docs/releases.md for the procedure,
 # the approval gate and the rerun/immutability policy.
 name: Release
@@ -55,7 +55,7 @@ jobs:
           fi
           echo "Mode: $([ "$EVENT_NAME" = push ] && [ "$GITHUB_REF_TYPE" = tag ] && echo "release $GITHUB_REF_NAME" || echo build-only); source $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
 
-  # The three builds are independent and run in parallel from the same commit.
+  # Public distribution currently supports Linux only.
   linux:
     name: Linux
     needs: validate
@@ -63,34 +63,10 @@ jobs:
     with:
       release: ${{ needs.validate.outputs.release == 'true' }}
 
-  windows:
-    name: Windows
-    needs: validate
-    uses: ./.github/workflows/build-windows.yml
-    with:
-      release: ${{ needs.validate.outputs.release == 'true' }}
-    # Signing credentials reach only release builds; build-only runs get none.
-    secrets:
-      WIN_CSC_LINK: ${{ needs.validate.outputs.release == 'true' && secrets.WIN_CSC_LINK || '' }}
-      WIN_CSC_KEY_PASSWORD: ${{ needs.validate.outputs.release == 'true' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
-
-  macos:
-    name: macOS
-    needs: validate
-    uses: ./.github/workflows/build-macos.yml
-    with:
-      release: ${{ needs.validate.outputs.release == 'true' }}
-    secrets:
-      MAC_CSC_LINK: ${{ needs.validate.outputs.release == 'true' && secrets.MAC_CSC_LINK || '' }}
-      MAC_CSC_KEY_PASSWORD: ${{ needs.validate.outputs.release == 'true' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
-      APPLE_API_KEY_P8: ${{ needs.validate.outputs.release == 'true' && secrets.APPLE_API_KEY_P8 || '' }}
-      APPLE_API_KEY_ID: ${{ needs.validate.outputs.release == 'true' && secrets.APPLE_API_KEY_ID || '' }}
-      APPLE_API_ISSUER: ${{ needs.validate.outputs.release == 'true' && secrets.APPLE_API_ISSUER || '' }}
-
-  # Fan-in: runs only when every build succeeded, in both modes.
+  # Verify only artifacts from the Linux build of this run.
   verify:
     name: Verify complete release assets
-    needs: [validate, linux, windows, macos]
+    needs: [validate, linux]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -105,21 +81,21 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
 
-      - name: Check every build's version, commit, tag and signing state
+      - name: Check the Linux build version, commit and tag
         env:
           BUILDS: ${{ toJSON(needs) }}
-        run: node desktop/scripts/release-checks.mts builds
+        run: node desktop/scripts/release-checks.mts builds linux
 
       # Artifacts of this run only, one directory per target.
       - uses: actions/download-artifact@v4
         with:
-          pattern: "{linux-x64,windows-x64,macos-x64,macos-arm64}"
+          pattern: linux-x64
           path: artifacts
 
       - name: Compose and verify the upload directory
         run: |
-          node desktop/scripts/release-checks.mts compose artifacts release
-          node desktop/scripts/release-checks.mts assets release all
+          node desktop/scripts/release-checks.mts compose artifacts release linux
+          node desktop/scripts/release-checks.mts assets release linux
           {
             echo "### Release assets ($([ -n "$RELEASE_TAG" ] && echo "$RELEASE_TAG" || echo build-only))"
             echo '```'
@@ -158,12 +134,12 @@ jobs:
       - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v4
         with:
-          pattern: "{linux-x64,windows-x64,macos-x64,macos-arm64}"
+          pattern: linux-x64
           path: artifacts
 
       # Recomposes from the builds and revalidates provenance against the tag checkout.
       - name: Verify the builds before staging
-        run: node desktop/scripts/release-checks.mts compose artifacts release
+        run: node desktop/scripts/release-checks.mts compose artifacts release linux
 
       - name: Create or reuse the draft
         run: |
@@ -184,7 +160,7 @@ jobs:
       - name: Verify the draft byte for byte
         run: |
           gh release view "$TAG" --json assets > assets.json
-          node desktop/scripts/release-checks.mts uploaded release assets.json all
+          node desktop/scripts/release-checks.mts uploaded release assets.json linux
           gh release download "$TAG" --dir draft
           diff -r release draft
           {
@@ -217,16 +193,16 @@ jobs:
       - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v4
         with:
-          pattern: "{linux-x64,windows-x64,macos-x64,macos-arm64}"
+          pattern: linux-x64
           path: artifacts
 
       # Nothing is rebuilt: the draft must still hold exactly the verified bytes.
       - name: Publish the verified draft
         run: |
-          node desktop/scripts/release-checks.mts compose artifacts release
+          node desktop/scripts/release-checks.mts compose artifacts release linux
           test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true || { echo "::error::$TAG is not a draft"; exit 1; }
           gh release view "$TAG" --json assets > assets.json
-          node desktop/scripts/release-checks.mts uploaded release assets.json all
+          node desktop/scripts/release-checks.mts uploaded release assets.json linux
           gh release download "$TAG" --dir draft
           diff -r release draft
           gh release edit "$TAG" --draft=false --latest
@@ -241,8 +217,8 @@ jobs:
               || { echo "::error::$name is not publicly downloadable"; exit 1; }
           done
           diff -r release public || { echo "::error::Public assets differ from the verified build"; exit 1; }
-          node desktop/scripts/release-checks.mts assets public all
-          for feed in latest-linux.yml latest.yml latest-mac.yml; do
+          node desktop/scripts/release-checks.mts assets public linux
+          for feed in latest-linux.yml; do
             curl -fsSL --retry 5 --retry-delay 10 "$base/latest/download/$feed" | cmp - "release/$feed" \
               || { echo "::error::The stable $feed does not serve $TAG"; exit 1; }
           done
