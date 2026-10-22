@@ -13,6 +13,10 @@ concurrency:
   group: electron-e2e-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  electron_config_cache: ${{ github.workspace }}/.cache/electron
+
 jobs:
   e2e:
     name: Electron functional regression
@@ -29,8 +33,9 @@ jobs:
       - name: Cache Electron downloads
         uses: actions/cache@v4
         with:
-          path: ~/.cache/electron
-          key: electron-e2e-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          path: ${{ env.ELECTRON_CACHE }}
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
       - run: npm ci --prefer-offline --no-audit
       - name: Install Electron system dependencies
         run: |

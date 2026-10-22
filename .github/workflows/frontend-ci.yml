@@ -12,6 +12,10 @@ concurrency:
   group: frontend-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  electron_config_cache: ${{ github.workspace }}/.cache/electron
+
 jobs:
   checks:
     name: Audit, lint, typecheck and unit coverage
@@ -27,11 +31,23 @@ jobs:
           cache: npm
       - uses: actions/cache@v4
         with:
-          path: ~/.cache/electron
-          key: electron-checks-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          path: ${{ env.ELECTRON_CACHE }}
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
       - run: npm ci --prefer-offline --no-audit
       - name: Dependency audit (critical blocks, lower severities reported)
-        run: npm audit --workspace web --include-workspace-root --audit-level=critical
+        run: |
+          for attempt in 1 2 3; do
+            if npm audit --workspace web --include-workspace-root --audit-level=critical --fetch-timeout=30000 --fetch-retries=0; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::Audit attempt $attempt failed; retrying in 10 seconds"
+              sleep 10
+            fi
+          done
+          echo "::error::Dependency audit failed after three attempts"
+          exit 1
       - name: Lint
         if: ${{ !cancelled() }}
         run: npm run lint:frontend

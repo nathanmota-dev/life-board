@@ -47,6 +47,9 @@ permissions:
   contents: read
 
 env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  electron_config_cache: ${{ github.workspace }}/.cache/electron
+  ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
   NODE_VERSION: 24.18.0
   RELEASE_TAG: ${{ inputs.release && github.event_name != 'workflow_dispatch' && github.ref_type == 'tag' && github.ref_name || '' }}
   CSC_IDENTITY_AUTO_DISCOVERY: 'false'
@@ -77,6 +80,19 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_CACHE }}
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache electron-builder tools
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_BUILDER_CACHE }}
+          key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-builder-${{ runner.os }}-${{ runner.arch }}-
+
       # Record what the runner really is; an alias or Rosetta is not proof.
       - name: Verify toolchain and record native runner
         env:
@@ -103,7 +119,7 @@ jobs:
             exit 1
           fi
 
-      - run: npm ci
+      - run: npm ci --prefer-offline --no-audit
       - name: Validate stable tag and notes
         if: env.RELEASE_TAG != ''
         run: |

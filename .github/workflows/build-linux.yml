@@ -33,6 +33,9 @@ permissions:
   contents: read
 
 env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  electron_config_cache: ${{ github.workspace }}/.cache/electron
+  ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
   NODE_VERSION: 24.18.0
   RELEASE_TAG: ${{ inputs.release && github.event_name != 'workflow_dispatch' && github.ref_type == 'tag' && github.ref_name || '' }}
 
@@ -65,13 +68,26 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_CACHE }}
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache electron-builder tools
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_BUILDER_CACHE }}
+          key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-builder-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Verify toolchain
         run: |
           node -e 'if (process.versions.node !== "24.18.0" || process.platform !== "linux" || process.arch !== "x64") process.exit(1)'
           . /etc/os-release
           test "$ID:$VERSION_ID" = ubuntu:24.04
 
-      - run: npm ci
+      - run: npm ci --prefer-offline --no-audit
 
       # Manual dispatch always builds only, including dispatch on a tag.
       - name: Validate release request
