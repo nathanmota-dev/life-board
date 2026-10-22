@@ -97,6 +97,7 @@
     "updates": {
       "title": "Atualizações",
       "description": "O Life Board procura versões estáveis uma vez por dia enquanto está aberto. Você escolhe quando baixar, instalar e reiniciar.",
+      "formats": { "deb": "DEB", "AppImage": "AppImage", "nsis": "Windows (NSIS)", "mac": "macOS" },
       "installed": "Versão instalada",
       "lastCheck": "Última verificação bem-sucedida",
       "never": "Ainda não verificado",
@@ -109,7 +110,7 @@
       "progress": "Progresso do download",
       "indicator": "Atualização {{version}} disponível",
       "confirmTitle": "Instalar atualização e reiniciar?",
-      "confirmDescription": "O Life Board solicitará autorização do sistema para atualizar um DEB e depois reiniciará. Seus dados e configurações serão mantidos. Sessões do pomodoro em execução ou pausadas serão retomadas após reiniciar.",
+      "confirmDescription": "O Life Board instalará a atualização e reiniciará. Conclua a autorização do sistema, se solicitada. Seus dados e configurações serão mantidos. Sessões do pomodoro em execução ou pausadas serão retomadas após reiniciar.",
       "states": {
         "idle": "Nenhuma verificação concluída.",
         "checking": "Verificando atualizações…",
@@ -118,17 +119,32 @@
         "downloading": "Baixando e verificando a atualização…",
         "ready": "A atualização foi verificada e está pronta para instalar.",
         "installing": "Instalando a atualização. Conclua a autorização do sistema, se solicitada.",
-        "unavailable": "Atualizações estão disponíveis em instalações Linux DEB e AppImage para x64 e ARM64. Desenvolvimento, prévia no navegador e outras distribuições não podem atualizar aqui.",
+        "unavailable": "Atualizações estão disponíveis em apps Windows x64 instalados via NSIS, macOS Intel/Apple Silicon e instalações Linux DEB/AppImage para x64 e ARM64. Desenvolvimento, prévia no navegador e outras distribuições não podem atualizar aqui.",
         "error": "Não foi possível concluir a atualização. Você pode tentar novamente."
       },
       "errors": {
         "network": "Não foi possível acessar a fonte de atualizações. Verifique sua conexão e tente novamente. As verificações automáticas tentarão de novo após um intervalo.",
         "metadata": "O feed está ausente ou inválido, ou não contém um pacote estável para seu formato e arquitetura. Tente verificar novamente mais tarde.",
         "permission": "A autorização foi cancelada ou negada, ou o local de instalação não permite escrita. O app não foi reiniciado. Verifique as permissões e tente novamente.",
-        "integrity": "A soma de verificação do pacote não corresponde aos metadados. Verifique novamente e baixe uma nova cópia.",
-        "installation": "O gerenciador de pacotes não conseguiu instalar a atualização. O app não foi reiniciado. Verifique as dependências do sistema e tente novamente.",
+        "integrity": "A soma de verificação ou a assinatura do pacote não pôde ser validada. Baixe uma nova cópia de um lançamento confiável.",
+        "installation": "O sistema não conseguiu instalar a atualização. O app não foi reiniciado. Verifique as dependências do sistema e tente novamente.",
         "storage": "Não foi possível salvar o histórico. Verifique as permissões e o espaço livre na pasta de dados do aplicativo."
       }
+    },
+    "files": {
+      "tab": "Arquivos",
+      "title": "Pasta de uploads",
+      "description": "As fotos e arquivos enviados no File Board são copiados para cá. Escolha outra pasta para guardá-los em outro lugar; o Life Board cria life-board-app/uploads dentro dela.",
+      "current": "Pasta atual",
+      "default": "Padrão",
+      "location": "Novo local",
+      "placeholder": "/caminho/da/pasta",
+      "choose": "Escolher pasta…",
+      "preview": "Os arquivos serão salvos em {{path}}",
+      "moveHint": "Ao salvar, todos os arquivos existentes são movidos para a nova pasta.",
+      "save": "Salvar e mover arquivos",
+      "moving": "Movendo arquivos…",
+      "reset": "Restaurar padrão"
     }
   },
   "common": {
@@ -793,7 +809,10 @@
     "request_failed": "A solicitação falhou. Tente novamente.",
     "network": "Não foi possível conectar ao serviço do app. Tente novamente.",
     "internal_error": "Algo deu errado.",
-    "focus_limit": "Um dia pode ter no máximo 3 tarefas de foco."
+    "focus_limit": "Um dia pode ter no máximo 3 tarefas de foco.",
+    "relative_dir": "Use o caminho completo da pasta, como /home/voce/Imagens.",
+    "invalid_dir": "Essa pasta não existe ou o Life Board não tem permissão para gravar nela.",
+    "move_failed": "Não foi possível mover os arquivos. Nada mudou, e a pasta atual continua em uso."
   },
   "counts": {
     "task_one": "{{count}} tarefa",

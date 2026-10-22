@@ -127,6 +127,11 @@ export function preservePomodoroForUpdate() {
   writeFileSync(join(dataDir, "pomodoro-update.json"), JSON.stringify({ ...state, remainingMs: remainingAt(state, Date.now()) }), { mode: 0o600 })
 }
 
+/** A failed native handoff must not resume an obsolete timer on an ordinary launch. */
+export function cancelPomodoroUpdate() {
+  rmSync(join(dataDir, "pomodoro-update.json"), { force: true })
+}
+
 export function registerPomodoro(directory: string) {
   dataDir = directory
   state = load()

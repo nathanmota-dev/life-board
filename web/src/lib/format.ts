@@ -15,6 +15,9 @@ const ERROR_KEYS: Record<string, ErrorTranslationKey | undefined> = {
   bad_request: "errors.bad_request",
   request_failed: "errors.request_failed",
   internal_error: "errors.internal_error",
+  relative_dir: "errors.relative_dir",
+  invalid_dir: "errors.invalid_dir",
+  move_failed: "errors.move_failed",
 }
 
 export function formatBytes(bytes: number) {

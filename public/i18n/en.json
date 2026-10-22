@@ -97,6 +97,7 @@
     "updates": {
       "title": "Updates",
       "description": "Life Board checks for stable updates once a day while running. You choose when to download, install and restart.",
+      "formats": { "deb": "DEB", "AppImage": "AppImage", "nsis": "Windows (NSIS)", "mac": "macOS" },
       "installed": "Installed version",
       "lastCheck": "Last successful check",
       "never": "Not yet checked",
@@ -109,7 +110,7 @@
       "progress": "Download progress",
       "indicator": "Update {{version}} available",
       "confirmTitle": "Install update and restart?",
-      "confirmDescription": "Life Board will request system authorization for a DEB update, then restart. Your data and settings are kept. Running or paused pomodoro sessions resume after restart.",
+      "confirmDescription": "Life Board will install the update and restart. Complete system authorization if requested. Your data and settings are kept. Running or paused pomodoro sessions resume after restart.",
       "states": {
         "idle": "No check completed yet.",
         "checking": "Checking for updates…",
@@ -118,17 +119,32 @@
         "downloading": "Downloading and verifying the update…",
         "ready": "The update is verified and ready to install.",
         "installing": "Installing the update. Complete the system authorization prompt if requested.",
-        "unavailable": "Updates are available in packaged Linux DEB and AppImage installations on x64 and ARM64. Development, browser preview and other distributions cannot update here.",
+        "unavailable": "Updates are available in installed Windows x64 NSIS apps, macOS Intel/Apple Silicon apps, and Linux DEB/AppImage installations on x64 and ARM64. Development, browser preview and other distributions cannot update here.",
         "error": "The update could not be completed. You can try again."
       },
       "errors": {
         "network": "Cannot reach the update source. Check your connection and try again. Automatic checks retry with a delay.",
         "metadata": "The release feed is missing or invalid, or has no stable package for your format and architecture. Try checking again later.",
         "permission": "Authorization was cancelled or denied, or the installation path is not writable. The app has not restarted. Check permissions and try again.",
-        "integrity": "The package checksum does not match the update metadata. Check again and download a fresh copy.",
-        "installation": "The package manager could not install the update. The app has not restarted. Check system dependencies and try again.",
+        "integrity": "The package checksum or signature could not be verified. Download a fresh copy from a trusted release.",
+        "installation": "The system could not install the update. The app has not restarted. Check system dependencies and try again.",
         "storage": "Update history could not be saved. Check the permissions and free space in your application data directory."
       }
+    },
+    "files": {
+      "tab": "Files",
+      "title": "Upload folder",
+      "description": "Photos and files you upload to File Board are copied here. Pick another folder to keep them somewhere else; Life Board creates life-board-app/uploads inside it.",
+      "current": "Current folder",
+      "default": "Default",
+      "location": "New location",
+      "placeholder": "/path/to/folder",
+      "choose": "Choose folder…",
+      "preview": "Files will be saved in {{path}}",
+      "moveHint": "Saving moves every existing file to the new folder.",
+      "save": "Save and move files",
+      "moving": "Moving files…",
+      "reset": "Restore default"
     }
   },
   "common": {
@@ -793,7 +809,10 @@
     "request_failed": "The request failed. Try again.",
     "network": "Could not connect to the app service. Try again.",
     "internal_error": "Something went wrong.",
-    "focus_limit": "A day can have at most 3 focus tasks."
+    "focus_limit": "A day can have at most 3 focus tasks.",
+    "relative_dir": "Use a full folder path, like /home/you/Pictures.",
+    "invalid_dir": "This folder doesn't exist or Life Board can't write to it.",
+    "move_failed": "Could not move the files. Nothing changed, and the current folder is still in use."
   },
   "counts": {
     "task_one": "{{count}} task",

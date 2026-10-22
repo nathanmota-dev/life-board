@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test": "node scripts/run-tests.mjs run",
+    "test:watch": "node scripts/run-tests.mjs",
+    "test:coverage": "node scripts/run-tests.mjs run --coverage",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

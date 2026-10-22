@@ -1,0 +1,67 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  electron_config_cache: ${{ github.workspace }}/.cache/electron
+
+jobs:
+  checks:
+    name: Audit, lint, typecheck and unit coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.18.0
+          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_CACHE }}
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
+      - run: npm ci --prefer-offline --no-audit
+      - name: Dependency audit (critical blocks, lower severities reported)
+        run: |
+          for attempt in 1 2 3; do
+            if npm audit --workspace web --include-workspace-root --audit-level=critical --fetch-timeout=120000 --fetch-retries=0; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::Audit attempt $attempt failed; retrying in 10 seconds"
+              sleep 10
+            fi
+          done
+          echo "::error::Dependency audit failed after three attempts"
+          exit 1
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: npm run lint:frontend
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: npm run typecheck:frontend
+      - name: Unit tests with coverage
+        if: ${{ !cancelled() }}
+        run: npm run test:frontend:coverage
+      - name: Upload coverage reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          retention-days: 14
+          if-no-files-found: warn
+          path: web/coverage/

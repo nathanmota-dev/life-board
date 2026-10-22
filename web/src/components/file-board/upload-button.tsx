@@ -3,6 +3,7 @@ import { useRef } from "react"
 import { Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useUploadFile } from "@/hooks/queries/use-file-boards"
+import { errorMessage } from "@/lib/format"
 import type { UploadButtonProps } from "@/types/file-board"
 
 export function UploadButton({ boardId }: UploadButtonProps) {
@@ -27,6 +28,7 @@ export function UploadButton({ boardId }: UploadButtonProps) {
         <Upload />
         {upload.isPending ? t("fileBoard.uploading") : t("fileBoard.upload")}
       </Button>
+      {upload.error ? <p role="alert" className="max-w-64 text-xs text-destructive">{errorMessage(upload.error)}</p> : null}
     </>
   )
 }

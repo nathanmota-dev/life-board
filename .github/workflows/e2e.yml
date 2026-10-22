@@ -1,0 +1,56 @@
+name: Electron E2E
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: electron-e2e-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  electron_config_cache: ${{ github.workspace }}/.cache/electron
+
+jobs:
+  e2e:
+    name: Electron functional regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.18.0
+          cache: npm
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_CACHE }}
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
+      - run: npm ci --prefer-offline --no-audit
+      - name: Install Electron system dependencies
+        run: |
+          npx playwright install-deps chromium
+          sudo apt-get install -y xvfb xauth dbus-x11 gnome-keyring libsecret-1-0 libglib2.0-bin
+      - run: npm run test:e2e:infra
+      - name: Build and run Electron in the background
+        run: npm run test:e2e
+      - name: Upload report and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-e2e
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            playwright-report/
+            test-results/

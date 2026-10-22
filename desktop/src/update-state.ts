@@ -59,8 +59,8 @@ export class UpdateFailure extends Error {
 export function updateError(error: unknown): UpdateError {
   if (error instanceof UpdateFailure) return error.kind
   const message = String(error)
-  if (/sha512|checksum|digest/i.test(message)) return "integrity"
-  if (/EACCES|EPERM|authorization|not authorized|dismissed|code 12[67]/i.test(message)) return "permission"
+  if (/sha512|checksum|digest|signature|code.?sign|not signed|code signature/i.test(message)) return "integrity"
+  if (/EACCES|EPERM|authorization|not authorized|dismissed|cancelled|canceled|code 12[67]/i.test(message)) return "permission"
   if (/metadata|version|channel|no files|checksum|ERR_UPDATER/i.test(message)) return "metadata"
   return "network"
 }

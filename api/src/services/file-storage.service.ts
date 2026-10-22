@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs"
-import { mkdir, stat, unlink, writeFile } from "node:fs/promises"
+import { copyFile, mkdir, stat, unlink, writeFile } from "node:fs/promises"
 import { basename, extname, resolve, sep } from "node:path"
 import { ulid } from "ulid"
 
@@ -7,10 +7,19 @@ export type SavedBlob = { storagePath: string; sizeBytes: number }
 
 /** Uploaded files on local disk. `storagePath` values are relative to the root. */
 export class FileStorageService {
-  private readonly root: string
+  private rootDir: string
 
   constructor(root: string) {
-    this.root = resolve(root)
+    this.rootDir = resolve(root)
+  }
+
+  get root() {
+    return this.rootDir
+  }
+
+  /** Points later saves and reads at another folder (Settings > Files). */
+  setRoot(root: string) {
+    this.rootDir = resolve(root)
   }
 
   async save(buffer: Buffer, originalName: string): Promise<SavedBlob> {
@@ -21,6 +30,12 @@ export class FileStorageService {
     await mkdir(this.root, { recursive: true })
     await writeFile(fullPath, buffer)
     return { storagePath, sizeBytes: buffer.byteLength }
+  }
+
+  /** Copies a stored file to the same `storagePath` under another storage's root. */
+  async copyTo(storagePath: string, target: FileStorageService) {
+    await mkdir(target.root, { recursive: true })
+    await copyFile(this.resolve(storagePath), target.resolve(storagePath))
   }
 
   async size(storagePath: string) {

@@ -29,6 +29,11 @@ const en = {
   "notify.breakDone": "Break's over",
   "notify.backToFocus": "Back to focus — {{minutes}} min.",
   "notify.autoStarted": "The timer is already running.",
+  "secretKey.unreadable": "Life Board can't read its encryption key",
+  "secretKey.unreadableDetail":
+    "The system keyring could not decrypt the key that protects saved secrets, such as the GitHub token. Reset the key to keep using the app: tasks, habits, goals and your other data stay as they are, and only the secrets have to be entered again.",
+  "secretKey.reset": "Reset key",
+  "secretKey.quit": "Quit",
 }
 
 const pt: Record<keyof typeof en, string> = {
@@ -55,6 +60,11 @@ const pt: Record<keyof typeof en, string> = {
   "notify.breakDone": "Pausa encerrada",
   "notify.backToFocus": "Hora de voltar ao foco — {{minutes}} min.",
   "notify.autoStarted": "O timer já está rodando.",
+  "secretKey.unreadable": "O Life Board não consegue ler a chave de criptografia",
+  "secretKey.unreadableDetail":
+    "O chaveiro do sistema não decifrou a chave que protege os segredos salvos, como o token do GitHub. Redefina a chave para continuar usando o app: tarefas, hábitos, metas e seus outros dados continuam como estão, e só os segredos precisam ser informados de novo.",
+  "secretKey.reset": "Redefinir chave",
+  "secretKey.quit": "Sair",
 }
 
 export type MessageKey = keyof typeof en

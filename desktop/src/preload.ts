@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld("desktop", {
   app: {
     getStartupSettings: () => ipcRenderer.invoke("app:get-startup-settings"),
     updateStartupSettings: (patch: unknown) => ipcRenderer.invoke("app:update-startup-settings", patch),
+    pickDirectory: (): Promise<string | null> => ipcRenderer.invoke("app:pick-directory"),
   },
   // The global capture shortcut and its window; React only sees these methods.
   capture: {

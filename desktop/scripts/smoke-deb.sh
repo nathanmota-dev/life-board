@@ -11,10 +11,17 @@ fi
 # Chromium picks its keyring from the desktop; headless sessions would get "basic".
 export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-GNOME}"
 log=$(mktemp)
+cleanup() {
+  status=$?
+  if [ "$status" -ne 0 ]; then cat "$log" >&2; fi
+  pkill -f "/opt/Life Board/life-board-app" || true
+  rm -f "$log"
+  exit "$status"
+}
+trap cleanup EXIT
 data="${XDG_CONFIG_HOME:-$HOME/.config}/life-board-app"
 echo smoke | gnome-keyring-daemon --unlock --components=secrets >/dev/null
 xvfb-run -a life-board-app >"$log" 2>&1 &
-trap 'pkill -f "/opt/Life Board/life-board-app" || true' EXIT
 
 for _ in $(seq 1 60); do
   grep -q "API ouvindo" "$log" && break
@@ -22,7 +29,6 @@ for _ in $(seq 1 60); do
 done
 url=$(grep -o "http://127.0.0.1:[0-9]*" "$log" | head -1 || true)
 if [ -z "$url" ]; then
-  cat "$log"
   echo "Packaged backend did not start." >&2
   exit 1
 fi

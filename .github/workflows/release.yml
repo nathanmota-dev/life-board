@@ -1,11 +1,13 @@
-# Tag-driven Linux x64 release. See docs/releases.md for the procedure,
-# the smoke-test gate and the rerun/immutability policy.
+# Tag-driven multiplatform release: one commit, every build, one reviewed draft and
+# one publication after maintainer approval. See docs/releases.md for the procedure,
+# the approval gate and the rerun/immutability policy.
 name: Release
 
 on:
   push:
     tags: ["v*"]
-  # Manual runs check and package only; they never create a release.
+  # Build/validate only, on any branch or tag: no draft, release or feed change.
+  # The mode comes from the event, never from an input.
   workflow_dispatch:
 
 permissions:
@@ -19,78 +21,123 @@ env:
   NODE_VERSION: 24.18.0
 
 jobs:
-  build:
-    name: Check and package
+  validate:
+    name: Validate release request
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 10
+    outputs:
+      release: ${{ steps.mode.outputs.release }}
+      release-tag: ${{ steps.mode.outputs.release-tag }}
     steps:
       - uses: actions/checkout@v5
-
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+      - run: npm ci --ignore-scripts
 
-      - run: npm ci
-
-      # Runs after npm ci: the checks import yaml.
-      - name: Validate tag
-        if: github.ref_type == 'tag'
-        run: node desktop/scripts/release-checks.mts tag "$GITHUB_REF_NAME"
-
-      - name: Require release notes
-        if: github.ref_type == 'tag'
-        run: test -s "docs/release-notes/${GITHUB_REF_NAME#v}.md"
-
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run test:coverage
-
-      - name: Package DEB and AppImage
-        run: npm run package:linux
-
-      - name: Write checksums
-        working-directory: release
-        run: sha256sum life-board_*_amd64.deb life-board-*-x86_64.AppImage latest-linux.yml > SHA256SUMS.txt
-
-      - name: Verify feed and checksums
-        run: node desktop/scripts/release-checks.mts assets release
-
-      - name: Inspect DEB
+      # Only a tag push can release; the tag must be stable, match package.json and have notes.
+      - name: Select release or build-only mode
+        id: mode
+        env:
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          deb=$(ls release/life-board_*_amd64.deb)
-          dpkg-deb --info "$deb"
-          test "$(dpkg-deb --field "$deb" Package Version Architecture)" = "$(printf 'Package: life-board\nVersion: %s\nArchitecture: amd64' "$(node -p 'require("./package.json").version')")"
-          contents=$(dpkg-deb --contents "$deb")
-          for path in "./opt/Life Board/life-board-app" "./opt/Life Board/resources/app.asar" \
-            "./opt/Life Board/resources/app-update.yml" "./opt/Life Board/resources/package-type" \
-            "./opt/Life Board/resources/migrations/meta/_journal.json" \
-            ./usr/share/applications/life-board-app.desktop ./usr/share/icons/hicolor/1024x1024/apps/life-board-app.png; do
-            grep -qF " $path" <<<"$contents" || { echo "::error::Missing $path"; exit 1; }
-          done
+          if [ "$EVENT_NAME" = push ] && [ "$GITHUB_REF_TYPE" = tag ]; then
+            node desktop/scripts/release-checks.mts tag "$GITHUB_REF_NAME"
+            test -s "docs/release-notes/${GITHUB_REF_NAME#v}.md" || { echo "::error::Missing docs/release-notes/${GITHUB_REF_NAME#v}.md"; exit 1; }
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "release-tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "release-tag=" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Mode: $([ "$EVENT_NAME" = push ] && [ "$GITHUB_REF_TYPE" = tag ] && echo "release $GITHUB_REF_NAME" || echo build-only); source $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Install DEB and smoke test
+  # The three builds are independent and run in parallel from the same commit.
+  linux:
+    name: Linux
+    needs: validate
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      release: ${{ needs.validate.outputs.release == 'true' }}
+
+  windows:
+    name: Windows
+    needs: validate
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      release: ${{ needs.validate.outputs.release == 'true' }}
+    # Signing credentials reach only release builds; build-only runs get none.
+    secrets:
+      WIN_CSC_LINK: ${{ needs.validate.outputs.release == 'true' && secrets.WIN_CSC_LINK || '' }}
+      WIN_CSC_KEY_PASSWORD: ${{ needs.validate.outputs.release == 'true' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+
+  macos:
+    name: macOS
+    needs: validate
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      release: ${{ needs.validate.outputs.release == 'true' }}
+    secrets:
+      MAC_CSC_LINK: ${{ needs.validate.outputs.release == 'true' && secrets.MAC_CSC_LINK || '' }}
+      MAC_CSC_KEY_PASSWORD: ${{ needs.validate.outputs.release == 'true' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+      APPLE_API_KEY_P8: ${{ needs.validate.outputs.release == 'true' && secrets.APPLE_API_KEY_P8 || '' }}
+      APPLE_API_KEY_ID: ${{ needs.validate.outputs.release == 'true' && secrets.APPLE_API_KEY_ID || '' }}
+      APPLE_API_ISSUER: ${{ needs.validate.outputs.release == 'true' && secrets.APPLE_API_ISSUER || '' }}
+
+  # Fan-in: runs only when every build succeeded, in both modes.
+  verify:
+    name: Verify complete release assets
+    needs: [validate, linux, windows, macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      RELEASE_TAG: ${{ needs.validate.outputs.release-tag }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+
+      - name: Check every build's version, commit, tag and signing state
+        env:
+          BUILDS: ${{ toJSON(needs) }}
+        run: node desktop/scripts/release-checks.mts builds
+
+      # Artifacts of this run only, one directory per target.
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: "{linux-x64,windows-x64,macos-x64,macos-arm64}"
+          path: artifacts
+
+      - name: Compose and verify the upload directory
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ./release/life-board_*_amd64.deb desktop-file-utils xvfb xauth gnome-keyring dbus-x11
-          desktop-file-validate /usr/share/applications/life-board-app.desktop
-          desktop/scripts/smoke-deb.sh
+          node desktop/scripts/release-checks.mts compose artifacts release
+          node desktop/scripts/release-checks.mts assets release all
+          {
+            echo "### Release assets ($([ -n "$RELEASE_TAG" ] && echo "$RELEASE_TAG" || echo build-only))"
+            echo '```'
+            cat release/SHA256SUMS.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-x64
+          name: release-assets
           if-no-files-found: error
           retention-days: 14
-          path: |
-            release/life-board_*_amd64.deb
-            release/life-board-*-x86_64.AppImage
-            release/latest-linux.yml
-            release/SHA256SUMS.txt
+          path: release/
 
   draft:
     name: Stage draft release
-    needs: build
-    if: github.ref_type == 'tag'
+    needs: [validate, verify]
+    if: needs.validate.outputs.release == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -98,9 +145,12 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      TAG: ${{ github.ref_name }}
+      TAG: ${{ needs.validate.outputs.release-tag }}
+      RELEASE_TAG: ${{ needs.validate.outputs.release-tag }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -108,48 +158,58 @@ jobs:
       - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v4
         with:
-          name: linux-x64
-          path: release
+          pattern: "{linux-x64,windows-x64,macos-x64,macos-arm64}"
+          path: artifacts
+
+      # Recomposes from the builds and revalidates provenance against the tag checkout.
+      - name: Verify the builds before staging
+        run: node desktop/scripts/release-checks.mts compose artifacts release
 
       - name: Create or reuse the draft
         run: |
           state=$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null || echo missing)
-          if [ "$state" = false ]; then
-            echo "::error::$TAG is already published. Its binaries are immutable; release a new patch version."
-            exit 1
-          fi
+          action=$(node desktop/scripts/release-checks.mts draft-action "$TAG" "$state")
           notes="docs/release-notes/${TAG#v}.md"
-          if [ "$state" = missing ]; then
+          if [ "$action" = create ]; then
             gh release create "$TAG" --draft --verify-tag --title "Life Board ${TAG#v}" --notes-file "$notes"
           else
             gh release edit "$TAG" --notes-file "$notes"
-            # A rerun replaces everything from the failed attempt with this build's assets.
+            # A rerun replaces everything from the failed attempt with this run's assets.
             gh release view "$TAG" --json assets --jq '.assets[].name' | while read -r name; do
               gh release delete-asset "$TAG" "$name" --yes
             done
           fi
           gh release upload "$TAG" release/*
 
-      - name: Verify draft assets
+      - name: Verify the draft byte for byte
         run: |
           gh release view "$TAG" --json assets > assets.json
-          node desktop/scripts/release-checks.mts uploaded release assets.json
+          node desktop/scripts/release-checks.mts uploaded release assets.json all
+          gh release download "$TAG" --dir draft
+          diff -r release draft
+          {
+            echo "### Draft $TAG is ready for review"
+            echo "Download and test the installers from the draft, then approve or reject the **release** environment."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   publish:
-    name: Publish after smoke-test approval
-    needs: draft
+    name: Publish after maintainer approval
+    needs: [validate, draft]
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    # Configure required reviewers on this environment; approval is the manual smoke-test gate.
+    timeout-minutes: 30
+    # The only job with this environment; its required reviewers are the approval gate.
     environment: release
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      TAG: ${{ github.ref_name }}
+      TAG: ${{ needs.validate.outputs.release-tag }}
+      RELEASE_TAG: ${{ needs.validate.outputs.release-tag }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -157,22 +217,32 @@ jobs:
       - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v4
         with:
-          name: linux-x64
-          path: release
+          pattern: "{linux-x64,windows-x64,macos-x64,macos-arm64}"
+          path: artifacts
 
+      # Nothing is rebuilt: the draft must still hold exactly the verified bytes.
       - name: Publish the verified draft
         run: |
-          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true
+          node desktop/scripts/release-checks.mts compose artifacts release
+          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true || { echo "::error::$TAG is not a draft"; exit 1; }
           gh release view "$TAG" --json assets > assets.json
-          node desktop/scripts/release-checks.mts uploaded release assets.json
+          node desktop/scripts/release-checks.mts uploaded release assets.json all
+          gh release download "$TAG" --dir draft
+          diff -r release draft
           gh release edit "$TAG" --draft=false --latest
 
-      # curl sends no credentials, so this is what end users and the updater receive.
-      - name: Verify public downloads without a token
+      # curl sends no credentials, so this is what end users and the updaters receive.
+      - name: Verify public downloads and feeds without a token
         run: |
-          base="https://github.com/${GH_REPO}/releases/download/${TAG}"
+          base="https://github.com/${GH_REPO}/releases"
+          mkdir public
           for name in $(cd release && ls); do
-            curl -fsSL --retry 5 --retry-delay 10 "$base/$name" -o "public-$name"
-            cmp "public-$name" "release/$name"
+            curl -fsSL --retry 5 --retry-delay 10 "$base/download/${TAG}/$name" -o "public/$name" \
+              || { echo "::error::$name is not publicly downloadable"; exit 1; }
           done
-          curl -fsSL "https://github.com/${GH_REPO}/releases/latest/download/latest-linux.yml" | cmp - release/latest-linux.yml
+          diff -r release public || { echo "::error::Public assets differ from the verified build"; exit 1; }
+          node desktop/scripts/release-checks.mts assets public all
+          for feed in latest-linux.yml latest.yml latest-mac.yml; do
+            curl -fsSL --retry 5 --retry-delay 10 "$base/latest/download/$feed" | cmp - "release/$feed" \
+              || { echo "::error::The stable $feed does not serve $TAG"; exit 1; }
+          done

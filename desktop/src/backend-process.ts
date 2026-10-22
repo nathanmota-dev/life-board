@@ -11,10 +11,10 @@ if (!dataDir || !migrationsFolder) {
 let started = false
 
 // The main process owns the encryption key and sends it once after forking.
-const start = (secretKey: Buffer) => {
+const start = (secretKey: Buffer, resetSecrets: boolean) => {
   if (started) return
   started = true
-  startServer({ dataDir, migrationsFolder, secretKey })
+  startServer({ dataDir, migrationsFolder, secretKey, resetSecrets })
     .then(({ url }) => {
       console.log(`[backend] API ouvindo em ${url}`)
       process.parentPort.postMessage({ type: "ready", url })
@@ -29,5 +29,5 @@ process.parentPort.on("message", ({ data }) => {
   if (data === "ping") {
     process.parentPort.postMessage("pong")
   }
-  if (data?.type === "secret-key" && typeof data.key === "string") start(Buffer.from(data.key, "base64"))
+  if (data?.type === "secret-key" && typeof data.key === "string") start(Buffer.from(data.key, "base64"), data.resetSecrets === true)
 })

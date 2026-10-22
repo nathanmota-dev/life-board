@@ -1,0 +1,151 @@
+# Read-only Linux build contract. No tags or GitHub Releases are created here.
+name: Build Linux
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_call:
+    inputs:
+      release:
+        description: Require a stable matching tag and nonempty release notes
+        type: boolean
+        required: false
+        default: false
+    outputs:
+      artifact-name:
+        description: Validated platform-scoped Actions artifact
+        value: ${{ jobs.build.outputs.artifact-name }}
+      version:
+        description: Version from the checked-out package.json
+        value: ${{ jobs.build.outputs.version }}
+      source-sha:
+        description: Verified source commit SHA
+        value: ${{ jobs.build.outputs.source-sha }}
+      target:
+        description: Isolated OS and architecture target
+        value: ${{ jobs.build.outputs.target }}
+      release-tag:
+        description: Validated tag, or empty for build-only runs
+        value: ${{ jobs.build.outputs.release-tag }}
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  electron_config_cache: ${{ github.workspace }}/.cache/electron
+  ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
+  NODE_VERSION: 24.18.0
+  RELEASE_TAG: ${{ inputs.release && github.event_name != 'workflow_dispatch' && github.ref_type == 'tag' && github.ref_name || '' }}
+
+jobs:
+  e2e:
+    name: E2E build gate
+    # PRs run the separate Electron E2E workflow.
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/e2e.yml
+
+  build:
+    name: Check and package Linux x64
+    needs: e2e
+    if: ${{ !cancelled() && (needs.e2e.result == 'success' || needs.e2e.result == 'skipped') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    outputs:
+      artifact-name: linux-x64
+      version: ${{ steps.provenance.outputs.version }}
+      source-sha: ${{ steps.provenance.outputs.source-sha }}
+      target: linux-x64
+      release-tag: ${{ env.RELEASE_TAG }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_CACHE }}
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache electron-builder tools
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_BUILDER_CACHE }}
+          key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-builder-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Verify toolchain
+        run: |
+          node -e 'if (process.versions.node !== "24.18.0" || process.platform !== "linux" || process.arch !== "x64") process.exit(1)'
+          . /etc/os-release
+          test "$ID:$VERSION_ID" = ubuntu:24.04
+
+      - run: npm ci --prefer-offline --no-audit
+
+      # Manual dispatch always builds only, including dispatch on a tag.
+      - name: Validate release request
+        if: inputs.release && github.event_name != 'workflow_dispatch'
+        run: |
+          test "$GITHUB_REF_TYPE" = tag
+          node desktop/scripts/release-checks.mts tag "$GITHUB_REF_NAME"
+          test -s "docs/release-notes/${GITHUB_REF_NAME#v}.md"
+
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:coverage
+
+      - name: Package DEB and AppImage
+        run: npm run package:linux
+
+      - name: Write build provenance
+        id: provenance
+        run: |
+          node desktop/scripts/release-checks.mts build-info release linux-x64
+          echo "version=$(node -p 'require("./release/build-info.json").version')" >> "$GITHUB_OUTPUT"
+          echo "source-sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Write checksums
+        working-directory: release
+        run: sha256sum life-board_*_amd64.deb life-board-*-x86_64.AppImage latest-linux.yml build-info.json > SHA256SUMS.txt
+
+      - name: Verify feed and checksums
+        run: node desktop/scripts/release-checks.mts assets release linux-x64
+
+      - name: Inspect DEB
+        run: |
+          deb=$(ls release/life-board_*_amd64.deb)
+          dpkg-deb --info "$deb"
+          test "$(dpkg-deb --field "$deb" Package Version Architecture)" = "$(printf 'Package: life-board\nVersion: %s\nArchitecture: amd64' "$(node -p 'require("./package.json").version')")"
+          contents=$(dpkg-deb --contents "$deb")
+          for path in "./opt/Life Board/life-board-app" "./opt/Life Board/resources/app.asar" \
+            "./opt/Life Board/resources/app-update.yml" "./opt/Life Board/resources/package-type" \
+            "./opt/Life Board/resources/migrations/meta/_journal.json" \
+            ./usr/share/applications/life-board-app.desktop ./usr/share/icons/hicolor/1024x1024/apps/life-board-app.png; do
+            grep -qF " $path" <<<"$contents" || { echo "::error::Missing $path"; exit 1; }
+          done
+
+      - name: Install DEB and smoke test
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ./release/life-board_*_amd64.deb desktop-file-utils xvfb xauth gnome-keyring dbus-x11
+          desktop-file-validate /usr/share/applications/life-board-app.desktop
+          desktop/scripts/smoke-deb.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            release/life-board_*_amd64.deb
+            release/life-board-*-x86_64.AppImage
+            release/latest-linux.yml
+            release/SHA256SUMS.txt
+            release/build-info.json

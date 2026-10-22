@@ -20,7 +20,7 @@ export function UpdatesPanel() {
       <div className="flex min-w-0 flex-col gap-4" aria-busy={busy}>
         <p className="text-sm text-muted-foreground">{t("settings.updates.description")}</p>
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          <div><dt className="text-muted-foreground">{t("settings.updates.installed")}</dt><dd>{state.installedVersion}{state.format ? ` (${state.format})` : ""}</dd></div>
+          <div><dt className="text-muted-foreground">{t("settings.updates.installed")}</dt><dd>{state.installedVersion}{state.format ? ` (${t(`settings.updates.formats.${state.format}`)})` : ""}</dd></div>
           <div><dt className="text-muted-foreground">{t("settings.updates.lastCheck")}</dt><dd>{date(state.lastSuccess)}</dd></div>
           {state.release && <>
             <div><dt className="text-muted-foreground">{t("settings.updates.availableVersion")}</dt><dd>{state.release.version}</dd></div>

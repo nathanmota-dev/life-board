@@ -30,7 +30,7 @@ afterEach(() => { delete window.desktop })
 describe("Updates panel", () => {
   it("shows the installed version, manual discovery, release details and explicit download", async () => {
     render(<UpdatesPanel />)
-    expect(await screen.findByText("1.0.0 (deb)")).toBeInTheDocument()
+    expect(await screen.findByText("1.0.0 (DEB)")).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Check for updates" }))
     expect(await screen.findByText("1.1.0")).toBeInTheDocument()
     expect(screen.getByText("Better updates")).toBeInTheDocument()
@@ -89,5 +89,16 @@ describe("Updates panel", () => {
     render(<UpdatesPanel />)
     expect(await screen.findByRole("button", { name: "Verificar atualizações" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Atualizações" })).toBeInTheDocument()
+  })
+
+  it.each([
+    ["en", "nsis", "Windows (NSIS)"], ["pt", "nsis", "Windows (NSIS)"],
+    ["en", "mac", "macOS"], ["pt", "mac", "macOS"],
+  ] as const)("shows %s %s native updates with explicit consent", async (language, format, label) => {
+    await i18n.changeLanguage(language)
+    state = { ...state, format, status: "ready", release }
+    render(<UpdatesPanel />)
+    expect(await screen.findByText(`1.0.0 (${label})`)).toBeInTheDocument()
+    expect(install).not.toHaveBeenCalled()
   })
 })

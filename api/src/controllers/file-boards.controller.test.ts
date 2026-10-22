@@ -1,3 +1,5 @@
+import { stat } from "node:fs/promises"
+import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { MAX_UPLOAD_BYTES } from "../dto/file-boards.dto"
 import { createTestApp } from "../test/create-test-app"
@@ -65,6 +67,20 @@ describe("file boards controller", () => {
 
     expect((await ctx.app.inject({ method: "DELETE", url: `/api/file-items/${item.id}` })).json()).toEqual({ ok: true })
     expect((await ctx.app.inject({ method: "GET", url: `/api/file-items/${item.id}/file` })).statusCode).toBe(404)
+  })
+
+  it("stops serving a board's files once the board is deleted", async () => {
+    const boardId = await createBoard()
+    const upload = await ctx.app.inject({
+      method: "POST",
+      url: `/api/file-boards/${boardId}/items`,
+      ...multipart({}, { name: "a.png", type: "image/png", content: Buffer.from("png") }),
+    })
+    const item = upload.json()
+
+    expect((await ctx.app.inject({ method: "DELETE", url: `/api/file-boards/${boardId}` })).json()).toEqual({ ok: true })
+    expect((await ctx.app.inject({ method: "GET", url: `/api/file-items/${item.id}/file` })).statusCode).toBe(404)
+    await expect(stat(join(ctx.dataDir, "uploads", item.storagePath))).rejects.toThrow()
   })
 
   it("rejects uploads without a file, with bad fields, or over the size limit", async () => {

@@ -30,6 +30,20 @@ describe("FileStorageService", () => {
     await expect(storage.remove(blob.storagePath)).resolves.toBeUndefined()
   })
 
+  it("switches roots and copies files to another storage", async () => {
+    const blob = await storage.save(Buffer.from("hello"), "a.txt")
+    const target = new FileStorageService(join(dir, "other", "uploads"))
+
+    await storage.copyTo(blob.storagePath, target)
+    expect(await readFile(join(dir, "other", "uploads", blob.storagePath), "utf8")).toBe("hello")
+    expect(await storage.size(blob.storagePath)).toBe(5)
+
+    storage.setRoot(join(dir, "other", "uploads"))
+    expect(storage.root).toBe(join(dir, "other", "uploads"))
+    const next = await storage.save(Buffer.from("x"), "b.txt")
+    expect(await readFile(join(dir, "other", "uploads", next.storagePath), "utf8")).toBe("x")
+  })
+
   it("sanitizes hostile names and falls back when nothing is left", async () => {
     const blob = await storage.save(Buffer.from("x"), "../../etc/passwd")
     expect(blob.storagePath).toMatch(/^\w{26}-passwd$/)
@@ -42,6 +56,17 @@ describe("FileStorageService", () => {
     await expect(storage.size("../secret.key")).rejects.toThrow("Invalid storage path.")
     expect(() => storage.stream("/etc/passwd")).toThrow("Invalid storage path.")
     await expect(storage.remove("..")).rejects.toThrow("Invalid storage path.")
+  })
+
+  it("works under a profile path with spaces, non-ASCII and URL syntax", async () => {
+    const root = join(dir, "Usuário Ç #1 %20", "uploads")
+    const profile = new FileStorageService(root)
+    const blob = await profile.save(Buffer.from("olá"), "Recibo de março.pdf")
+
+    expect(await readFile(join(root, blob.storagePath), "utf8")).toBe("olá")
+    expect(await text(profile.stream(blob.storagePath))).toBe("olá")
+    await profile.remove(blob.storagePath)
+    await expect(profile.size(blob.storagePath)).rejects.toThrow()
   })
 
   it("rethrows unexpected errors when removing", async () => {
