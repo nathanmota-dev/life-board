@@ -38,7 +38,7 @@ jobs:
       - name: Dependency audit (critical blocks, lower severities reported)
         run: |
           for attempt in 1 2 3; do
-            if npm audit --workspace api --include-workspace-root --audit-level=critical --fetch-timeout=30000 --fetch-retries=0; then
+            if npm audit --workspace api --include-workspace-root --audit-level=critical --fetch-timeout=120000 --fetch-retries=0; then
               exit 0
             fi
             if [ "$attempt" -lt 3 ]; then
