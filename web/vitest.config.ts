@@ -10,6 +10,12 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "json-summary"],
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**", "src/routeTree.gen.ts"],
+    },
     // Native hosted runners, especially macOS Intel, render interaction-heavy
     // jsdom tests more slowly. Keep a bounded CI budget without dropping checks.
     testTimeout: process.env.CI ? 30_000 : 5_000,

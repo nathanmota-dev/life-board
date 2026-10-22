@@ -23,7 +23,7 @@ test("shell: palette, keyboard, history, breadcrumbs and narrow sidebar", async 
   await expect(page.getByRole("tab", { name: "Geral", exact: true })).toBeVisible()
 })
 
-test("dashboard: customize order, visibility, quick capture, persistence and reset", async ({ workspace, page }) => {
+test("dashboard: customize order, visibility, quick capture, persistence and reset", async ({ workspace: _workspace, page }) => {
   await page.getByRole("button", { name: "Personalizar", exact: true }).click()
   await page.getByRole("checkbox", { name: "Mostrar Captura rápida", exact: true }).click()
   await page.getByRole("button", { name: "Mover Foco do dia para cima", exact: true }).click()

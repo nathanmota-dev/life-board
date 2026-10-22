@@ -3,6 +3,8 @@
 name: Build macOS
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_call:
     inputs:
       release:
@@ -40,17 +42,6 @@ on:
         description: signed (Developer ID, notarized) or adhoc (build-only)
         value: ${{ jobs.verify.outputs.signing-status }}
   workflow_dispatch:
-  # Allows validating this workflow before dispatch is registered on main.
-  push:
-    branches: ['ci/**']
-    paths:
-      - .github/workflows/build-macos.yml
-      - desktop/**
-      - api/**
-      - web/**
-      - package*.json
-      - tsconfig*.json
-      - electron.vite.config.mts
 
 permissions:
   contents: read

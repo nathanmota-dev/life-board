@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures"
-import { choose, closeDialog, drag } from "./ui"
+import { closeDialog, drag } from "./ui"
 import type { Project } from "../web/src/types/project"
 
 test("projects: form, quick add, editing, pause reason and history", async ({ workspace, page }) => {

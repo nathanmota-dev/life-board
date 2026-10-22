@@ -2,7 +2,6 @@ name: Electron E2E
 
 on:
   pull_request:
-    branches: [main, 'release/**']
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
   workflow_call:
@@ -11,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: electron-e2e-${{ github.event.pull_request.number || github.ref }}
+  group: electron-e2e-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:

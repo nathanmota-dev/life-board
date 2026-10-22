@@ -2,6 +2,8 @@
 name: Build Linux
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_call:
     inputs:
       release:
@@ -37,11 +39,14 @@ env:
 jobs:
   e2e:
     name: E2E build gate
+    # PRs run the separate Electron E2E workflow.
+    if: github.event_name != 'pull_request'
     uses: ./.github/workflows/e2e.yml
 
   build:
     name: Check and package Linux x64
     needs: e2e
+    if: ${{ !cancelled() && (needs.e2e.result == 'success' || needs.e2e.result == 'skipped') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     outputs:
