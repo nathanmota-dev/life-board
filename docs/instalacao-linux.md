@@ -74,6 +74,15 @@ Se a atualização pelo app falhar, baixe o pacote mais novo da release e instal
 manualmente: `sudo apt install ./life-board_<versão>_amd64.deb` substitui a versão
 instalada, mantendo os dados.
 
+A versão multiplataforma mantém o pacote `life-board`, os nomes dos arquivos, o
+feed `latest-linux.yml` e a pasta de dados da 1.0.0, então uma instalação 1.0.0
+atualiza pelo app como antes. Antes de atualizar, faça uma cópia da pasta de dados
+(veja abaixo). Se a versão nova não abrir, reinstale o DEB anterior da página de
+releases com `sudo apt install --allow-downgrades ./life-board_<versão anterior>_amd64.deb`;
+as migrations já aplicadas pela versão nova continuam no banco, então restaure
+também a cópia dos dados. A situação dos testes de upgrade está na
+[validação multiplataforma](validacao-multiplataforma.md).
+
 ## Dados do usuário
 
 Os dois formatos usam a mesma pasta de dados, `~/.config/life-board-app/`: banco

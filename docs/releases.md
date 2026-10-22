@@ -184,15 +184,17 @@ confira `sha256sum -c SHA256SUMS.txt`. Depois, em máquinas de teste:
    migração a partir do AppImage manual conforme
    [Instalação no Linux](instalacao-linux.md#migrar-do-appimage-manual-para-o-deb).
 2. **Windows x64**: instalador assinado com o publisher esperado, instalação em
-   usuário comum, abertura e dados.
+   usuário comum, abertura e dados, conforme [Instalação no Windows](instalacao-windows.md).
 3. **macOS Intel e Apple Silicon**: DMG de cada arquitetura com Gatekeeper,
-   abertura e Keychain.
+   abertura e Keychain, conforme [Instalação no macOS](instalacao-macos.md).
 4. A partir da segunda release, atualização pelo app em cada formato (DEB
    cancelando e depois autorizando o PolicyKit, AppImage, NSIS e os dois Macs).
    Antes disso, use o teste com feed local de
    [Atualizações](atualizacoes.md#testes-com-pacotes-controlados).
 
-A matriz completa e as evidências da validação integrada ficam com a #32. Se algo
+A matriz completa, as evidências e os bloqueios estão em
+[Validação multiplataforma](validacao-multiplataforma.md). Não aprove enquanto um
+alvo tiver um bloqueio aberto ou um item obrigatório sem evidência. Se algo
 falhar, rejeite a aprovação. O rascunho continua invisível para os usuários.
 
 ## Falhas e novas execuções

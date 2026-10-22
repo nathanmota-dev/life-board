@@ -104,7 +104,10 @@ O workflow **Build Windows** executa checks e NSIS nativamente no
 executado em uma branch sem publicar. A suíte E2E completa permanece no workflow
 Linux; o Windows acrescenta smoke do app instalado com perfil comum e DPAPI real.
 Consulte [Build Windows x64](multiplataforma.md#build-windows-x64) para interface,
-artefatos, dispatch e assinatura de produção.
+artefatos, dispatch e assinatura de produção. Para validar os quatro alvos juntos
+em uma branch de integração, dispare o orquestrador como em
+[Build de branch](releases.md#build-de-branch-sem-publicação) e registre o resultado
+em [Validação multiplataforma](validacao-multiplataforma.md).
 
 Para validar numa máquina Windows descartável, em PowerShell:
 
