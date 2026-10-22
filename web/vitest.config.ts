@@ -10,6 +10,9 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // Native hosted runners, especially macOS Intel, render interaction-heavy
+    // jsdom tests more slowly. Keep a bounded CI budget without dropping checks.
+    testTimeout: process.env.CI ? 30_000 : 5_000,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },

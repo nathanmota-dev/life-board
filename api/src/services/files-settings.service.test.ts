@@ -1,10 +1,15 @@
-import { chmod, mkdir, readFile, readdir, writeFile } from "node:fs/promises"
+import { access, mkdir, readFile, readdir, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createTestDb } from "../test/create-test-app"
 import { FileBoardsService } from "./file-boards.service"
 import { FileStorageService } from "./file-storage.service"
 import { FilesSettingsService } from "./files-settings.service"
+
+vi.mock("node:fs/promises", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>()
+  return { ...actual, access: vi.fn(actual.access) }
+})
 
 let ctx: Awaited<ReturnType<typeof createTestDb>>
 let defaultRoot: string
@@ -76,21 +81,23 @@ describe("FilesSettingsService", () => {
     expect(await readFile(join(defaultRoot, item.storagePath), "utf8")).toBe("png-bytes")
   })
 
-  it("rejects relative, missing, non-directory and read-only folders", async () => {
+  it("rejects relative, missing, non-directory and unwritable folders", async () => {
     await writeFile(join(ctx.dir, "file.txt"), "x")
     await mkdir(join(ctx.dir, "locked"))
-    await chmod(join(ctx.dir, "locked"), 0o500)
 
     await expect(settings.update("apps")).rejects.toMatchObject({ statusCode: 400, code: "relative_dir" })
     // `~` counts as the home folder, not a relative path.
     await expect(settings.update("~/life-board-missing-folder")).rejects.toMatchObject({ code: "invalid_dir" })
     await expect(settings.update(join(ctx.dir, "missing"))).rejects.toMatchObject({ code: "invalid_dir" })
     await expect(settings.update(join(ctx.dir, "file.txt"))).rejects.toMatchObject({ code: "invalid_dir" })
-    if (process.getuid?.() !== 0) {
-      await expect(settings.update(join(ctx.dir, "locked"))).rejects.toMatchObject({ code: "invalid_dir" })
-    }
+    const item = await upload()
+    // Directory chmod bits do not deny writes on Windows. Exercise the OS
+    // permission error on every platform without depending on POSIX modes.
+    vi.mocked(access).mockRejectedValueOnce(Object.assign(new Error("Permission denied"), { code: "EACCES" }))
+    await expect(settings.update(join(ctx.dir, "locked"))).rejects.toMatchObject({ statusCode: 400, code: "invalid_dir" })
     expect((await settings.get()).baseDir).toBeNull()
-    await chmod(join(ctx.dir, "locked"), 0o700)
+    expect(await readFile(join(defaultRoot, item.storagePath), "utf8")).toBe("png-bytes")
+    expect(await readdir(join(ctx.dir, "locked"))).toEqual([])
   })
 
   it("rolls back the copies and keeps the old folder when a file fails to move", async () => {
