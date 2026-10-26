@@ -53,6 +53,6 @@ export type HabitDialogState = { open: boolean; habit: Habit | null }
 
 export type HabitFilter = "all" | "pending" | "done"
 export type HabitProgressRingProps = { habit: Habit; pending: boolean; onLog: () => void }
-export type HabitAnalyticsProps = { habits: Habit[] }
-export type HabitHistoryTableProps = HabitHistoryChartProps
+export type HabitAnalyticsProps = { habits: Habit[]; onEditDay: (edit: HabitDayEdit) => void }
+export type HabitHistoryTableProps = HabitHistoryChartProps & { onEditDay: (edit: HabitDayEdit) => void }
 export type HabitEmojiPickerProps = { value: string; onChange: (value: string) => void }

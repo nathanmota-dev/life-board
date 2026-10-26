@@ -486,7 +486,7 @@
     "consistencyHint": "Proporção de metas diárias atingidas nestes {{count}} dias. Só entram dias acompanhados; hoje ainda está em andamento.",
     "dailyProgress": "Progresso diário",
     "history": "Histórico dia a dia",
-    "historyDescription": "Compare a quantidade registrada com cada meta diária. Dias parciais indicam metas incompletas; um traço indica dias anteriores à criação do hábito.",
+    "historyDescription": "Compare a quantidade registrada com cada meta diária. Dias parciais indicam metas incompletas; um traço indica dias anteriores à criação do hábito. Clique em um dia para corrigir a quantidade.",
     "date": "Data",
     "weekTracker": "Acompanhamento semanal",
     "weekTrackerDescription": "Esqueceu de registrar ou passou da meia-noite? Clique em um dia para corrigir a quantidade.",

@@ -50,7 +50,7 @@ export function HabitsPage() {
           </DataState>
         </PageSection>
         <PageSection><HabitWeekTracker habits={items} onEditDay={setDayEdit} /></PageSection>
-        <PageSection><HabitAnalytics habits={items} /></PageSection>
+        <PageSection><HabitAnalytics habits={items} onEditDay={setDayEdit} /></PageSection>
       </DataState>
       <HabitFormDialog key={`${dialog.habit?.id ?? "new"}-${dialog.open}`} open={dialog.open} habit={dialog.habit}
         onOpenChange={(open) => setDialog((current) => ({ ...current, open }))} />

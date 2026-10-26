@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react"
+import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 import { HabitsPage } from "@/routes/habits"
 import { mockApi, resetApiMock } from "@/test/mock-api"
@@ -185,6 +185,20 @@ describe("editing past days", () => {
     fireEvent.click(screen.getByRole("button", { name: "Clear day" }))
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
     await waitFor(() => expect(calls.find((call) => call.method === "PUT")?.body).toEqual({ count: 0 }))
+  })
+
+  it("edits a day from the day-by-day history", async () => {
+    const { calls } = mockApi({
+      "GET /habits": () => ({ items: [water] }),
+      "GET /habits/logs": () => ({ items: [{ habitId: "h1", day: yesterday, count: 5, target: 8 }] }),
+      [`PUT /habits/h1/logs/${yesterday}`]: ({ body }) => ({ habitId: "h1", day: yesterday, ...(body as object) }),
+    })
+    renderWithProviders(<HabitsPage />)
+    const history = await screen.findByRole("table", { name: /^Compare the recorded amount/ })
+    fireEvent.click(within(history).getByRole("button", { name: `${yesterdayLabel} · Partial · 5 / 8 glasses` }))
+    fireEvent.change(screen.getByLabelText("Amount (glasses)"), { target: { value: "7" } })
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(calls.find((call) => call.method === "PUT")?.body).toEqual({ count: 7 }))
   })
 
   it("browses previous weeks in the weekly tracker and edits a day", async () => {

@@ -486,7 +486,7 @@
     "consistencyHint": "Share of daily goals reached in these {{count}} days. Only tracked days count; today is still in progress.",
     "dailyProgress": "Daily progress",
     "history": "Day-by-day history",
-    "historyDescription": "Compare the recorded amount with each daily goal. Partial days show unfinished goals; a dash marks days before the habit started.",
+    "historyDescription": "Compare the recorded amount with each daily goal. Partial days show unfinished goals; a dash marks days before the habit started. Click a day to fix its amount.",
     "date": "Date",
     "weekTracker": "Weekly tracker",
     "weekTrackerDescription": "Forgot a check-in or went past midnight? Click a day to fix its amount.",
