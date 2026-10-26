@@ -35,6 +35,20 @@ describe("habits controller", () => {
     expect((await ctx.app.inject({ method: "POST", url: "/api/habits/x/logs", payload: { delta: 0 } })).statusCode).toBe(400)
     expect((await ctx.app.inject({ method: "GET", url: "/api/habits/logs?from=yesterday" })).statusCode).toBe(400)
   })
+
+  it("edits the count of a past day", async () => {
+    const { id } = (await ctx.app.inject({ method: "POST", url: "/api/habits", payload: { name: "Water", target: 8 } })).json()
+    const edited = await ctx.app.inject({ method: "PUT", url: `/api/habits/${id}/logs/2026-10-16`, payload: { count: 8 } })
+    expect(edited.json()).toEqual({ habitId: id, day: "2026-10-16", count: 8 })
+    expect((await ctx.app.inject({ method: "GET", url: `/api/habits/logs?habitId=${id}` })).json().items).toEqual([
+      { habitId: id, day: "2026-10-16", count: 8, target: 8 },
+    ])
+
+    expect((await ctx.app.inject({ method: "PUT", url: `/api/habits/${id}/logs/2999-01-01`, payload: { count: 1 } })).json()).toMatchObject({ error: "future_day" })
+    expect((await ctx.app.inject({ method: "PUT", url: `/api/habits/${id}/logs/yesterday`, payload: { count: 1 } })).statusCode).toBe(400)
+    expect((await ctx.app.inject({ method: "PUT", url: `/api/habits/${id}/logs/2026-10-16`, payload: { count: -1 } })).statusCode).toBe(400)
+    expect((await ctx.app.inject({ method: "PUT", url: "/api/habits/missing/logs/2026-10-16", payload: { count: 1 } })).statusCode).toBe(404)
+  })
 })
 
 describe("habit customization validation", () => {

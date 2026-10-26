@@ -12,7 +12,7 @@ import { toDayKey } from "@/lib/dates"
 import { completionRate, goalsMetPerDay } from "@/lib/habits"
 import type { HabitAnalyticsProps } from "@/types/habit"
 
-export function HabitAnalytics({ habits }: HabitAnalyticsProps) {
+export function HabitAnalytics({ habits, onEditDay }: HabitAnalyticsProps) {
   const { t } = useTranslation()
   const period = usePeriod()
   const [habitId, setHabitId] = useState("all")
@@ -56,7 +56,7 @@ export function HabitAnalytics({ habits }: HabitAnalyticsProps) {
         </div>
         <Panel title={t("habits.history")} icon={CalendarDays}>
           <p className="mb-4 text-xs text-muted-foreground">{t("habits.historyDescription")}</p>
-          <HabitHistoryTable habits={selected} logs={items} days={days} />
+          <HabitHistoryTable habits={selected} logs={items} days={days} onEditDay={onEditDay} />
         </Panel>
       </DataState>}
     </div>

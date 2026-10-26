@@ -1,8 +1,9 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react"
+import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 import { HabitsPage } from "@/routes/habits"
 import { mockApi, resetApiMock } from "@/test/mock-api"
 import { renderWithProviders } from "@/test/render-with-providers"
+import { addDays, formatDate, startOfWeek, toDayKey } from "@/lib/dates"
 import type { Habit } from "@/types/habit"
 
 const water: Habit = {
@@ -143,4 +144,82 @@ it("edits an existing habit with its saved emoji and check-in amount", async () 
   fireEvent.change(screen.getByLabelText("Daily goal"), { target: { value: "2000" } })
   fireEvent.click(screen.getByRole("button", { name: "Save" }))
   await waitFor(() => expect(calls.find((call) => call.method === "PATCH")?.body).toEqual({ name: water.name, target: 2000, step: 500, emoji: "🥤", unit: "ml" }))
+})
+
+describe("editing past days", () => {
+  const yesterday = toDayKey(addDays(new Date(), -1))
+  const yesterdayLabel = `Edit Drink water on ${formatDate(addDays(new Date(), -1), { weekday: "long", day: "numeric", month: "long" })}`
+
+  it("fixes a forgotten check-in from the card's last 7 days", async () => {
+    const { calls } = mockApi({
+      "GET /habits": () => ({ items: [water] }),
+      "GET /habits/logs": () => ({ items: [{ habitId: "h1", day: yesterday, count: 5, target: 8 }] }),
+      [`PUT /habits/h1/logs/${yesterday}`]: ({ body }) => ({ habitId: "h1", day: yesterday, ...(body as object) }),
+    })
+    renderWithProviders(<HabitsPage />)
+    fireEvent.click(await screen.findByRole("button", { name: yesterdayLabel }))
+
+    expect(screen.getByLabelText("Amount (glasses)")).toHaveValue(5)
+    fireEvent.click(screen.getByRole("button", { name: "Add 1 glasses" }))
+    expect(screen.getByLabelText("Amount (glasses)")).toHaveValue(6)
+    expect(screen.getByText("Partial · 6 / 8 glasses")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Mark goal met" }))
+    expect(screen.getByText("Completed · 8 / 8 glasses")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    await waitFor(() => expect(calls.find((call) => call.method === "PUT")?.body).toEqual({ count: 8 }))
+    await waitFor(() => expect(screen.queryByLabelText("Amount (glasses)")).not.toBeInTheDocument())
+  })
+
+  it("rejects invalid amounts and clears a day", async () => {
+    const { calls } = mockApi({
+      "GET /habits": () => ({ items: [water] }),
+      "GET /habits/logs": () => ({ items: [{ habitId: "h1", day: yesterday, count: 5, target: 8 }] }),
+      [`PUT /habits/h1/logs/${yesterday}`]: ({ body }) => ({ habitId: "h1", day: yesterday, ...(body as object) }),
+    })
+    renderWithProviders(<HabitsPage />)
+    fireEvent.click(await screen.findByRole("button", { name: yesterdayLabel }))
+    fireEvent.change(screen.getByLabelText("Amount (glasses)"), { target: { value: "1.5" } })
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a whole amount")
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
+    fireEvent.click(screen.getByRole("button", { name: "Clear day" }))
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(calls.find((call) => call.method === "PUT")?.body).toEqual({ count: 0 }))
+  })
+
+  it("edits a day from the day-by-day history", async () => {
+    const { calls } = mockApi({
+      "GET /habits": () => ({ items: [water] }),
+      "GET /habits/logs": () => ({ items: [{ habitId: "h1", day: yesterday, count: 5, target: 8 }] }),
+      [`PUT /habits/h1/logs/${yesterday}`]: ({ body }) => ({ habitId: "h1", day: yesterday, ...(body as object) }),
+    })
+    renderWithProviders(<HabitsPage />)
+    const history = await screen.findByRole("table", { name: /^Compare the recorded amount/ })
+    fireEvent.click(within(history).getByRole("button", { name: `${yesterdayLabel} · Partial · 5 / 8 glasses` }))
+    fireEvent.change(screen.getByLabelText("Amount (glasses)"), { target: { value: "7" } })
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(calls.find((call) => call.method === "PUT")?.body).toEqual({ count: 7 }))
+  })
+
+  it("browses previous weeks in the weekly tracker and edits a day", async () => {
+    const weekStart = startOfWeek()
+    const previous = toDayKey(addDays(weekStart, -7))
+    const { calls } = mockApi({
+      "GET /habits": () => ({ items: [water] }),
+      "GET /habits/logs": () => ({ items: [] }),
+      [`PUT /habits/h1/logs/${previous}`]: ({ body }) => ({ habitId: "h1", day: previous, ...(body as object) }),
+    })
+    renderWithProviders(<HabitsPage />)
+    expect(await screen.findByRole("heading", { name: "Weekly tracker" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Next week" })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous week" }))
+    await waitFor(() => expect(calls.some((call) => call.query.get("from") === previous)).toBe(true))
+    expect(screen.getByRole("button", { name: "Next week" })).toBeEnabled()
+    const label = `Edit Drink water on ${formatDate(addDays(weekStart, -7), { weekday: "long", day: "numeric", month: "long" })} · `
+    fireEvent.click(await screen.findByRole("button", { name: (name) => name.startsWith(label) }))
+    fireEvent.change(screen.getByLabelText("Amount (glasses)"), { target: { value: "3" } })
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(calls.find((call) => call.method === "PUT")?.body).toEqual({ count: 3 }))
+  })
 })

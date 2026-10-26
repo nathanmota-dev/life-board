@@ -486,8 +486,20 @@
     "consistencyHint": "Share of daily goals reached in these {{count}} days. Only tracked days count; today is still in progress.",
     "dailyProgress": "Daily progress",
     "history": "Day-by-day history",
-    "historyDescription": "Compare the recorded amount with each daily goal. Partial days show unfinished goals; a dash marks days before the habit started.",
-    "date": "Date"
+    "historyDescription": "Compare the recorded amount with each daily goal. Partial days show unfinished goals; a dash marks days before the habit started. Click a day to fix its amount.",
+    "date": "Date",
+    "weekTracker": "Weekly tracker",
+    "weekTrackerDescription": "Forgot a check-in or went past midnight? Click a day to fix its amount.",
+    "habit": "Habit",
+    "goalShort": "Goal {{target}} {{unit}}",
+    "editDay": "Edit {{name}} on {{date}}",
+    "dayAmount": "Amount ({{unit}})",
+    "dayGoalHint": "Past days keep the goal recorded on that day.",
+    "markGoalMet": "Mark goal met",
+    "clearDay": "Clear day",
+    "removeAmount": "Remove {{amount}} {{unit}}",
+    "addAmountButton": "Add {{amount}} {{unit}}",
+    "invalidDayAmount": "Enter a whole amount between 0 and 1,000,000."
   },
   "inbox": {
     "description": "Capture first, sort it out later.",

@@ -46,3 +46,7 @@ export function useLogHabit() {
     [queryKeys.habits, queryKeys.goals],
   )
 }
+
+export function useSetHabitLog() {
+  return useInvalidatingMutation(habitsService.setLog, [queryKeys.habits, queryKeys.goals])
+}

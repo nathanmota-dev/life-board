@@ -11,7 +11,7 @@ import { errorMessage } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { HabitRowProps } from "@/types/habit"
 
-export function HabitRow({ habit, week, onEdit }: HabitRowProps) {
+export function HabitRow({ habit, week, onEdit, onEditDay }: HabitRowProps) {
   const { t } = useTranslation()
   const log = useLogHabit()
   const remove = useRemoveHabit()
@@ -39,7 +39,7 @@ export function HabitRow({ habit, week, onEdit }: HabitRowProps) {
       </div>
       <Progress value={habitProgress(habit)} aria-label={t("common.itemProgress", { title: habit.name })} className="h-1.5" />
       <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-        <HabitWeek week={week} />
+        <HabitWeek habit={habit} week={week} onEditDay={onEditDay} />
         <Button variant="ghost" size="sm" aria-label={t("habits.undo", { name: habit.name })}
           disabled={habit.todayCount === 0 || log.isPending}
           onClick={() => log.mutate({ id: habit.id, input: { delta: -habit.step } })}>

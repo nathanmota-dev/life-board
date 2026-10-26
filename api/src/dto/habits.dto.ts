@@ -18,6 +18,12 @@ export const logHabitBody = z.object({
   day: dayKey.optional(),
 })
 
+export const habitLogParams = z.object({ id: z.string().min(1), day: dayKey })
+
+export const setHabitLogBody = z.object({
+  count: z.number().int().min(0).max(1_000_000),
+})
+
 export const listHabitLogsQuery = z.object({
   from: dayKey.optional(),
   to: dayKey.optional(),
@@ -27,4 +33,5 @@ export const listHabitLogsQuery = z.object({
 export type CreateHabitBody = z.infer<typeof createHabitBody>
 export type UpdateHabitBody = z.infer<typeof updateHabitBody>
 export type LogHabitBody = z.infer<typeof logHabitBody>
+export type SetHabitLogBody = z.infer<typeof setHabitLogBody>
 export type ListHabitLogsQuery = z.infer<typeof listHabitLogsQuery>

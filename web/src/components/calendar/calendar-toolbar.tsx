@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { addDays, formatDate, startOfWeek } from "@/lib/dates"
 import type { CalendarToolbarProps } from "@/types/calendar"
 
-export function CalendarToolbar({ weekStart, onChange }: CalendarToolbarProps) {
+export function CalendarToolbar({ weekStart, onChange, nextDisabled = false }: CalendarToolbarProps) {
   const { t } = useTranslation()
   const weekEnd = addDays(weekStart, 6)
 
@@ -21,7 +21,7 @@ export function CalendarToolbar({ weekStart, onChange }: CalendarToolbarProps) {
       <Button size="icon-sm" variant="outline" aria-label={t("calendar.previousWeek")} onClick={() => onChange(addDays(weekStart, -7))}>
         <ChevronLeft />
       </Button>
-      <Button size="icon-sm" variant="outline" aria-label={t("calendar.nextWeek")} onClick={() => onChange(addDays(weekStart, 7))}>
+      <Button size="icon-sm" variant="outline" aria-label={t("calendar.nextWeek")} disabled={nextDisabled} onClick={() => onChange(addDays(weekStart, 7))}>
         <ChevronRight />
       </Button>
       <p className="ml-1 text-sm font-medium" aria-live="polite">

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { dayRange } from "@/lib/dates"
-import { completionRate, goalsMetPerDay, habitProgress, habitWeek } from "@/lib/habits"
+import { canEditHabitDay, completionRate, goalsMetPerDay, habitDay, habitDayStatus, habitProgress, habitWeek, weekDays } from "@/lib/habits"
 import type { Habit, HabitLog } from "@/types/habit"
 
 const habit: Habit = { id: "h1", name: "Water", unit: "glasses", target: 2, step: 1, emoji: "💧", todayCount: 3, doneToday: true, streak: 1, createdAt: "" }
@@ -56,5 +56,24 @@ describe("habit history windows", () => {
     for (const [from, to] of [["", "2026-10-18"], ["2026-02-30", "2026-03-01"], ["2026-10-18", "2026-10-17"], ["2026-10-17", "2026-10-19"], ["2024-01-01", "2026-10-18"]]) {
       expect(dayRange(from, to)).toEqual([])
     }
+  })
+})
+
+describe("editing habit days", () => {
+  it("names each day's status", () => {
+    expect(["2026-10-15", "2026-10-16", "2026-10-17"].map((day) => habitDayStatus(habitDay(habit, logs, day)))).toEqual(["completed", "missed", "partial"])
+    expect(habitDayStatus(habitDay({ ...habit, todayCount: 0 }, logs, "2026-10-18"))).toBe("pending")
+    expect(habitDayStatus(habitDay({ ...habit, createdAt: "2026-10-17T12:00:00.000Z" }, [], "2026-10-16"))).toBe("notTracked")
+  })
+
+  it("allows editing today and past days only", () => {
+    expect(canEditHabitDay("2026-01-01")).toBe(true)
+    expect(canEditHabitDay("2026-10-18")).toBe(true)
+    expect(canEditHabitDay("2026-10-19")).toBe(false)
+  })
+
+  it("lists the seven days of a week across month boundaries", () => {
+    expect(weekDays(new Date(2026, 9, 25))).toEqual(["2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31"])
+    expect(weekDays(new Date(2026, 10, 29)).at(-1)).toBe("2026-12-05")
   })
 })
