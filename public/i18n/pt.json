@@ -487,7 +487,19 @@
     "dailyProgress": "Progresso diário",
     "history": "Histórico dia a dia",
     "historyDescription": "Compare a quantidade registrada com cada meta diária. Dias parciais indicam metas incompletas; um traço indica dias anteriores à criação do hábito.",
-    "date": "Data"
+    "date": "Data",
+    "weekTracker": "Acompanhamento semanal",
+    "weekTrackerDescription": "Esqueceu de registrar ou passou da meia-noite? Clique em um dia para corrigir a quantidade.",
+    "habit": "Hábito",
+    "goalShort": "Meta {{target}} {{unit}}",
+    "editDay": "Editar {{name}} em {{date}}",
+    "dayAmount": "Quantidade ({{unit}})",
+    "dayGoalHint": "Dias anteriores mantêm a meta registrada naquele dia.",
+    "markGoalMet": "Marcar meta atingida",
+    "clearDay": "Zerar dia",
+    "removeAmount": "Remover {{amount}} {{unit}}",
+    "addAmountButton": "Adicionar {{amount}} {{unit}}",
+    "invalidDayAmount": "Informe uma quantidade inteira entre 0 e 1.000.000."
   },
   "inbox": {
     "description": "Capture primeiro, organize depois.",

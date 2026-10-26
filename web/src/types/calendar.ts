@@ -47,7 +47,7 @@ export type EventFormValues = {
 
 export type EventDialogState = { open: boolean; event: CalendarEvent | null; start: Date | null }
 
-export type CalendarToolbarProps = { weekStart: Date; onChange: (weekStart: Date) => void }
+export type CalendarToolbarProps = { weekStart: Date; onChange: (weekStart: Date) => void; nextDisabled?: boolean }
 
 export type CalendarWeekProps = {
   days: Date[]

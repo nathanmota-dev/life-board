@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { createTestDb } from "../test/create-test-app"
 import { toDayKey } from "./date.service"
-import { NotFoundError } from "./errors"
+import { BadRequestError, NotFoundError } from "./errors"
 import { getStreak, HabitsService } from "./habits.service"
 
 let ctx: Awaited<ReturnType<typeof createTestDb>>
@@ -113,5 +113,35 @@ describe("editing today's goal", () => {
     await service.update(habit.id, { target: 20 })
     expect((await service.logs({ habitId: habit.id }))[0]).toMatchObject({ count: 10, target: 20 })
     expect((await service.list())[0].doneToday).toBe(false)
+  })
+})
+
+describe("editing a past day", () => {
+  it("replaces the day's count and keeps the goal recorded at the time", async () => {
+    const habit = await service.create({ name: "Water", target: 8 })
+    await service.log(habit.id, { delta: 3, day: "2026-10-16" })
+    await service.update(habit.id, { target: 10 })
+
+    expect(await service.setLog(habit.id, "2026-10-16", { count: 8 })).toEqual({ habitId: habit.id, day: "2026-10-16", count: 8 })
+    expect(await service.setLog(habit.id, "2026-10-15", { count: 2 })).toMatchObject({ count: 2 })
+    expect(await service.logs({ habitId: habit.id })).toEqual([
+      { habitId: habit.id, day: "2026-10-15", count: 2, target: 10 },
+      { habitId: habit.id, day: "2026-10-16", count: 8, target: 8 },
+    ])
+    expect((await service.setLog(habit.id, "2026-10-16", { count: 0 })).count).toBe(0)
+  })
+
+  it("updates today's count with the current goal", async () => {
+    const habit = await service.create({ name: "Read", target: 10 })
+    await service.setLog(habit.id, toDayKey(), { count: 12 })
+    expect((await service.list())[0]).toMatchObject({ todayCount: 12, doneToday: true, streak: 1 })
+  })
+
+  it("rejects future days and unknown habits", async () => {
+    const habit = await service.create({ name: "Read", target: 10 })
+    const tomorrow = toDayKey(new Date(Date.now() + 24 * 60 * 60 * 1000))
+    await expect(service.setLog(habit.id, tomorrow, { count: 1 })).rejects.toBeInstanceOf(BadRequestError)
+    await expect(service.log(habit.id, { delta: 1, day: tomorrow })).rejects.toBeInstanceOf(BadRequestError)
+    await expect(service.setLog("missing", "2026-10-16", { count: 1 })).rejects.toBeInstanceOf(NotFoundError)
   })
 })

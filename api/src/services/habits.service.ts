@@ -2,9 +2,9 @@ import { and, asc, eq, gte, inArray, isNull, lte, sql, type SQL } from "drizzle-
 import { ulid } from "ulid"
 import type { Db } from "../db/client"
 import { habitLogs, habits, type Habit } from "../db/schema"
-import type { CreateHabitBody, ListHabitLogsQuery, LogHabitBody, UpdateHabitBody } from "../dto/habits.dto"
+import type { CreateHabitBody, ListHabitLogsQuery, LogHabitBody, SetHabitLogBody, UpdateHabitBody } from "../dto/habits.dto"
 import { addDays, toDayKey } from "./date.service"
-import { NotFoundError } from "./errors"
+import { BadRequestError, NotFoundError } from "./errors"
 
 export type HabitSummary = Habit & { todayCount: number; doneToday: boolean; streak: number }
 
@@ -75,20 +75,32 @@ export class HabitsService {
 
   /** Adds `delta` to the day's count (never going below zero) and returns the new count. */
   async log(habitId: string, { delta, day = toDayKey() }: LogHabitBody) {
+    return this.upsertLog(habitId, day, Math.max(0, delta), sql`max(0, ${habitLogs.count} + ${delta})`)
+  }
+
+  /** Replaces the day's count, so a forgotten or wrong check-in on a past day can be fixed. */
+  async setLog(habitId: string, day: string, { count }: SetHabitLogBody) {
+    return this.upsertLog(habitId, day, count, count)
+  }
+
+  private async upsertLog(habitId: string, day: string, initial: number, count: number | SQL) {
     const [habit] = await this.db
       .select({ id: habits.id, target: habits.target })
       .from(habits)
       .where(and(eq(habits.id, habitId), isNull(habits.deletedAt)))
     if (!habit) throw new NotFoundError("Habit not found.")
+    const today = toDayKey()
+    if (day > today) throw new BadRequestError("future_day", "Habits can't be logged for a future day.")
 
     const [row] = await this.db
       .insert(habitLogs)
-      .values({ id: ulid(), habitId, day, count: Math.max(0, delta), target: habit.target })
+      .values({ id: ulid(), habitId, day, count: initial, target: habit.target })
       .onConflictDoUpdate({
         target: [habitLogs.habitId, habitLogs.day],
         set: {
-          count: sql`max(0, ${habitLogs.count} + ${delta})`,
-          target: day === toDayKey() ? habit.target : sql`coalesce(${habitLogs.target}, ${habit.target})`,
+          count,
+          // Past days keep the goal recorded at the time; only today follows the current goal.
+          target: day === today ? habit.target : sql`coalesce(${habitLogs.target}, ${habit.target})`,
           updatedAt: new Date(),
         },
       })

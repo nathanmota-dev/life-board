@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod"
 import { idParams, okResponse } from "../dto/common.dto"
-import { createHabitBody, listHabitLogsQuery, logHabitBody, updateHabitBody } from "../dto/habits.dto"
+import { createHabitBody, habitLogParams, listHabitLogsQuery, logHabitBody, setHabitLogBody, updateHabitBody } from "../dto/habits.dto"
 
 export const habitsController: FastifyPluginAsyncZod = async (app) => {
   const { habits } = app.services
@@ -26,5 +26,9 @@ export const habitsController: FastifyPluginAsyncZod = async (app) => {
 
   app.post("/habits/:id/logs", { schema: { params: idParams, body: logHabitBody } }, (request) =>
     habits.log(request.params.id, request.body),
+  )
+
+  app.put("/habits/:id/logs/:day", { schema: { params: habitLogParams, body: setHabitLogBody } }, (request) =>
+    habits.setLog(request.params.id, request.params.day, request.body),
   )
 }

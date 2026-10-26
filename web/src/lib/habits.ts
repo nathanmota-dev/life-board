@@ -1,8 +1,11 @@
-import { formatDate, fromDayKey, lastDays, toDayKey } from "@/lib/dates"
+import { addDays, formatDate, fromDayKey, lastDays, toDayKey } from "@/lib/dates"
 import { i18n } from "@/lib/i18n"
-import type { Habit, HabitChartPoint, HabitDay, HabitLog } from "@/types/habit"
+import type { Habit, HabitChartPoint, HabitDay, HabitDayStatus, HabitLog } from "@/types/habit"
 
 export const HABIT_EMOJIS = ["🌱", "💧", "🥤", "📚", "🏋️", "🚶", "🧘", "😴", "🥗", "💊", "🧹", "✍️", "🎨", "🎸", "💻", "🐾"]
+
+/** Largest count the API accepts for one day. */
+export const MAX_HABIT_COUNT = 1_000_000
 
 export function habitUnit(unit: string) {
   return unit === "times" ? i18n.t("habits.times") : unit
@@ -19,6 +22,23 @@ export function habitDay(habit: Habit, logs: HabitLog[], day: string): HabitDay 
 
 export function habitWeek(habit: Habit, logs: HabitLog[], days: string[] = lastDays(7)): HabitDay[] {
   return days.map((day) => habitDay(habit, logs, day))
+}
+
+export function habitDayStatus(entry: HabitDay): HabitDayStatus {
+  if (!entry.eligible) return "notTracked"
+  if (entry.done) return "completed"
+  if (entry.count > 0) return "partial"
+  return entry.day === toDayKey() ? "pending" : "missed"
+}
+
+/** A past or current day can be edited, even before the habit existed, to backfill check-ins. */
+export function canEditHabitDay(day: string) {
+  return day <= toDayKey()
+}
+
+/** The seven day keys of the week starting at `weekStart`. */
+export function weekDays(weekStart: Date) {
+  return Array.from({ length: 7 }, (_, index) => toDayKey(addDays(weekStart, index)))
 }
 
 /** Only days on/after creation count; today remains in progress until its goal is met. */
