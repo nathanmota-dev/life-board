@@ -13,6 +13,8 @@ test.describe("controlled updater", () => {
     await page.getByRole("tab", { name: "Atualizações", exact: true }).click()
     await expect(page.getByText("Uma nova versão está disponível.", { exact: true })).toBeVisible()
     await expect(page.getByText("Synthetic release notes", { exact: true })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Release highlights", level: 2 })).toBeVisible()
+    await expect(page.getByRole("listitem").filter({ hasText: "Edit previous days & track habits." })).toBeVisible()
     await expect(page.getByRole("button", { name: "Baixar atualização", exact: true })).toBeEnabled()
     await page.getByRole("link", { name: "Ver lançamento no GitHub", exact: true }).click()
     expect(await workspace.app.evaluate(() => globalThis.e2e.external)).toContain(`https://github.com/nathanmota-dev/life-board/releases/tag/v${nextVersion}`)

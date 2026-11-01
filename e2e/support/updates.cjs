@@ -13,7 +13,7 @@ module.exports = function installUpdates() {
   class SyntheticUpdater extends EventEmitter {
     async checkForUpdates() {
       if (scenario().updates === "network") throw new Error("ERR_CONNECTION_RESET")
-      return { updateInfo: { version: scenario().updates === "current" ? installed : next, releaseDate: "2026-10-21T12:00:00Z", releaseNotes: "Synthetic release notes", files: [{ url: `life-board-${next}-x86_64.AppImage`, sha512 }] } }
+      return { updateInfo: { version: scenario().updates === "current" ? installed : next, releaseDate: "2026-10-21T12:00:00Z", releaseNotes: "<p>Synthetic release notes</p><h2>Release highlights</h2><ul><li>Edit <strong>previous days</strong> &amp; track habits.</li></ul>", files: [{ url: `life-board-${next}-x86_64.AppImage`, sha512 }] } }
     }
     async downloadUpdate() {
       this.emit("download-progress", { percent: 25 })

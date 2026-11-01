@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Panel } from "@/components/workspace-ui"
 import { useAppUpdates } from "@/hooks/use-app-updates"
 import { getLocale } from "@/lib/i18n"
+import { renderReleaseNotes } from "@/lib/release-notes"
 
 export function UpdatesPanel() {
   const { t } = useTranslation()
@@ -34,7 +35,7 @@ export function UpdatesPanel() {
           <span className="text-sm tabular-nums">{Math.round(state.progress ?? 0)}%</span>
         </div>}
         {state.release && <div className="min-w-0 space-y-3">
-          {state.release.notes && <p className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-sm text-muted-foreground">{state.release.notes}</p>}
+          {state.release.notes && <div className="max-h-64 overflow-auto break-words text-sm text-muted-foreground">{renderReleaseNotes(state.release.notes)}</div>}
           <a className="text-sm text-primary underline underline-offset-4" href={state.release.url} onClick={(event) => {
             if (window.desktop) { event.preventDefault(); void window.desktop.openExternal(state.release!.url) }
           }} target="_blank" rel="noreferrer">{t("settings.updates.releaseNotes")}</a>

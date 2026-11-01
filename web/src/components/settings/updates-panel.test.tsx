@@ -28,6 +28,30 @@ beforeEach(() => {
 afterEach(() => { delete window.desktop })
 
 describe("Updates panel", () => {
+  it("formats HTML release notes without exposing markup or active content", async () => {
+    state = { ...state, status: "available", release: { ...release, notes: '<p>Correções &amp; melhorias<br>nos hábitos.</p><h2>Novidade</h2><ul><li>Editar <strong>dias anteriores</strong></li></ul><script>alert("unsafe")</script><img src="https://example.com/tracker" onerror="alert(1)"><a href="javascript:alert(1)">Detalhes</a><style>body { display: none }</style><iframe src="https://example.com"></iframe>' } }
+    const { container } = render(<UpdatesPanel />)
+
+    expect(await screen.findByRole("heading", { name: "Novidade", level: 2 })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Novidade" }).closest(".whitespace-pre-wrap")).toBeNull()
+    expect(screen.getByRole("listitem")).toHaveTextContent("Editar dias anteriores")
+    expect(screen.getByText("dias anteriores").tagName).toBe("STRONG")
+    expect(screen.getByText(/Correções & melhorias/).querySelector("br")).toBeInTheDocument()
+    expect(screen.getByText("Detalhes")).toBeInTheDocument()
+    expect(container).not.toHaveTextContent("<p>")
+    expect(container).not.toHaveTextContent("unsafe")
+    expect(container.querySelector("script, style, img, iframe, [onerror], [href^='javascript:']")).toBeNull()
+    expect(screen.getAllByRole("link")).toHaveLength(1)
+  })
+
+  it("preserves line breaks in plain-text release notes", async () => {
+    state = { ...state, status: "available", release: { ...release, notes: "First change\nSecond change: 2 < 3 & 4 > 1" } }
+    render(<UpdatesPanel />)
+
+    expect((await screen.findByText(/First change/)).textContent).toBe(state.release!.notes)
+    expect(screen.getByText(/First change/)).toHaveClass("whitespace-pre-wrap")
+  })
+
   it("shows the installed version, manual discovery, release details and explicit download", async () => {
     render(<UpdatesPanel />)
     expect(await screen.findByText("1.0.0 (DEB)")).toBeInTheDocument()
