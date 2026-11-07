@@ -1,0 +1,25 @@
+{
+  "path": "/api/github/issues?kind=in_my_repos&limit=1",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "octo/site#3",
+        "number": 3,
+        "title": "Typo",
+        "state": "open",
+        "repoOwner": "octo",
+        "repoName": "site",
+        "authorLogin": "",
+        "authorAvatarUrl": null,
+        "url": "https://github.com/octo/site/issues/3",
+        "kind": "in_my_repos",
+        "labels": [],
+        "comments": 0,
+        "createdAt": "2026-10-01T00:00:00.000Z",
+        "updatedAt": "2026-10-02T00:00:00.000Z",
+        "syncedAt": "2026-10-10T08:00:00.000Z"
+      }
+    ]
+  }
+}

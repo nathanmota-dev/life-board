@@ -1,0 +1,21 @@
+{
+  "path": "/api/projects?archived=true",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "p-archived",
+        "title": "Thesis",
+        "description": "",
+        "status": "done",
+        "order": 0,
+        "statusChangedAt": "2026-10-04T12:00:00.000Z",
+        "pauseReason": null,
+        "archivedAt": "2026-10-05T00:00:00.000Z",
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      }
+    ]
+  }
+}

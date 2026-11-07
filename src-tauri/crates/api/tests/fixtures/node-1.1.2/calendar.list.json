@@ -1,0 +1,42 @@
+{
+  "path": "/api/calendar/events",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "ev-day",
+        "title": "Holiday",
+        "description": null,
+        "startAt": "2026-10-12T00:00:00.000Z",
+        "endAt": "2026-10-12T23:59:00.000Z",
+        "allDay": true,
+        "location": null,
+        "color": "#3b82f6",
+        "linkedTaskIds": [],
+        "linkedThoughtIds": [],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      },
+      {
+        "id": "ev-flight",
+        "title": "Flight",
+        "description": "Window seat",
+        "startAt": "2026-10-20T08:00:00.000Z",
+        "endAt": "2026-10-20T10:00:00.000Z",
+        "allDay": false,
+        "location": "GRU",
+        "color": "#22c55e",
+        "linkedTaskIds": [
+          "t-trip"
+        ],
+        "linkedThoughtIds": [
+          "th_plan"
+        ],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      }
+    ]
+  }
+}

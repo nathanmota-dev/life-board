@@ -1,0 +1,24 @@
+{
+  "path": "/api/thoughts?limit=2&cursor=0:1791277200000:th_idea",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "th_note",
+        "title": null,
+        "body": "Groceries list",
+        "tags": [
+          "home"
+        ],
+        "pinned": false,
+        "linkedTaskIds": [
+          "t-trip"
+        ],
+        "createdAt": "2026-10-05T09:00:00.000Z",
+        "updatedAt": "2026-10-05T09:00:00.000Z",
+        "deletedAt": null
+      }
+    ],
+    "nextCursor": null
+  }
+}

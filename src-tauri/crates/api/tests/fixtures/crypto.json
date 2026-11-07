@@ -1,0 +1,30 @@
+{
+  "algorithm": "aes-256-gcm",
+  "key": "KioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKio=",
+  "cases": [
+    {
+      "plaintext": "ghp_fixture0123456789abcdefghij",
+      "sealed": {
+        "ciphertext": "JRi6uhIuH3OlYSni7+7Q7zyryaqdHji45cO5lWHOJQ==",
+        "iv": "3oKzTQVTnX7oZ3GT",
+        "tag": "HMct+Jtx4edpN40G+nyZOQ=="
+      }
+    },
+    {
+      "plaintext": "",
+      "sealed": {
+        "ciphertext": "",
+        "iv": "rwanrQTET21sGZN5",
+        "tag": "gHPFiXgD65kzbVYg+DEz6Q=="
+      }
+    },
+    {
+      "plaintext": "olá 🌱 — unicode secret",
+      "sealed": {
+        "ciphertext": "pVhiltS4KQxr5Cit7HcxO+fSD/9G2lroKrS/Eg==",
+        "iv": "TjVyDpfQiUQeHv1h",
+        "tag": "NY9PLqptgRB7E1pn2nmisQ=="
+      }
+    }
+  ]
+}
