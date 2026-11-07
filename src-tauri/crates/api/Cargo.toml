@@ -1,0 +1,52 @@
+[package]
+name = "life-board-api"
+version = "0.1.0"
+description = "Life Board HTTP API (Rust port of api/)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "life-board-api"
+path = "src/main.rs"
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"
+
+[dependencies]
+aes-gcm.workspace = true
+async-trait.workspace = true
+axum.workspace = true
+base64.workspace = true
+bytes.workspace = true
+chrono.workspace = true
+reqwest.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+ulid.workspace = true
+
+[build-dependencies]
+serde_json.workspace = true
+
+[dev-dependencies]
+http-body-util.workspace = true
+rstest.workspace = true
+tempfile.workspace = true
+wiremock.workspace = true
+
+[lints]
+workspace = true
