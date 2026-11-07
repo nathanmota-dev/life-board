@@ -1,0 +1,60 @@
+{
+  "path": "/api/projects",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "p-garden",
+        "title": "Garden",
+        "description": "",
+        "status": "in_progress",
+        "order": 0,
+        "statusChangedAt": "2026-10-02T12:00:00.000Z",
+        "pauseReason": null,
+        "archivedAt": null,
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      },
+      {
+        "id": "p-idea",
+        "title": "Budget app",
+        "description": "Track spending",
+        "status": "idea",
+        "order": 0,
+        "statusChangedAt": "2026-10-01T12:00:00.000Z",
+        "pauseReason": null,
+        "archivedAt": null,
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      },
+      {
+        "id": "p-paused",
+        "title": "Boat",
+        "description": "",
+        "status": "paused",
+        "order": 0,
+        "statusChangedAt": "2026-10-03T12:00:00.000Z",
+        "pauseReason": "Waiting on parts",
+        "archivedAt": null,
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      },
+      {
+        "id": "p-blog",
+        "title": "Blog",
+        "description": "",
+        "status": "idea",
+        "order": 1,
+        "statusChangedAt": "2026-10-01T12:00:00.000Z",
+        "pauseReason": null,
+        "archivedAt": null,
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      }
+    ]
+  }
+}

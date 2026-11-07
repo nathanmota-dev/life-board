@@ -1,0 +1,116 @@
+{
+  "path": "/api/tasks?include=children",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "t-trip",
+        "title": "Trip",
+        "description": "Pack <b>early</b>",
+        "status": "today",
+        "priority": "high",
+        "dueAt": "2026-10-20T00:00:00.000Z",
+        "completedAt": null,
+        "parentTaskId": null,
+        "tags": [
+          "travel"
+        ],
+        "linkedThoughtIds": [
+          "th_plan"
+        ],
+        "pinned": true,
+        "color": "blue",
+        "order": 0,
+        "archivedAt": null,
+        "focusDay": "2026-10-19",
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null,
+        "children": [
+          {
+            "id": "t-passport",
+            "title": "Passport",
+            "description": null,
+            "status": "done",
+            "priority": "none",
+            "dueAt": null,
+            "completedAt": "2026-10-02T08:00:00.000Z",
+            "parentTaskId": "t-trip",
+            "tags": [],
+            "linkedThoughtIds": [],
+            "pinned": false,
+            "color": null,
+            "order": 0,
+            "archivedAt": null,
+            "focusDay": null,
+            "createdAt": "2026-10-01T12:00:00.000Z",
+            "updatedAt": "2026-10-01T12:00:00.000Z",
+            "deletedAt": null
+          },
+          {
+            "id": "t-tickets",
+            "title": "Tickets",
+            "description": null,
+            "status": "inbox",
+            "priority": "none",
+            "dueAt": null,
+            "completedAt": null,
+            "parentTaskId": "t-trip",
+            "tags": [],
+            "linkedThoughtIds": [],
+            "pinned": false,
+            "color": null,
+            "order": 1,
+            "archivedAt": null,
+            "focusDay": null,
+            "createdAt": "2026-10-01T12:00:00.000Z",
+            "updatedAt": "2026-10-01T12:00:00.000Z",
+            "deletedAt": null
+          }
+        ]
+      },
+      {
+        "id": "t-bills",
+        "title": "Pay bills",
+        "description": "Electricity 100%",
+        "status": "inbox",
+        "priority": "medium",
+        "dueAt": null,
+        "completedAt": null,
+        "parentTaskId": null,
+        "tags": [],
+        "linkedThoughtIds": [],
+        "pinned": false,
+        "color": null,
+        "order": 1,
+        "archivedAt": null,
+        "focusDay": null,
+        "createdAt": "2026-10-02T12:00:00.000Z",
+        "updatedAt": "2026-10-02T12:00:00.000Z",
+        "deletedAt": null,
+        "children": []
+      },
+      {
+        "id": "t-call",
+        "title": "Call mom",
+        "description": null,
+        "status": "upcoming",
+        "priority": "low",
+        "dueAt": "2026-10-25T15:30:00.000Z",
+        "completedAt": null,
+        "parentTaskId": null,
+        "tags": [],
+        "linkedThoughtIds": [],
+        "pinned": false,
+        "color": null,
+        "order": 2,
+        "archivedAt": null,
+        "focusDay": null,
+        "createdAt": "2026-10-03T12:00:00.000Z",
+        "updatedAt": "2026-10-03T12:00:00.000Z",
+        "deletedAt": null,
+        "children": []
+      }
+    ]
+  }
+}

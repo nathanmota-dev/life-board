@@ -1,0 +1,17 @@
+{
+  "path": "/api/projects/p-paused",
+  "status": 200,
+  "body": {
+    "id": "p-paused",
+    "title": "Boat",
+    "description": "",
+    "status": "paused",
+    "order": 0,
+    "statusChangedAt": "2026-10-03T12:00:00.000Z",
+    "pauseReason": "Waiting on parts",
+    "archivedAt": null,
+    "createdAt": "2026-10-01T12:00:00.000Z",
+    "updatedAt": "2026-10-01T12:00:00.000Z",
+    "deletedAt": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "path": "/api/habits/logs?habitId=h-water&from=2026-10-16",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "habitId": "h-water",
+        "day": "2026-10-16",
+        "count": 5,
+        "target": null
+      }
+    ]
+  }
+}

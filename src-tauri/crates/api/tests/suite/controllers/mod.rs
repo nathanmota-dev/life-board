@@ -1,0 +1,13 @@
+mod calendar;
+mod file_boards;
+mod github;
+mod goals;
+mod habits;
+mod health;
+mod links;
+mod mood;
+mod projects;
+mod settings;
+mod stats;
+mod tasks;
+mod thoughts;

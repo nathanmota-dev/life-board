@@ -1,0 +1,28 @@
+{
+  "path": "/api/tasks?archived=true",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "t-old",
+        "title": "Old report",
+        "description": null,
+        "status": "done",
+        "priority": "none",
+        "dueAt": null,
+        "completedAt": "2026-10-01T12:00:00.000Z",
+        "parentTaskId": null,
+        "tags": [],
+        "linkedThoughtIds": [],
+        "pinned": false,
+        "color": null,
+        "order": 3,
+        "archivedAt": "2026-10-03T00:00:00.000Z",
+        "focusDay": null,
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      }
+    ]
+  }
+}

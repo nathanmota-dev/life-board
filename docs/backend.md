@@ -44,3 +44,30 @@ Para alterar o banco, edite `api/src/db/schema/` e gere uma migration:
 ```bash
 npm run db:generate --workspace api
 ```
+
+## Port para Rust em andamento
+
+A API está sendo reescrita em Rust (issues #50 a #53). O crate
+`life-board-api` fica em `src-tauri/crates/api` e mantém o mesmo contrato HTTP e
+o mesmo banco SQLite, descritos em
+[`src-tauri/crates/api/CONTRACT.md`](../src-tauri/crates/api/CONTRACT.md). Até o
+fim da série, o Electron continua usando a API Node de `api/`.
+
+- Módulos, rotas, DTOs e métodos dos services já estão declarados. O que ainda
+  não foi implementado chama `pending!(N)`, com o número da issue responsável.
+- Os testes de `api/src/**/*.test.ts` foram traduzidos para
+  `src-tauri/crates/api/tests/suite`, no caminho espelhado
+  (`services/tasks.service.test.ts` → `tests/suite/services/tasks.rs`). Cada
+  teste portado tem `#[ignore = "pending #N"]` até a issue `#N` implementar o
+  módulo e remover o `ignore`.
+- `npm run test:parity` falha quando um caso TS não tem teste Rust ou quando um
+  teste Rust não tem caso TS nem entrada justificada em
+  `tests/parity-allowlist.json`.
+- Os testes golden comparam as respostas do Rust com as da API Node gravadas
+  em `tests/fixtures/` (perfil `node-<versão>.db`, respostas dos GETs, segredos
+  selados com uma chave de teste e a lista das rotas). Para regenerar, rode
+  `node src-tauri/scripts/record-node-fixtures.mjs`; rodar de novo sem mudar a
+  API não gera diff.
+
+Comandos: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`,
+`cargo test --workspace` (`npm run test:rust`) e `npm run test:parity`.
