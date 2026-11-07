@@ -1,0 +1,14 @@
+{
+  "path": "/api/thoughts?cursor=abc",
+  "status": 400,
+  "body": {
+    "error": "validation_error",
+    "message": "querystring/cursor Invalid cursor",
+    "issues": [
+      {
+        "path": "/cursor",
+        "message": "Invalid cursor"
+      }
+    ]
+  }
+}

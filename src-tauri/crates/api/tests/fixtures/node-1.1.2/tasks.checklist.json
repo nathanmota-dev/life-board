@@ -1,0 +1,48 @@
+{
+  "path": "/api/tasks?parentTaskId=t-trip",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "t-passport",
+        "title": "Passport",
+        "description": null,
+        "status": "done",
+        "priority": "none",
+        "dueAt": null,
+        "completedAt": "2026-10-02T08:00:00.000Z",
+        "parentTaskId": "t-trip",
+        "tags": [],
+        "linkedThoughtIds": [],
+        "pinned": false,
+        "color": null,
+        "order": 0,
+        "archivedAt": null,
+        "focusDay": null,
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      },
+      {
+        "id": "t-tickets",
+        "title": "Tickets",
+        "description": null,
+        "status": "inbox",
+        "priority": "none",
+        "dueAt": null,
+        "completedAt": null,
+        "parentTaskId": "t-trip",
+        "tags": [],
+        "linkedThoughtIds": [],
+        "pinned": false,
+        "color": null,
+        "order": 1,
+        "archivedAt": null,
+        "focusDay": null,
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      }
+    ]
+  }
+}

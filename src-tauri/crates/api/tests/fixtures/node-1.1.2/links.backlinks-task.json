@@ -1,0 +1,30 @@
+{
+  "path": "/api/links/backlinks/task/t-trip",
+  "status": 200,
+  "body": {
+    "backlinks": [
+      {
+        "source": "thoughts",
+        "sourceId": "th_plan",
+        "label": "Plan"
+      },
+      {
+        "source": "thoughts",
+        "sourceId": "th_note",
+        "label": "Groceries list"
+      },
+      {
+        "source": "calendar",
+        "sourceId": "ev-flight",
+        "label": "Flight",
+        "meta": "2026-10-20T08:00:00.000Z"
+      },
+      {
+        "source": "goals",
+        "sourceId": "g-run",
+        "label": "Run 10k",
+        "meta": "paused"
+      }
+    ]
+  }
+}
