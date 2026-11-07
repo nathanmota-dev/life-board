@@ -1,0 +1,16 @@
+mod calendar;
+mod crypto;
+mod date;
+mod file_boards;
+mod file_storage;
+mod files_settings;
+mod github;
+mod github_client;
+mod goals;
+mod habits;
+mod links;
+mod mood;
+mod projects;
+mod stats;
+mod tasks;
+mod thoughts;
