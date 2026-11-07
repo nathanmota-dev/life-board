@@ -1,0 +1,8 @@
+{
+  "path": "/api/file-boards/b-gone/items",
+  "status": 404,
+  "body": {
+    "error": "not_found",
+    "message": "Board not found."
+  }
+}

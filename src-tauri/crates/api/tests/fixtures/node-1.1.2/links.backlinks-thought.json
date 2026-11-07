@@ -1,0 +1,26 @@
+{
+  "path": "/api/links/backlinks/thought/th_plan",
+  "status": 200,
+  "body": {
+    "backlinks": [
+      {
+        "source": "tasks",
+        "sourceId": "t-trip",
+        "label": "Trip",
+        "meta": "high"
+      },
+      {
+        "source": "calendar",
+        "sourceId": "ev-flight",
+        "label": "Flight",
+        "meta": "2026-10-20T08:00:00.000Z"
+      },
+      {
+        "source": "goals",
+        "sourceId": "g-books",
+        "label": "Read 12 books",
+        "meta": "active"
+      }
+    ]
+  }
+}

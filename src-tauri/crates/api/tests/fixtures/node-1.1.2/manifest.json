@@ -1,0 +1,202 @@
+[
+  {
+    "module": "tasks",
+    "name": "tasks.list",
+    "path": "/api/tasks"
+  },
+  {
+    "module": "tasks",
+    "name": "tasks.board",
+    "path": "/api/tasks?include=children"
+  },
+  {
+    "module": "tasks",
+    "name": "tasks.archived",
+    "path": "/api/tasks?archived=true"
+  },
+  {
+    "module": "tasks",
+    "name": "tasks.search",
+    "path": "/api/tasks?search=electricity"
+  },
+  {
+    "module": "tasks",
+    "name": "tasks.checklist",
+    "path": "/api/tasks?parentTaskId=t-trip"
+  },
+  {
+    "module": "tasks",
+    "name": "tasks.focus-day",
+    "path": "/api/tasks?focusDay=2026-10-19"
+  },
+  {
+    "module": "tasks",
+    "name": "tasks.pinned",
+    "path": "/api/tasks?pinned=true&color=blue"
+  },
+  {
+    "module": "tasks",
+    "name": "tasks.get",
+    "path": "/api/tasks/t-trip"
+  },
+  {
+    "module": "tasks",
+    "name": "tasks.get-deleted",
+    "path": "/api/tasks/t-gone"
+  },
+  {
+    "module": "thoughts",
+    "name": "thoughts.list",
+    "path": "/api/thoughts"
+  },
+  {
+    "module": "thoughts",
+    "name": "thoughts.page",
+    "path": "/api/thoughts?limit=2"
+  },
+  {
+    "module": "thoughts",
+    "name": "thoughts.next-page",
+    "path": "/api/thoughts?limit=2&cursor=0:1791277200000:th_idea"
+  },
+  {
+    "module": "thoughts",
+    "name": "thoughts.bad-cursor",
+    "path": "/api/thoughts?cursor=abc"
+  },
+  {
+    "module": "thoughts",
+    "name": "thoughts.tag",
+    "path": "/api/thoughts?tag=travel&pinned=true"
+  },
+  {
+    "module": "thoughts",
+    "name": "thoughts.search",
+    "path": "/api/thoughts?search=GROCERIES"
+  },
+  {
+    "module": "thoughts",
+    "name": "thoughts.get",
+    "path": "/api/thoughts/th_plan"
+  },
+  {
+    "module": "links",
+    "name": "links.backlinks-thought",
+    "path": "/api/links/backlinks/thought/th_plan"
+  },
+  {
+    "module": "links",
+    "name": "links.backlinks-task",
+    "path": "/api/links/backlinks/task/t-trip"
+  },
+  {
+    "module": "calendar",
+    "name": "calendar.list",
+    "path": "/api/calendar/events"
+  },
+  {
+    "module": "calendar",
+    "name": "calendar.range",
+    "path": "/api/calendar/events?from=2026-10-20&to=2026-10-21"
+  },
+  {
+    "module": "mood",
+    "name": "mood.entries",
+    "path": "/api/mood/entries"
+  },
+  {
+    "module": "mood",
+    "name": "mood.entries-limit",
+    "path": "/api/mood/entries?limit=1"
+  },
+  {
+    "module": "habits",
+    "name": "habits.logs",
+    "path": "/api/habits/logs"
+  },
+  {
+    "module": "habits",
+    "name": "habits.logs-filtered",
+    "path": "/api/habits/logs?habitId=h-water&from=2026-10-16"
+  },
+  {
+    "module": "goals",
+    "name": "goals.progress",
+    "path": "/api/goals/g-books/progress"
+  },
+  {
+    "module": "goals",
+    "name": "goals.progress-range",
+    "path": "/api/goals/g-books/progress?from=2026-10-01&to=2026-10-05"
+  },
+  {
+    "module": "goals",
+    "name": "goals.progress-deleted",
+    "path": "/api/goals/g-gone/progress"
+  },
+  {
+    "module": "projects",
+    "name": "projects.board",
+    "path": "/api/projects"
+  },
+  {
+    "module": "projects",
+    "name": "projects.archived",
+    "path": "/api/projects?archived=true"
+  },
+  {
+    "module": "projects",
+    "name": "projects.get",
+    "path": "/api/projects/p-paused"
+  },
+  {
+    "module": "projects",
+    "name": "projects.history",
+    "path": "/api/projects/p-garden/history"
+  },
+  {
+    "module": "projects",
+    "name": "projects.get-deleted",
+    "path": "/api/projects/p-gone"
+  },
+  {
+    "module": "file_boards",
+    "name": "file-boards.list",
+    "path": "/api/file-boards"
+  },
+  {
+    "module": "file_boards",
+    "name": "file-boards.items",
+    "path": "/api/file-boards/b-receipts/items"
+  },
+  {
+    "module": "file_boards",
+    "name": "file-boards.items-purged",
+    "path": "/api/file-boards/b-gone/items"
+  },
+  {
+    "module": "github",
+    "name": "github.status",
+    "path": "/api/github/status"
+  },
+  {
+    "module": "github",
+    "name": "github.prs",
+    "path": "/api/github/prs"
+  },
+  {
+    "module": "github",
+    "name": "github.prs-kind",
+    "path": "/api/github/prs?kind=authored"
+  },
+  {
+    "module": "github",
+    "name": "github.issues",
+    "path": "/api/github/issues"
+  },
+  {
+    "module": "github",
+    "name": "github.issues-kind",
+    "path": "/api/github/issues?kind=in_my_repos&limit=1"
+  }
+]

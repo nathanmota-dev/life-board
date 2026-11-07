@@ -1,0 +1,8 @@
+{
+  "path": "/api/goals/g-gone/progress",
+  "status": 404,
+  "body": {
+    "error": "not_found",
+    "message": "Goal not found."
+  }
+}

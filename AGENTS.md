@@ -51,6 +51,11 @@ node desktop/scripts/release-checks.mts assets release
 dpkg-deb --info release/life-board_*_amd64.deb
 dpkg-deb --contents release/life-board_*_amd64.deb
 desktop/scripts/smoke-deb.sh   # inside a disposable container with the DEB installed; see below
+cargo fmt --all --check
+cargo clippy --workspace --all-targets -- -D warnings
+TZ=UTC cargo test --workspace
+TZ=America/Sao_Paulo cargo test --workspace
+npm run test:parity
 git diff --check
 ```
 
@@ -64,6 +69,7 @@ Use Node.js 22.12 or newer (CI uses 24.18.0) on Linux x64.
 - `npm run test:e2e:infra` tests the E2E launcher; `npm run test:e2e` rebuilds production output and runs the Playwright suite against the real Electron app with Xvfb, D-Bus, an isolated keyring and temporary profiles. It needs `xvfb`, `xauth`, `dbus-x11` and `gnome-keyring`; see `docs/e2e.md`. If a Playwright worker crashes (for example `SIGSEGV`), rerun the full suite and report both runs; a pass of only the failed spec does not count.
 - `npm run package:linux` already runs `npm run build` (and therefore the typecheck); a separate `npm run build` is not an extra required check. It generates the DEB, AppImage and `latest-linux.yml` in `release/` and must load `@libsql/linux-x64-gnu` in the `after-pack` hook. Never publish these artifacts.
 - `release-checks.mts assets release` validates names, sizes, the feed's SHA-512 and the SHA-256 list. `dpkg-deb` must show package `life-board` for amd64, the migrations and the unpacked native module.
+- The Rust commands check the API port in `src-tauri/crates/api` with the toolchain pinned in `rust-toolchain.toml`. `cargo test` runs twice because day keys use the local time zone. `npm run test:parity` fails when a test in `api/src/**/*.test.ts` has no Rust port or a Rust test has no TS case nor a justified entry in `src-tauri/crates/api/tests/parity-allowlist.json`; see `docs/backend.md`.
 - Run `desktop/scripts/smoke-deb.sh` against the DEB installed in a disposable Ubuntu 24.04 container as a non-root user, never on the host or a personal profile. Docker here cannot bind-mount `/mnt/linux-data/…`: use `docker create`, `docker cp` and `docker start -a`. The container needs `--security-opt seccomp=unconfined` so the Chromium sandbox can start. The smoke must reach `/api/health` and create `life-board.db` and `secret.key.enc`.
 
 Additional checks that apply only to some changes:

@@ -1,0 +1,13 @@
+{
+  "path": "/api/goals/g-books/progress?from=2026-10-01&to=2026-10-05",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "day": "2026-10-02",
+        "progress": 25
+      }
+    ],
+    "startingProgress": 10
+  }
+}
