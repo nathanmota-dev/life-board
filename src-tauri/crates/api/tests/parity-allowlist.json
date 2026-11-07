@@ -1,0 +1,104 @@
+{
+  "rustOnly": [
+    {
+      "test": "routes::registers_every_node_route_and_nothing_else",
+      "reason": "Compares the Rust router with the 68 Node routes in fixtures/node-routes.json, so no route can be missing or extra. Not ignored."
+    },
+    {
+      "test": "routes::keeps_health_outside_the_auth_layer",
+      "reason": "Only /api/health is registered outside the auth layer, like healthController outside registerProtected. Not ignored."
+    },
+    {
+      "test": "dto::*",
+      "reason": "Checks the Zod rules translated by hand (optional vs nullable, defaults, trimming, UTF-16 lengths, query coercion, JSON-pointer paths). Node got them from Zod; they run now, before any service exists."
+    },
+    {
+      "test": "db::migrator::embeds_every_migration_of_the_drizzle_journal",
+      "reason": "The SQL embedded at compile time is exactly api/drizzle, in journal order with each `when`. Not ignored."
+    },
+    {
+      "test": "db::migrator::hashes_migrations_like_drizzle_did_in_the_node_profile",
+      "reason": "Migration::hash() equals the hash Drizzle stored in the Node fixture profile, so a Node profile is a no-op for Rust. Not ignored."
+    },
+    {
+      "test": "db::migrator::leaves_a_profile_migrated_by_node_unchanged",
+      "reason": "Opening the Node fixture profile applies nothing: same __drizzle_migrations rows and schema (#51)."
+    },
+    {
+      "test": "db::migrator::migrates_a_new_profile_to_the_schema_and_records_node_writes",
+      "reason": "A profile created by Rust has the schema and __drizzle_migrations rows Node writes, so Node opens it as up to date (#51)."
+    },
+    {
+      "test": "golden::opens_secrets_sealed_by_node",
+      "reason": "The Rust CryptoService opens the values in fixtures/crypto.json, sealed by the Node CryptoService (#51)."
+    },
+    {
+      "test": "golden::*_like_node",
+      "reason": "Golden tests: replay the recorded GET requests on a copy of fixtures/node-1.1.2.db and compare with Node's answers, one test per module, ignored until that module is implemented."
+    }
+  ],
+  "translatedInSpirit": [
+    {
+      "test": "db::client::keeps_intact_for_libsql",
+      "ts": "db/client.test.ts > keeps %s intact for libsql",
+      "reason": "Node encodes the profile path into a libsql file: URL. rusqlite takes the path itself, so the port checks that the database opens without SQLITE_OPEN_URI and that each path reaches SQLite verbatim."
+    },
+    {
+      "test": "db::client::opens_the_database_exactly_at",
+      "ts": "db/client.test.ts > opens the database exactly at %s",
+      "reason": "The `what?` folder is a case on every OS and returns early on Windows, where Node never pushed it into the it.each list."
+    },
+    {
+      "test": "db::*_migration::*",
+      "ts": "db/*-migration.test.ts",
+      "reason": "Node copies the first migrations into a temporary folder and journal; the Rust migrations are embedded, so the tests pass a slice of MIGRATIONS to Db::open_with."
+    },
+    {
+      "test": "plugins::error_handler::*",
+      "ts": "plugins/error-handler.test.ts",
+      "reason": "A bare Fastify app with the error handler becomes a bare axum Router whose handler returns ApiError; Fastify's own client errors (statusCode + code) are ApiError::Client."
+    },
+    {
+      "test": "services::github_client::uses_the_global_fetch_by_default",
+      "ts": "services/github-client.service.test.ts > uses the global fetch by default",
+      "reason": "Node swaps globalThis.fetch; the Rust client has no global to swap, so the port checks that GithubClient::new() talks to https://api.github.com, without the network."
+    },
+    {
+      "test": "services::github_client::*",
+      "ts": "services/github-client.service.test.ts",
+      "reason": "Assertions on the vi.fn fetch calls (URL, headers, body) read the requests wiremock received instead."
+    },
+    {
+      "test": "controllers::github::*",
+      "ts": "controllers/github.controller.test.ts",
+      "reason": "The fetchMock routed by URL becomes wiremock mocks; mockResolvedValueOnce is a mock limited to one call and mockImplementation is a reset plus a catch-all mock."
+    },
+    {
+      "test": "services::github::*",
+      "ts": "services/github.service.test.ts",
+      "reason": "fakeClient(overrides) is the FakeGithub of tests/suite/common, and logger.warn is a RecordingLogger passed to GithubService::new."
+    },
+    {
+      "test": "services::file_boards::still_deletes_the_row_when_the_file_can_t_be_removed_and_falls_back_to_the_stored_size",
+      "ts": "services/file-boards.service.test.ts > still deletes the row when the file can't be removed, and falls back to the stored size",
+      "reason": "vi.spyOn(storage, \"size\" | \"remove\").mockRejectedValueOnce becomes FaultyDisk::fail_once on the storage's Disk."
+    },
+    {
+      "test": "services::files_settings::*",
+      "ts": "services/files-settings.service.test.ts",
+      "reason": "vi.mock(\"node:fs/promises\").access and vi.spyOn(FileStorageService.prototype, \"copyTo\") become FaultyDisk faults and call counts on the shared Disk."
+    }
+  ],
+  "harness": [
+    {
+      "ts": "api/src/test/create-test-app.ts",
+      "rust": "tests/suite/common/mod.rs",
+      "reason": "createTestDb and createTestApp become test_db() and TestApp, with the same folder prefix (spaces, non-ASCII and URL-reserved characters); app.inject becomes tower::ServiceExt::oneshot."
+    },
+    {
+      "ts": "api/scripts/run-tests.mjs and removeTestDirectory (LIFE_BOARD_API_TEST_ROOT)",
+      "rust": "tempfile::TempDir",
+      "reason": "Node keeps test folders until the Vitest process exits because libsql holds Windows file handles after close(). rusqlite releases them on close, so each TempDir is removed when its test ends; nothing else to port."
+    }
+  ]
+}
