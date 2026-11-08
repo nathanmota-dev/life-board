@@ -42,7 +42,6 @@ fn of_habit(habit_id: &str) -> ListHabitLogsQuery {
 }
 
 #[test]
-#[ignore = "pending #51"]
 fn counts_consecutive_days_ignoring_an_unfinished_today() {
     let today = local_day(2026, 10, 17);
     let done = days(&["2026-10-14", "2026-10-15", "2026-10-16"]);
@@ -53,7 +52,6 @@ fn counts_consecutive_days_ignoring_an_unfinished_today() {
 }
 
 #[test]
-#[ignore = "pending #51"]
 fn breaks_on_a_missed_day() {
     let today = local_day(2026, 10, 17);
     assert_eq!(get_streak(&days(&["2026-10-14", "2026-10-16"]), today), 1);
@@ -62,7 +60,6 @@ fn breaks_on_a_missed_day() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn logs_progress_never_going_below_zero() {
     let (_ctx, service) = setup().await;
     let water = service.create(CreateHabitBody { unit: Some("glasses".into()), ..habit("Water", 8) }).await.unwrap();
@@ -74,7 +71,6 @@ async fn logs_progress_never_going_below_zero() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn summarizes_today_s_count_completion_and_streak() {
     let (_ctx, service) = setup().await;
     let today = local(2026, 10, 17, 12, 0);
@@ -95,7 +91,6 @@ async fn summarizes_today_s_count_completion_and_streak() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn returns_logs_filtered_by_day_range_and_habit() {
     let (_ctx, service) = setup().await;
     let water = service.create(habit("Water", 2)).await.unwrap();
@@ -114,7 +109,6 @@ async fn returns_logs_filtered_by_day_range_and_habit() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn updates_and_soft_deletes_habits() {
     let (_ctx, service) = setup().await;
     assert_eq!(service.list(now()).await.unwrap(), []);
@@ -131,7 +125,6 @@ async fn updates_and_soft_deletes_habits() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn persists_customization_and_completes_3000_ml_in_six_500_ml_check_ins() {
     let (_ctx, service) = setup().await;
     let water = service
@@ -158,7 +151,6 @@ async fn persists_customization_and_completes_3000_ml_in_six_500_ml_check_ins() 
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn preserves_completed_past_goals_when_the_daily_target_changes() {
     let (_ctx, service) = setup().await;
     let read = service.create(habit("Read", 10)).await.unwrap();
@@ -181,7 +173,6 @@ async fn preserves_completed_past_goals_when_the_daily_target_changes() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn updates_today_s_snapshot_so_the_new_goal_remains_correct_tomorrow() {
     let (_ctx, service) = setup().await;
     let read = service.create(habit("Read", 10)).await.unwrap();
@@ -193,7 +184,6 @@ async fn updates_today_s_snapshot_so_the_new_goal_remains_correct_tomorrow() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn replaces_the_day_s_count_and_keeps_the_goal_recorded_at_the_time() {
     let (_ctx, service) = setup().await;
     let water = service.create(habit("Water", 8)).await.unwrap();
@@ -213,7 +203,6 @@ async fn replaces_the_day_s_count_and_keeps_the_goal_recorded_at_the_time() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn updates_today_s_count_with_the_current_goal() {
     let (_ctx, service) = setup().await;
     let read = service.create(habit("Read", 10)).await.unwrap();
@@ -225,7 +214,6 @@ async fn updates_today_s_count_with_the_current_goal() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn rejects_future_days_and_unknown_habits() {
     let (_ctx, service) = setup().await;
     let read = service.create(habit("Read", 10)).await.unwrap();

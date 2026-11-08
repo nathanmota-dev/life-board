@@ -17,7 +17,6 @@ async fn app_that_throws(error: fn() -> ApiError) -> (StatusCode, Value) {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn maps_domain_errors_to_their_status_codes() {
     let not_found = app_that_throws(|| ApiError::not_found("Resource not found.")).await;
     assert_eq!(not_found.0, StatusCode::NOT_FOUND);
@@ -28,7 +27,6 @@ async fn maps_domain_errors_to_their_status_codes() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn passes_client_errors_through_and_hides_server_errors() {
     let client_error =
         app_that_throws(|| ApiError::client(StatusCode::PAYLOAD_TOO_LARGE, Some("FST_TOO_LARGE"), "Too big")).await;

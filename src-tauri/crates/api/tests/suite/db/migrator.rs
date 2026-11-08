@@ -55,7 +55,6 @@ fn hashes_migrations_like_drizzle_did_in_the_node_profile() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn leaves_a_profile_migrated_by_node_unchanged() {
     let dir = temp_dir("node-profile-");
     let path = dir.path().join("life-board.db");
@@ -68,7 +67,6 @@ async fn leaves_a_profile_migrated_by_node_unchanged() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn migrates_a_new_profile_to_the_schema_and_records_node_writes() {
     let dir = temp_dir("rust-profile-");
     let path = dir.path().join("life-board.db");
@@ -78,4 +76,46 @@ async fn migrates_a_new_profile_to_the_schema_and_records_node_writes() {
     let node = fixture(&format!("{NODE_PROFILE}.db"));
     assert_eq!(recorded(&path), recorded(&node));
     assert_eq!(schema(&path), schema(&node));
+}
+
+#[tokio::test]
+async fn applies_only_the_missing_migrations_to_a_partially_migrated_profile() {
+    let dir = temp_dir("partial-profile-");
+    let path = dir.path().join("life-board.db");
+    let legacy = Db::open_with(&path, &MIGRATIONS[..5]).await.unwrap();
+    legacy
+        .call(|conn| {
+            conn.execute_batch("INSERT INTO tasks (id, title, tags, linked_thought_ids, created_at, updated_at) VALUES ('kept', 'Kept', '[]', '[]', 1792195200000, 1792195200000)")
+        })
+        .await
+        .unwrap();
+    legacy.close().await.unwrap();
+    let before = recorded(&path);
+    assert_eq!(before.len(), 5);
+
+    let upgraded = Db::open(&path).await.unwrap();
+    let title: String = upgraded
+        .call(|conn| conn.query_row("SELECT title FROM tasks WHERE id = 'kept'", [], |row| row.get(0)))
+        .await
+        .unwrap();
+    upgraded.close().await.unwrap();
+
+    let after = recorded(&path);
+    let embedded: Vec<(String, i64)> = MIGRATIONS.iter().map(|migration| (migration.hash(), migration.when)).collect();
+    assert_eq!(after, embedded);
+    assert_eq!(after[..5], before[..]);
+    assert_eq!(title, "Kept");
+    assert_eq!(schema(&path), schema(&fixture(&format!("{NODE_PROFILE}.db"))));
+}
+
+#[tokio::test]
+async fn reopening_a_migrated_profile_records_nothing_new() {
+    let dir = temp_dir("rust-profile-");
+    let path = dir.path().join("life-board.db");
+    Db::open(&path).await.unwrap().close().await.unwrap();
+    let first = recorded(&path);
+
+    Db::open(&path).await.unwrap().close().await.unwrap();
+
+    assert_eq!(recorded(&path), first);
 }

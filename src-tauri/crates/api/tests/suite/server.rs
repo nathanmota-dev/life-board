@@ -11,7 +11,6 @@ async fn get_json(url: &str) -> Value {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn creates_the_database_listens_on_a_free_port_and_shuts_down_cleanly() {
     let root = temp_dir("life-board-server-");
     let data_dir = root.path().join("data");
@@ -24,7 +23,6 @@ async fn creates_the_database_listens_on_a_free_port_and_shuts_down_cleanly() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn keeps_the_database_inside_a_profile_path_with_spaces_non_ascii_and_url_syntax() {
     let root = temp_dir("life-board-server-");
     let data_dir = root.path().join("Usuário Ç #1 %20").join("life-board-app");
@@ -40,7 +38,6 @@ async fn keeps_the_database_inside_a_profile_path_with_spaces_non_ascii_and_url_
 #[case::kept(false)]
 #[case::reset(true)]
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn drops_only_the_encrypted_secrets_when_the_key_was_replaced_reset(#[case] reset_secrets: bool) {
     let root = temp_dir("life-board-server-");
     let data_dir = root.path().join("data");

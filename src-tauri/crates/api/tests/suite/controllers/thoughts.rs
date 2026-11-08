@@ -3,7 +3,6 @@ use serde_json::json;
 use crate::common::{TestApp, assert_match, text};
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn runs_the_crud_flow() {
     let ctx = TestApp::new().await;
     let created = ctx.post("/api/thoughts", json!({ "body": "Idea", "tags": ["app"] })).await;
@@ -21,7 +20,6 @@ async fn runs_the_crud_flow() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn rejects_malformed_cursors_and_booleans() {
     let ctx = TestApp::new().await;
     assert_eq!(ctx.get("/api/thoughts?cursor=abc").await.status(), 400);

@@ -83,7 +83,6 @@ async fn answers_like_node(module: &str) {
 }
 
 #[test]
-#[ignore = "pending #51"]
 fn opens_secrets_sealed_by_node() {
     let crypto = node_crypto();
     for case in crypto_fixture().cases {
@@ -92,37 +91,31 @@ fn opens_secrets_sealed_by_node() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn tasks_answer_like_node() {
     answers_like_node("tasks").await;
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn thoughts_answer_like_node() {
     answers_like_node("thoughts").await;
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn links_answer_like_node() {
     answers_like_node("links").await;
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn calendar_answers_like_node() {
     answers_like_node("calendar").await;
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn mood_answers_like_node() {
     answers_like_node("mood").await;
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn habits_answer_like_node() {
     answers_like_node("habits").await;
 }

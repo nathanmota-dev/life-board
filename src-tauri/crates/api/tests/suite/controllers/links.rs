@@ -3,7 +3,6 @@ use serde_json::json;
 use crate::common::{TestApp, assert_match, text};
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn resolves_links_and_lists_backlinks() {
     let ctx = TestApp::new().await;
     let thought = ctx.post("/api/thoughts", json!({ "title": "Plan" })).await.json();
@@ -20,7 +19,6 @@ async fn resolves_links_and_lists_backlinks() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn rejects_unknown_backlink_kinds() {
     let ctx = TestApp::new().await;
     assert_eq!(ctx.get("/api/links/backlinks/money/1").await.status(), 400);

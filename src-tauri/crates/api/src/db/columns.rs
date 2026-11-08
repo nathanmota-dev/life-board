@@ -133,3 +133,63 @@ pub mod js_date_opt {
             .map_err(serde::de::Error::custom)
     }
 }
+
+/// Reads a `timestamp_ms` column like Drizzle (`new Date(value)`).
+pub fn get_timestamp(row: &rusqlite::Row<'_>, column: &str) -> rusqlite::Result<Timestamp> {
+    get_timestamp_opt(row, column)?.ok_or_else(|| {
+        rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Null, format!("{column} is NULL").into())
+    })
+}
+
+/// A nullable `timestamp_ms` column.
+pub fn get_timestamp_opt(row: &rusqlite::Row<'_>, column: &str) -> rusqlite::Result<Option<Timestamp>> {
+    use rusqlite::types::ValueRef;
+    let millis = match row.get_ref(column)? {
+        ValueRef::Null => return Ok(None),
+        ValueRef::Integer(value) => value,
+        // `new Date(1.5)` keeps whole milliseconds.
+        ValueRef::Real(value) => value.trunc() as i64,
+        other => {
+            return Err(rusqlite::Error::FromSqlConversionFailure(
+                0,
+                other.data_type(),
+                format!("{column} is not a timestamp").into(),
+            ));
+        }
+    };
+    from_millis(millis).map(Some).ok_or_else(|| {
+        rusqlite::Error::FromSqlConversionFailure(
+            0,
+            rusqlite::types::Type::Integer,
+            format!("{column} is out of range").into(),
+        )
+    })
+}
+
+/// A `boolean` column: Drizzle reads `Number(value) === 1`.
+pub fn get_bool(row: &rusqlite::Row<'_>, column: &str) -> rusqlite::Result<bool> {
+    use rusqlite::types::ValueRef;
+    Ok(match row.get_ref(column)? {
+        ValueRef::Integer(value) => value == 1,
+        ValueRef::Real(value) => value == 1.0,
+        ValueRef::Text(text) => std::str::from_utf8(text).is_ok_and(|text| text.trim().parse::<f64>() == Ok(1.0)),
+        ValueRef::Null | ValueRef::Blob(_) => false,
+    })
+}
+
+/// A JSON string array column (`JSON.parse`).
+pub fn get_json_list(row: &rusqlite::Row<'_>, column: &str) -> rusqlite::Result<Vec<String>> {
+    let text: String = row.get(column)?;
+    serde_json::from_str(&text)
+        .map_err(|error| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(error)))
+}
+
+/// A string array as stored on disk (`JSON.stringify`).
+pub fn to_json_list(values: &[String]) -> String {
+    serde_json::to_string(values).unwrap_or_else(|_| "[]".to_owned())
+}
+
+/// `true`/`false` as stored on disk.
+pub fn to_bool(value: bool) -> i64 {
+    i64::from(value)
+}

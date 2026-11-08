@@ -152,6 +152,13 @@ format.
   when Settings > Files picked a folder (`app_settings.uploads_base_dir`).
   `storage_path` is relative to that folder.
 
+## Intended differences
+
+- `GET /api/thoughts?search=…` applies the other filters to every match. Node
+  puts `title like ? or body like ?` inside Drizzle's `and()` without
+  parentheses, so a thought whose body matches is returned even when it is
+  deleted or fails `pinned`, `tag` or `cursor`. Rust wraps the search (#51).
+
 ## JSON
 
 - Timestamps are serialized like `Date.toJSON()`: `YYYY-MM-DDTHH:mm:ss.sssZ`.

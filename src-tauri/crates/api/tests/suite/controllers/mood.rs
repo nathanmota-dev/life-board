@@ -3,7 +3,6 @@ use serde_json::json;
 use crate::common::{TestApp, len, text};
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn creates_then_updates_the_day_s_entry() {
     let ctx = TestApp::new().await;
     assert_eq!(ctx.get("/api/mood/today").await.json()["entry"], json!(null));
@@ -21,7 +20,6 @@ async fn creates_then_updates_the_day_s_entry() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn validates_the_score_and_day() {
     let ctx = TestApp::new().await;
     assert_eq!(ctx.post("/api/mood/entries", json!({ "score": 6 })).await.status(), 400);
