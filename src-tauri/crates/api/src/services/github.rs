@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rusqlite::OptionalExtension;
 use serde::Serialize;
 
 use crate::db::Db;
@@ -105,7 +106,29 @@ impl GithubService {
 
     /// Also read by the `startServer` tests (#51).
     pub async fn status(&self) -> ApiResult<GithubStatus> {
-        pending!(51, self.db)
+        let settings = self
+            .db
+            .call(|conn| {
+                conn.query_row(
+                    "SELECT login, last_sync_at, last_sync_error FROM github_settings WHERE id = ?",
+                    [SETTINGS_ID],
+                    |row| {
+                        Ok((
+                            row.get::<_, String>("login")?,
+                            crate::db::columns::get_timestamp_opt(row, "last_sync_at")?,
+                            row.get::<_, Option<String>>("last_sync_error")?,
+                        ))
+                    },
+                )
+                .optional()
+            })
+            .await?;
+        Ok(match settings {
+            Some((login, last_sync_at, last_sync_error)) => {
+                GithubStatus { connected: true, login: Some(login), last_sync_at, last_sync_error }
+            }
+            None => GithubStatus { connected: false, login: None, last_sync_at: None, last_sync_error: None },
+        })
     }
 
     /// Checks the token with GitHub (`400 invalid_token`), then stores it sealed.
