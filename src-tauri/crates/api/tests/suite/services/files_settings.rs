@@ -57,7 +57,6 @@ fn read(path: PathBuf) -> String {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn defaults_to_the_data_directory() {
     let ctx = setup().await;
     ctx.settings.load().await.unwrap();
@@ -72,7 +71,6 @@ async fn defaults_to_the_data_directory() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn moves_existing_uploads_under_folder_life_board_app_uploads_and_saves_new_ones_there() {
     let ctx = setup().await;
     let item = ctx.upload().await;
@@ -96,7 +94,6 @@ async fn moves_existing_uploads_under_folder_life_board_app_uploads_and_saves_ne
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn keeps_the_picked_folder_across_restarts_and_can_go_back_to_the_default() {
     let ctx = setup().await;
     let item = ctx.upload().await;
@@ -112,7 +109,6 @@ async fn keeps_the_picked_folder_across_restarts_and_can_go_back_to_the_default(
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn leaves_the_files_alone_when_the_folder_is_unchanged() {
     let ctx = setup().await;
     let item = ctx.upload().await;
@@ -124,7 +120,6 @@ async fn leaves_the_files_alone_when_the_folder_is_unchanged() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn rejects_relative_missing_non_directory_and_unwritable_folders() {
     let ctx = setup().await;
     std::fs::write(ctx.db.path().join("file.txt"), "x").unwrap();
@@ -146,7 +141,6 @@ async fn rejects_relative_missing_non_directory_and_unwritable_folders() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn rolls_back_the_copies_and_keeps_the_old_folder_when_a_file_fails_to_move() {
     let ctx = setup().await;
     let first = ctx.upload().await;
@@ -167,7 +161,6 @@ async fn rolls_back_the_copies_and_keeps_the_old_folder_when_a_file_fails_to_mov
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn skips_rows_whose_file_is_already_gone_from_disk() {
     let ctx = setup().await;
     let lost = ctx.upload().await;

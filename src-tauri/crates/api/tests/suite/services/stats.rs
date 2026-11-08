@@ -9,7 +9,6 @@ use life_board_api::services::stats::{StatsService, WeekStats};
 use crate::common::{local, local_day, now, test_db};
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn counts_this_week_s_activity_from_sunday_to_saturday() {
     let ctx = test_db().await;
     // Saturday Oct 17 2026; the week starts on Sunday Oct 11.
@@ -117,7 +116,6 @@ async fn counts_this_week_s_activity_from_sunday_to_saturday() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn defaults_to_the_current_week() {
     let ctx = test_db().await;
     assert_eq!(StatsService::new(ctx.db.clone()).this_week(now()).await.unwrap().thoughts_created, 0);

@@ -44,7 +44,6 @@ async fn ids(db: &Db, table: &'static str) -> Vec<String> {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn creates_updates_lists_and_deletes_boards() {
     let ctx = setup().await;
     let service = &ctx.service;
@@ -70,7 +69,6 @@ async fn creates_updates_lists_and_deletes_boards() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn stores_uploads_and_infers_the_item_kind_from_the_mime_type() {
     let ctx = setup().await;
     let service = &ctx.service;
@@ -101,7 +99,6 @@ async fn stores_uploads_and_infers_the_item_kind_from_the_mime_type() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn updates_items_and_deletes_their_files() {
     let ctx = setup().await;
     let service = &ctx.service;
@@ -124,7 +121,6 @@ async fn updates_items_and_deletes_their_files() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn still_deletes_the_row_when_the_file_can_t_be_removed_and_falls_back_to_the_stored_size() {
     let ctx = setup().await;
     let service = &ctx.service;
@@ -139,7 +135,6 @@ async fn still_deletes_the_row_when_the_file_can_t_be_removed_and_falls_back_to_
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn deletes_a_board_with_its_item_rows_and_files() {
     let ctx = setup().await;
     let service = &ctx.service;
@@ -161,7 +156,6 @@ async fn deletes_a_board_with_its_item_rows_and_files() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn removes_item_rows_for_good_and_clears_the_board_cover() {
     let ctx = setup().await;
     let service = &ctx.service;
@@ -179,7 +173,6 @@ async fn removes_item_rows_for_good_and_clears_the_board_cover() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn purges_rows_soft_deleted_by_earlier_versions() {
     let ctx = setup().await;
     let service = &ctx.service;

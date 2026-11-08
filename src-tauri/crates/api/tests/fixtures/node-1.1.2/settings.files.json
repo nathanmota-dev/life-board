@@ -1,0 +1,9 @@
+{
+  "path": "/api/settings/files",
+  "status": 200,
+  "body": {
+    "baseDir": null,
+    "uploadsDir": "<data>/uploads",
+    "defaultUploadsDir": "<data>/uploads"
+  }
+}
