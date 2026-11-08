@@ -1,17 +1,5 @@
 //! Life Board's HTTP API in Rust: the port of `api/` (Fastify + Drizzle) with
 //! the same routes, JSON and SQLite profile. See `CONTRACT.md`.
-//!
-//! This crate is being filled in by the issues of the Rust API series: bodies
-//! that still say `pending!(N)` are implemented by issue #N.
-
-/// The body of a declared function that issue `#N` implements. It names the
-/// arguments so they count as used until then.
-macro_rules! pending {
-    ($issue:literal $(, $arg:expr)* $(,)?) => {{
-        $(let _ = &$arg;)*
-        todo!(concat!("pending #", stringify!($issue)))
-    }};
-}
 
 pub mod controllers;
 pub mod db;

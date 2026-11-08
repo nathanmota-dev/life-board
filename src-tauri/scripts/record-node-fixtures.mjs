@@ -16,6 +16,7 @@
 // Running it again produces no diff: ids and timestamps are fixed, and sealed
 // values are reused while the Node CryptoService still opens them.
 
+import { execFileSync } from "node:child_process"
 import { createRequire } from "node:module"
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -115,6 +116,7 @@ try {
 
   const crypto = recordCrypto(new CryptoService(KEY))
   const sealedToken = crypto.cases.find((entry) => entry.plaintext === TOKEN).sealed
+  checkRustSealed(new CryptoService(KEY))
 
   const dataDir = join(temporary, "data")
   mkdirSync(dataDir)
@@ -166,6 +168,20 @@ function recordCrypto(service) {
     return { plaintext, sealed: service.seal(plaintext) }
   })
   return { algorithm: "aes-256-gcm", key: KEY.toString("base64"), cases }
+}
+
+/** Fails unless the Node CryptoService opens what the Rust CryptoService sealed with the same key. */
+function checkRustSealed(service) {
+  const input = JSON.stringify({ key: KEY.toString("base64"), plaintexts: PLAINTEXTS })
+  const output = execFileSync("cargo", ["run", "--quiet", "-p", "life-board-api", "--example", "seal_fixture"], {
+    cwd: root,
+    input,
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "inherit"],
+  })
+  for (const { plaintext, sealed } of JSON.parse(output)) {
+    if (service.open(sealed) !== plaintext) throw new Error("Node opened a value sealed by Rust to something else.")
+  }
 }
 
 /** Fixed rows in every table, including soft-deleted ones and rows the startup purge drops. */

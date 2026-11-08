@@ -61,14 +61,12 @@ async fn count_rows(ctx: &Ctx, table: &'static str) -> i64 {
 }
 
 #[test]
-#[ignore = "pending #53"]
 fn parses_api_repo_urls() {
     assert_eq!(repo_from_url("https://api.github.com/repos/me/app"), Some(repo("me", "app")));
     assert_eq!(repo_from_url("https://example.com"), None);
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn connects_with_an_encrypted_token_and_reports_status() {
     let ctx = setup().await;
     let service = ctx.service(&FakeGithub::new());
@@ -100,7 +98,6 @@ async fn connects_with_an_encrypted_token_and_reports_status() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn rejects_tokens_github_doesn_t_accept() {
     let ctx = setup().await;
     let client = FakeGithub::new();
@@ -110,14 +107,12 @@ async fn rejects_tokens_github_doesn_t_accept() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn requires_a_connection_before_syncing() {
     let ctx = setup().await;
     assert_bad_request(ctx.service(&FakeGithub::new()).sync().await);
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn syncs_prs_keeping_the_strongest_kind_and_the_richest_payload() {
     let ctx = setup().await;
     let client = FakeGithub::new();
@@ -178,7 +173,6 @@ async fn syncs_prs_keeping_the_strongest_kind_and_the_richest_payload() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn marks_merged_search_hits_and_fills_details_from_the_pr_endpoint() {
     let ctx = setup().await;
     let client = FakeGithub::new();
@@ -206,7 +200,6 @@ async fn marks_merged_search_hits_and_fills_details_from_the_pr_endpoint() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn drops_stale_prs_applies_the_org_filter_and_keeps_the_cache_on_empty_results() {
     let ctx = setup().await;
     let results = Arc::new(Mutex::new(vec![
@@ -249,7 +242,6 @@ async fn drops_stale_prs_applies_the_org_filter_and_keeps_the_cache_on_empty_res
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn syncs_issues_keeping_the_strongest_kind_and_the_org_filter() {
     let ctx = setup().await;
     let client = FakeGithub::new();
@@ -301,7 +293,6 @@ async fn syncs_issues_keeping_the_strongest_kind_and_the_org_filter() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn clears_closed_issues_but_keeps_the_cache_when_every_issue_search_fails() {
     let ctx = setup().await;
     let mode = Arc::new(Mutex::new("found"));
@@ -335,7 +326,6 @@ async fn clears_closed_issues_but_keeps_the_cache_when_every_issue_search_fails(
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn records_the_error_when_a_sync_fails() {
     let ctx = setup().await;
     let client = FakeGithub::new();
@@ -348,7 +338,6 @@ async fn records_the_error_when_a_sync_fails() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn returns_the_contributions_calendar_with_numeric_levels() {
     let ctx = setup().await;
     let client = FakeGithub::new();
@@ -364,7 +353,6 @@ async fn returns_the_contributions_calendar_with_numeric_levels() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn reports_github_failures_when_loading_contributions() {
     let ctx = setup().await;
     let client = FakeGithub::new();
@@ -374,7 +362,6 @@ async fn reports_github_failures_when_loading_contributions() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn lists_the_repositories_recently_contributed_to() {
     let ctx = setup().await;
     let client = FakeGithub::new();
@@ -410,7 +397,6 @@ async fn lists_the_repositories_recently_contributed_to() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn reports_github_failures_when_loading_recent_repositories() {
     let ctx = setup().await;
     let client = FakeGithub::new();
@@ -420,7 +406,6 @@ async fn reports_github_failures_when_loading_recent_repositories() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn disconnects_and_clears_the_cache() {
     let ctx = setup().await;
     let client = FakeGithub::new();
@@ -437,7 +422,6 @@ async fn disconnects_and_clears_the_cache() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn wipes_the_encrypted_token_from_the_database_file_on_disconnect() {
     let ctx = setup().await;
     let client = FakeGithub::new();
@@ -456,4 +440,63 @@ async fn wipes_the_encrypted_token_from_the_database_file_on_disconnect() {
     service.disconnect().await.unwrap();
 
     assert!(!contains(&std::fs::read(ctx.db.file()).unwrap()));
+}
+
+#[test]
+fn finds_the_repo_after_any_repos_segment() {
+    assert_eq!(repo_from_url("https://x/repos//repos/me/app/pulls"), Some(repo("me", "app")));
+    assert_eq!(repo_from_url("https://x/repos/me"), None);
+    assert_eq!(repo_from_url("https://x/repos/me/"), None);
+}
+
+#[tokio::test]
+async fn fails_the_sync_when_github_sends_an_invalid_date() {
+    let ctx = setup().await;
+    let client = FakeGithub::new();
+    client.on_search_issues(|query| {
+        Ok(if query.starts_with("is:issue author:me") { vec![search_item("me", 1, "yesterday")] } else { Vec::new() })
+    });
+    let service = ctx.connected(&client, None).await;
+
+    assert_error(service.sync().await, 502, "sync_failed");
+    assert!(service.status().await.unwrap().last_sync_error.unwrap().contains("yesterday"));
+}
+
+#[tokio::test]
+async fn reports_a_token_that_can_t_be_opened_anymore() {
+    let ctx = setup().await;
+    let client = FakeGithub::new();
+    ctx.connected(&client, None).await;
+    let other_key = GithubService::new(ctx.db.db.clone(), client.clone(), crypto(4), ctx.logger.clone());
+
+    assert_error(other_key.sync().await, 502, "sync_failed");
+    assert_error(other_key.contributions().await, 502, "github_unavailable");
+    assert_error(other_key.recent_repos(RecentReposQuery { limit: 4 }).await, 502, "github_unavailable");
+}
+
+#[tokio::test]
+async fn upserts_prs_and_issues_already_in_the_cache_and_keeps_only_the_newest() {
+    let ctx = setup().await;
+    let client = FakeGithub::new();
+    let many = |prefix: &'static str| {
+        move |query: &str| -> life_board_api::services::github_client::GithubResult<Vec<RawSearchItem>> {
+            Ok(if query.starts_with(prefix) {
+                (1..=70)
+                    .map(|number| search_item("me", number, &format!("2026-10-{:02}T00:00:00Z", number % 28 + 1)))
+                    .collect()
+            } else {
+                Vec::new()
+            })
+        }
+    };
+    client.on_search_issues(many("is:pr author:me"));
+    let service = ctx.connected(&client, None).await;
+    assert_eq!(service.sync().await.unwrap().count, 60);
+    assert_eq!(service.sync().await.unwrap().count, 60);
+    assert_eq!(count_rows(&ctx, "github_prs").await, 60);
+
+    client.on_search_issues(many("is:issue author:me"));
+    assert_eq!(service.sync().await.unwrap().issues, 60);
+    assert_eq!(service.sync().await.unwrap().issues, 60);
+    assert_eq!(count_rows(&ctx, "github_issues").await, 60);
 }

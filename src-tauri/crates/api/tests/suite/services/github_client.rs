@@ -20,7 +20,6 @@ async fn requests(server: &MockServer) -> Vec<Request> {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn sends_the_token_and_api_headers() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
@@ -39,7 +38,6 @@ async fn sends_the_token_and_api_headers() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn raises_githubapierror_for_failed_requests_and_missing_logins() {
     let (_server, client) =
         answering(ResponseTemplate::new(401).set_body_json(json!({ "message": "Bad credentials" }))).await;
@@ -52,7 +50,6 @@ async fn raises_githubapierror_for_failed_requests_and_missing_logins() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn encodes_search_queries() {
     let (server, client) = answering(ok(json!({ "items": [{ "number": 1 }] }))).await;
     let items = client.search_issues("t", "is:pr author:me").await.unwrap();
@@ -63,7 +60,6 @@ async fn encodes_search_queries() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn pages_through_owned_repos_up_to_the_limit() {
     let page = |start: usize, size: usize| -> Value {
         (start..start + size).map(|i| json!({ "name": format!("repo-{i}"), "owner": { "login": "me" } })).collect()
@@ -84,7 +80,6 @@ async fn pages_through_owned_repos_up_to_the_limit() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn fetches_pull_lists_and_details_for_a_repo() {
     let server = MockServer::start().await;
     Mock::given(path("/repos/me/app/pulls/7")).respond_with(ok(json!({ "number": 7 }))).mount(&server).await;
@@ -97,7 +92,6 @@ async fn fetches_pull_lists_and_details_for_a_repo() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn posts_the_contributions_query_to_graphql() {
     let calendar = json!({ "totalContributions": 3, "weeks": [] });
     let (server, client) = answering(ok(
@@ -117,7 +111,6 @@ async fn posts_the_contributions_query_to_graphql() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn raises_when_graphql_returns_no_calendar() {
     let (_server, client) = answering(ok(json!({ "errors": [{ "message": "Could not resolve to a User" }] }))).await;
     assert!(client.get_contributions("t", "me").await.unwrap_err().message.contains("Could not resolve to a User"));
@@ -128,7 +121,6 @@ async fn raises_when_graphql_returns_no_calendar() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn ranks_repositories_by_the_user_s_own_latest_contribution() {
     let repo = |name: &str| json!({ "nameWithOwner": name, "url": format!("https://github.com/{name}"), "description": null, "isPrivate": false, "stargazerCount": 0, "primaryLanguage": null });
     let by_repo = |name: &str, occurred_at: Option<&str>| {
@@ -163,7 +155,6 @@ async fn ranks_repositories_by_the_user_s_own_latest_contribution() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn raises_when_graphql_returns_no_repositories() {
     let (_server, client) = answering(ok(json!({ "errors": [{ "message": "Bad query" }] }))).await;
     assert!(client.get_contributed_repos("t", "me", 4).await.unwrap_err().message.contains("Bad query"));
@@ -181,8 +172,58 @@ async fn raises_when_graphql_returns_no_repositories() {
 // In Node the default is the global `fetch`; here it is `reqwest` against the
 // real API, checked without the network.
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn uses_the_global_fetch_by_default() {
     assert_eq!(GithubClient::new().base_url(), GITHUB_API);
     assert_eq!(GithubClient::default().base_url(), "https://api.github.com");
+}
+
+#[tokio::test]
+async fn reports_network_failures_without_the_token_or_the_url() {
+    // A port nothing listens on; a dropped MockServer goes back to wiremock's pool and keeps answering.
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let uri = format!("http://{}", listener.local_addr().unwrap());
+    drop(listener);
+    let client = GithubClient::with_base_url(uri.clone());
+
+    let failed = client.get_login("ghp_token").await.unwrap_err();
+    assert_eq!(failed.status, 0);
+    assert!(failed.message.starts_with("GitHub request failed: "), "{failed}");
+    assert!(!failed.message.contains("ghp_token"), "{failed}");
+    assert!(!failed.message.contains(&uri), "{failed}");
+}
+
+#[tokio::test]
+async fn reports_answers_that_are_not_the_expected_json() {
+    let (_server, client) = answering(ResponseTemplate::new(200).set_body_string("<html>")).await;
+    let failed = client.get_login("t").await.unwrap_err();
+    assert_eq!(failed.status, 200);
+    assert!(failed.message.starts_with("GitHub sent an invalid response: "), "{failed}");
+}
+
+#[tokio::test]
+async fn keeps_the_status_and_the_first_200_utf16_units_of_a_failed_response() {
+    let (_server, client) = answering(ResponseTemplate::new(403).set_body_string("🌱".repeat(150))).await;
+    let failed = client.search_issues("t", "q").await.unwrap_err();
+    assert_eq!(failed.status, 403);
+    assert_eq!(failed.message, format!("GitHub 403 Forbidden: {}", "🌱".repeat(100)));
+
+    let (_server, client) = answering(ResponseTemplate::new(404).set_body_string("Not Found")).await;
+    assert_eq!(client.list_owned_repos("t", "me", 1).await.unwrap_err().status, 404);
+}
+
+#[tokio::test]
+async fn encodes_search_queries_like_encodeuricomponent() {
+    let (server, client) = answering(ok(json!({ "items": [] }))).await;
+    client.search_issues("t", "a-b_c.d~e/é&").await.unwrap();
+    let sent = requests(&server).await;
+    assert!(sent[0].url.as_str().contains("q=a-b_c.d~e%2F%C3%A9%26&per_page=30"), "{}", sent[0].url);
+}
+
+#[tokio::test]
+async fn stops_listing_owned_repos_after_five_pages() {
+    let full: Value = (0..50).map(|i| json!({ "name": format!("repo-{i}"), "owner": { "login": "me" } })).collect();
+    let (server, client) = answering(ok(full)).await;
+
+    assert_eq!(client.list_owned_repos("t", "me", 1000).await.unwrap().len(), 250);
+    assert_eq!(requests(&server).await.len(), 5);
 }

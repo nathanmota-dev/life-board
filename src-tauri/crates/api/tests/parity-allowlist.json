@@ -46,7 +46,7 @@
     },
     {
       "test": "golden::*_like_node",
-      "reason": "Golden tests: replay the recorded GET requests on a copy of fixtures/node-1.1.2.db and compare with Node's answers, one test per module, ignored until that module is implemented."
+      "reason": "Golden tests: replay the recorded GET requests on a copy of fixtures/node-1.1.2.db and compare with Node's answers, one test per module; the GitHub one also checks that the token in that profile opens."
     },
     {
       "test": "db::columns::*",
@@ -75,6 +75,42 @@
     {
       "test": "db::seeds::*",
       "reason": "Row mappers, insert helpers and text enums of the file, project and settings tables. Drizzle generated these for Node, so there is no TS test to port (#52)."
+    },
+    {
+      "test": "services::github::fails_the_sync_when_github_sends_an_invalid_date",
+      "reason": "JS turns a bad date into Invalid Date and fails at the insert; Rust parses it explicitly, so this branch of the port has its own test (#53)."
+    },
+    {
+      "test": "services::github::finds_the_repo_after_any_repos_segment",
+      "reason": "repoFromUrl was a regex; the port scans for the segments by hand and needs the regex's edge cases checked (#53)."
+    },
+    {
+      "test": "services::github::reports_a_token_that_can_t_be_opened_anymore",
+      "reason": "A row sealed with another key must keep mapping to sync_failed and github_unavailable; in Node any throw did, in Rust each error path is typed (#53)."
+    },
+    {
+      "test": "services::github::upserts_prs_and_issues_already_in_the_cache_and_keeps_only_the_newest",
+      "reason": "The Drizzle upsert and .slice(0, 60) become hand-written SQL and truncate, checked across repeated syncs (#53)."
+    },
+    {
+      "test": "services::github_client::encodes_search_queries_like_encodeuricomponent",
+      "reason": "encodeURIComponent is a built-in in Node and a hand-written function in the port (#53)."
+    },
+    {
+      "test": "services::github_client::keeps_the_status_and_the_first_200_utf16_units_of_a_failed_response",
+      "reason": "body.slice(0, 200) counts UTF-16 units; the port must match without splitting a character (#53)."
+    },
+    {
+      "test": "services::github_client::reports_answers_that_are_not_the_expected_json",
+      "reason": "response.json() throwing becomes a mapped GithubApiError in the port (#53)."
+    },
+    {
+      "test": "services::github_client::reports_network_failures_without_the_token_or_the_url",
+      "reason": "A failed fetch becomes a mapped GithubApiError; the message must carry neither the token nor the URL (#53)."
+    },
+    {
+      "test": "services::github_client::stops_listing_owned_repos_after_five_pages",
+      "reason": "The five-page cap of listOwnedRepos had no Node case; the rewritten loop is checked here (#53)."
     }
   ],
   "translatedInSpirit": [
