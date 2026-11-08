@@ -24,7 +24,6 @@ async fn titles(service: &CalendarService, query: ListEventsQuery) -> Vec<String
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn lists_events_by_start_time_within_an_optional_range() {
     let (_ctx, service) = setup().await;
     service.create(event("Late", at(20, 9), at(20, 10))).await.unwrap();
@@ -42,7 +41,6 @@ async fn lists_events_by_start_time_within_an_optional_range() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn rejects_events_that_end_before_they_start_on_create_and_update() {
     let (_ctx, service) = setup().await;
     assert_bad_request(service.create(event("Bad", at(10, 10), at(10, 9))).await);
@@ -62,7 +60,6 @@ async fn rejects_events_that_end_before_they_start_on_create_and_update() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn soft_deletes_events() {
     let (_ctx, service) = setup().await;
     let created = service.create(event("Event", at(10, 9), at(10, 10))).await.unwrap();

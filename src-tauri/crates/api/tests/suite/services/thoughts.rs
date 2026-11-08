@@ -16,7 +16,6 @@ fn query(limit: i64) -> ListThoughtsQuery {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn lists_pinned_thoughts_first_newest_first_with_cursor_pagination() {
     let (ctx, service) = setup().await;
     let thought = |id: &str, body: &str, created: i64| NewThought {
@@ -47,7 +46,6 @@ async fn lists_pinned_thoughts_first_newest_first_with_cursor_pagination() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn filters_by_pinned_tag_and_search() {
     let (_ctx, service) = setup().await;
     service
@@ -83,7 +81,6 @@ async fn filters_by_pinned_tag_and_search() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn gets_updates_and_soft_deletes() {
     let (_ctx, service) = setup().await;
     let thought = service.create(CreateThoughtBody { body: Some("Draft".into()), ..Default::default() }).await.unwrap();
@@ -104,4 +101,28 @@ async fn gets_updates_and_soft_deletes() {
         service.update(&thought.id, UpdateThoughtBody { body: Some("x".into()), ..Default::default() }).await,
     );
     assert_not_found(service.remove(&thought.id).await);
+}
+
+/// Rust-only fix: Node returns a thought whose body matches the search even when
+/// it is deleted or fails the pinned, tag or cursor filters.
+#[tokio::test]
+async fn searching_the_body_still_applies_the_other_filters() {
+    let (_ctx, service) = setup().await;
+    let thought = |title: &str, body: &str, pinned: bool| CreateThoughtBody {
+        title: Some(Some(title.into())),
+        body: Some(body.into()),
+        pinned: Some(pinned),
+        ..Default::default()
+    };
+    let deleted = service.create(thought("note", "buy milk", false)).await.unwrap();
+    service.remove(&deleted.id).await.unwrap();
+    let unpinned = service.create(thought("list", "more milk", false)).await.unwrap();
+    let pinned = service.create(thought("pinned", "milk again", true)).await.unwrap();
+
+    let search = |pinned: Option<bool>| ListThoughtsQuery { search: Some("milk".into()), pinned, ..Default::default() };
+    let ids = |page: life_board_api::services::thoughts::ThoughtPage| {
+        page.items.into_iter().map(|item| item.id).collect::<Vec<_>>()
+    };
+    assert_eq!(ids(service.list(search(None)).await.unwrap()), [pinned.id.clone(), unpinned.id.clone()]);
+    assert_eq!(ids(service.list(search(Some(true))).await.unwrap()), [pinned.id]);
 }

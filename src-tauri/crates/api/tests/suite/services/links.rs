@@ -96,7 +96,6 @@ async fn setup() -> (TestDb, LinksService) {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn resolves_ids_from_every_module_and_skips_deleted_ones() {
     let (_ctx, service) = setup().await;
     let links = service
@@ -121,7 +120,6 @@ async fn resolves_ids_from_every_module_and_skips_deleted_ones() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn finds_what_links_to_a_thought() {
     let (_ctx, service) = setup().await;
     let backlinks = service.backlinks(BacklinkTarget { kind: BacklinkKind::Thought, id: "th1".into() }).await.unwrap();
@@ -137,7 +135,6 @@ async fn finds_what_links_to_a_thought() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn finds_what_links_to_a_task_labelling_untitled_thoughts_from_their_body() {
     let (_ctx, service) = setup().await;
     let backlinks = service.backlinks(BacklinkTarget { kind: BacklinkKind::Task, id: "t1".into() }).await.unwrap();

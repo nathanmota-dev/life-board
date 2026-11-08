@@ -17,7 +17,6 @@ fn score(score: i64) -> UpsertMoodBody {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn keeps_a_single_entry_per_day_updating_it_on_re_submit() {
     let (_ctx, service) = setup().await;
     let first = service.upsert(UpsertMoodBody { note: Some(Some("meh".into())), ..score(2) }).await.unwrap();
@@ -38,7 +37,6 @@ async fn keeps_a_single_entry_per_day_updating_it_on_re_submit() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn reports_today_s_entry_and_when_the_next_day_starts() {
     let (_ctx, service) = setup().await;
     let at = local(2026, 10, 17, 15, 30);
@@ -53,7 +51,6 @@ async fn reports_today_s_entry_and_when_the_next_day_starts() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn deletes_entries() {
     let (_ctx, service) = setup().await;
     let created = service.upsert(score(3)).await.unwrap();
