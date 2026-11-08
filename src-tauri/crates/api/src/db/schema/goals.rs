@@ -1,6 +1,6 @@
+use crate::clock;
 use serde::Serialize;
 
-use chrono::Utc;
 use rusqlite::params;
 
 use crate::db::columns::{
@@ -188,7 +188,7 @@ impl GoalProgressSnapshot {
 /// Inserts one goal with the column defaults filled in and returns it.
 /// Also used to seed the links tests (#51).
 pub fn insert_goal(conn: &rusqlite::Connection, row: NewGoal) -> rusqlite::Result<Goal> {
-    let now = Utc::now();
+    let now = clock::now();
     conn.query_row(
         "INSERT INTO goals (id, title, why, domain, status, start_at, target_at, completed_at, color, progress, progress_mode, linked_task_ids, linked_thought_ids, linked_habit_ids, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         params![
@@ -227,7 +227,7 @@ pub async fn insert_goals(db: &Db, rows: Vec<NewGoal>) -> Result<(), DbError> {
 
 /// Inserts one milestone with the column defaults filled in and returns it.
 pub fn insert_milestone(conn: &rusqlite::Connection, row: NewGoalMilestone) -> rusqlite::Result<GoalMilestone> {
-    let now = Utc::now();
+    let now = clock::now();
     conn.query_row(
         r#"INSERT INTO goal_milestones (id, goal_id, title, due_at, completed_at, "order", created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *"#,
         params![
@@ -259,7 +259,7 @@ pub async fn insert_milestones(db: &Db, rows: Vec<NewGoalMilestone>) -> Result<(
 pub async fn insert_snapshots(db: &Db, rows: Vec<NewGoalProgressSnapshot>) -> Result<(), DbError> {
     db.call(move |conn| {
         let tx = conn.transaction()?;
-        let now = Utc::now();
+        let now = clock::now();
         for row in rows {
             tx.execute(
                 "INSERT INTO goal_progress_snapshots (id, goal_id, day, progress, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",

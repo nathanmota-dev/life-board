@@ -1,4 +1,4 @@
-//! SQL fragments shared by the services (`query.service.ts`).
+//! SQL fragments shared by the services.
 
 use rusqlite::types::Value;
 

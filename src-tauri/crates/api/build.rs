@@ -1,5 +1,5 @@
-//! Embeds the Drizzle migrations from `api/drizzle` (journal order, `when` and SQL)
-//! so the Rust API migrates the same profile the Node API does. 4/4 moves the folder.
+//! Embeds the migrations from `migrations/` (journal order, `when` and SQL), recorded
+//! the way Drizzle did so existing profiles keep migrating. See `docs/backend.md`.
 
 use std::env;
 use std::fs;
@@ -13,7 +13,7 @@ fn main() {
 
 fn generate() -> Result<(), String> {
     let manifest = PathBuf::from(env::var("CARGO_MANIFEST_DIR").map_err(|e| e.to_string())?);
-    let folder = manifest.join("../../../api/drizzle");
+    let folder = manifest.join("migrations");
     let journal_path = folder.join("meta/_journal.json");
     println!("cargo::rerun-if-changed={}", folder.display());
     println!("cargo::rerun-if-changed={}", journal_path.display());

@@ -1,6 +1,6 @@
+use crate::clock;
 use serde::Serialize;
 
-use chrono::Utc;
 use rusqlite::params;
 
 use crate::db::columns::{Timestamp, get_timestamp, js_date, to_millis};
@@ -41,7 +41,7 @@ impl AppSettings {
 pub async fn insert(db: &Db, rows: Vec<NewAppSettings>) -> Result<(), DbError> {
     db.call(move |conn| {
         let tx = conn.transaction()?;
-        let now = Utc::now();
+        let now = clock::now();
         for row in rows {
             tx.execute(
                 "INSERT INTO app_settings (id, uploads_base_dir, created_at, updated_at) VALUES (?, ?, ?, ?)",

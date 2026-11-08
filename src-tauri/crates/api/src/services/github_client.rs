@@ -311,6 +311,10 @@ pub struct GithubClient {
 impl GithubClient {
     /// Talks to `https://api.github.com`.
     pub fn new() -> Self {
+        #[cfg(feature = "e2e")]
+        if let Ok(base_url) = std::env::var("LIFE_BOARD_E2E_GITHUB_URL") {
+            return Self::with_base_url(base_url);
+        }
         Self::with_base_url(GITHUB_API)
     }
 

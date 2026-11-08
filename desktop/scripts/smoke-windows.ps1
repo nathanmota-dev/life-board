@@ -221,8 +221,8 @@ function Test-AuthenticodeSignature([string]$Path) {
     return $signature.SignerCertificate.Thumbprint
 }
 function Find-OwnedApiUrl {
-    # On Windows the utilityProcess backend's inherited stdout does not reach
-    # the GUI executable's redirected log, so find the port it listens on.
+    # The GUI executable's redirected log can miss the main-process line on
+    # Windows, so also find the port the API binary listens on.
     $ids = @(Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($install + '\', [StringComparison]::OrdinalIgnoreCase) } | ForEach-Object { $_.Id })
     $listeners = @(Get-NetTCPConnection -State Listen -LocalAddress 127.0.0.1 -ErrorAction SilentlyContinue | Where-Object { $ids -contains $_.OwningProcess })
     foreach ($listener in $listeners) {
@@ -282,7 +282,7 @@ try {
         $stream.Position = 60; $offset = $reader.ReadUInt32(); $stream.Position = $offset
         if ($reader.ReadUInt32() -ne 0x4550 -or $reader.ReadUInt16() -ne 0x8664) { throw 'Installed executable is not x64' }
     } finally { $reader.Dispose() }
-    foreach ($resource in @('app.asar', 'app-update.yml', 'migrations/meta/_journal.json', 'app.asar.unpacked/node_modules/@libsql/win32-x64-msvc/index.node')) {
+    foreach ($resource in @('app.asar', 'app-update.yml', 'bin/life-board-api.exe')) {
         if (!(Test-Path -LiteralPath (Join-Path $install "resources/$resource"))) { throw "Missing installed resource: $resource" }
     }
     $shortcut = Join-Path ([Environment]::GetFolderPath('Programs')) 'Life Board.lnk'

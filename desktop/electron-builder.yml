@@ -7,11 +7,15 @@ files:
   - out/**/*
   - package.json
 asar: true
-# Fails the build when the libSQL binary doesn't match the target OS/CPU.
+# Fails the build when the API binary doesn't match the target OS/CPU.
 afterPack: desktop/scripts/after-pack.cjs
 extraResources:
-  - from: api/drizzle
-    to: migrations
+  # Built by `cargo build --release`; the migrations are embedded in the binary.
+  - from: target/release
+    to: bin
+    filter:
+      - life-board-api
+      - life-board-api.exe
 linux:
   target:
     - AppImage
@@ -87,6 +91,8 @@ deb:
     - libsecret-1-0
     - pkexec | policykit-1
     - apt
+    # The API trusts the system's certificate store when it calls GitHub.
+    - ca-certificates
   recommends:
     - libappindicator3-1 | libayatana-appindicator3-1
     - gnome-keyring | kwalletmanager | kwallet6

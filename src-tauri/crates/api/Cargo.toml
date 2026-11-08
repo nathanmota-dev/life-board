@@ -1,11 +1,15 @@
 [package]
 name = "life-board-api"
 version = "0.1.0"
-description = "Life Board HTTP API (Rust port of api/)"
+description = "Life Board HTTP API"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
+
+[features]
+# Test-only: lets the Playwright suite move the clock and fake GitHub. Never packaged.
+e2e = []
 
 [lib]
 path = "src/lib.rs"

@@ -1,10 +1,10 @@
 //! Where uploads live: the data directory by default, or a folder picked in Settings > Files.
 
+use crate::clock;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use axum::http::StatusCode;
-use chrono::Utc;
 use rusqlite::{OptionalExtension, params};
 use serde::Serialize;
 
@@ -115,7 +115,7 @@ impl FilesSettingsService {
     }
 
     async fn save_base_dir(&self, base_dir: Option<String>) -> ApiResult<()> {
-        let now = to_millis(Utc::now());
+        let now = to_millis(clock::now());
         self.db
             .call(move |conn| {
                 conn.execute(

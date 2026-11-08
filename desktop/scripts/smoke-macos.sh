@@ -171,17 +171,17 @@ executable=$(plist "$app" CFBundleExecutable)
 [ "$(plist "$app" CFBundleShortVersionString)" = "$version" ] || fail "installed app is not version $version"
 file "$app/Contents/MacOS/$executable" | tee -a "$evidence/codesign.txt"
 [ "$(lipo -archs "$app/Contents/MacOS/$executable")" = "$machine" ] || fail "installed executable is not thin $machine"
-native="$app/Contents/Resources/app.asar.unpacked/node_modules/@libsql/darwin-$arch/index.node"
-[ "$(lipo -archs "$native")" = "$machine" ] || fail "installed libSQL module is not $machine"
-for resource in app.asar app-update.yml migrations/meta/_journal.json; do
+native="$app/Contents/Resources/bin/life-board-api"
+[ "$(lipo -archs "$native")" = "$machine" ] || fail "installed API binary is not $machine"
+for resource in app.asar app-update.yml; do
   [ -s "$app/Contents/Resources/$resource" ] || fail "missing installed resource $resource"
 done
 for helper in "" " (GPU)" " (Plugin)" " (Renderer)"; do
   [ "$(lipo -archs "$app/Contents/Frameworks/$executable Helper$helper.app/Contents/MacOS/$executable Helper$helper")" = "$machine" ] || fail "helper$helper is not $machine"
 done
 cdhash=$(check_signature "$app" "installed app")
-[ -n "$team" ] || [ "$(codesign -dv "$native" 2>&1 | sed -n 's/^Signature=//p')" = adhoc ] || fail "libSQL module is not ad-hoc signed"
-[ -z "$team" ] || codesign -dv --verbose=2 "$native" 2>&1 | grep -qx "TeamIdentifier=$team" || fail "libSQL module belongs to another team"
+[ -n "$team" ] || [ "$(codesign -dv "$native" 2>&1 | sed -n 's/^Signature=//p')" = adhoc ] || fail "API binary is not ad-hoc signed"
+[ -z "$team" ] || codesign -dv --verbose=2 "$native" 2>&1 | grep -qx "TeamIdentifier=$team" || fail "API binary belongs to another team"
 
 # The updater installs the ZIP, so it must carry the identical signed code.
 ditto -x -k "$zip" "$work/zip"

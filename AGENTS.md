@@ -12,8 +12,8 @@ Life Board is a personal Electron desktop app for organizing and tracking everyt
 
 - Desktop shell: Electron, built with electron-vite.
 - Frontend: Vite, React, Tailwind CSS, shadcn/ui components, and TanStack Router.
-- Backend (`api/`): Node, Fastify, Drizzle ORM with SQLite (`@libsql/client`) and Zod, organized as DTOs, controllers and services. It runs inside Electron's `utilityProcess` and listens on 127.0.0.1.
-- Tests: Vitest, with jsdom and Testing Library for frontend tests. The backend requires at least 80% coverage.
+- Backend (`src-tauri/crates/api`): Rust, axum and rusqlite with SQLite, organized as DTOs, controllers and services. Electron starts it as a sidecar binary, which listens on 127.0.0.1.
+- Tests: Vitest, with jsdom and Testing Library for frontend tests, and `cargo test` for the backend. The backend requires at least 80% coverage.
 
 ## Frontend conventions
 
@@ -31,7 +31,7 @@ When a task requires creating a Git branch, commit, or pull request, follow the 
 
 ## Mandatory verification before completing a task
 
-Whenever a task creates, modifies, or deletes application code, tests, runtime assets, dependencies, scripts, migrations, or build/packaging/workflow configuration, run **every command below**, in order, from the repository root before reporting the task as complete or opening a PR. This applies to desktop (Electron main/preload), backend (`api/`), and frontend (`web/`) changes, regardless of how small the change is. A targeted test or a partial checklist does not replace the full verification.
+Whenever a task creates, modifies, or deletes application code, tests, runtime assets, dependencies, scripts, migrations, or build/packaging/workflow configuration, run **every command below**, in order, from the repository root before reporting the task as complete or opening a PR. This applies to desktop (Electron main/preload), backend (`src-tauri/`), and frontend (`web/`) changes, regardless of how small the change is. A targeted test or a partial checklist does not replace the full verification.
 
 ```bash
 npm ci
@@ -55,21 +55,20 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 TZ=UTC cargo test --workspace
 TZ=America/Sao_Paulo cargo test --workspace
-npm run test:parity
 git diff --check
 ```
 
 Use Node.js 22.12 or newer (CI uses 24.18.0) on Linux x64.
 
 - `npm ci` must not change `package-lock.json`. Run it when dependencies changed or `node_modules` may be stale.
-- `npm run typecheck` checks the desktop, frontend, API and E2E projects.
-- `npm test` runs the desktop, frontend and API unit tests.
-- `npm run test:coverage` runs the API suite with coverage and fails below 80% for lines, functions, branches or statements.
+- `npm run typecheck` checks the desktop, frontend and E2E projects.
+- `npm test` runs the desktop and frontend unit tests and `cargo test --workspace`.
+- `npm run test:coverage` runs `cargo llvm-cov` and fails below 80% for lines, functions or regions. Stable Rust doesn't report branch coverage, so regions take its place. It needs `cargo install cargo-llvm-cov`.
 - `npm run test:quality` tests the gate scripts. `npm run test:coverage:ci` writes the coverage reports that `node scripts/quality-gate.js` compares; `npm run benchmark:ci` writes the results that `node scripts/benchmark-gate.js` compares. Inspect `reports/quality-gate.md` and `reports/performance.md`. See `docs/qualidade.md`.
-- `npm run test:e2e:infra` tests the E2E launcher; `npm run test:e2e` rebuilds production output and runs the Playwright suite against the real Electron app with Xvfb, D-Bus, an isolated keyring and temporary profiles. It needs `xvfb`, `xauth`, `dbus-x11` and `gnome-keyring`; see `docs/e2e.md`. If a Playwright worker crashes (for example `SIGSEGV`), rerun the full suite and report both runs; a pass of only the failed spec does not count.
-- `npm run package:linux` already runs `npm run build` (and therefore the typecheck); a separate `npm run build` is not an extra required check. It generates the DEB, AppImage and `latest-linux.yml` in `release/` and must load `@libsql/linux-x64-gnu` in the `after-pack` hook. Never publish these artifacts.
-- `release-checks.mts assets release` validates names, sizes, the feed's SHA-512 and the SHA-256 list. `dpkg-deb` must show package `life-board` for amd64, the migrations and the unpacked native module.
-- The Rust commands check the API port in `src-tauri/crates/api` with the toolchain pinned in `rust-toolchain.toml`. `cargo test` runs twice because day keys use the local time zone. `npm run test:parity` fails when a test in `api/src/**/*.test.ts` has no Rust port or a Rust test has no TS case nor a justified entry in `src-tauri/crates/api/tests/parity-allowlist.json`; see `docs/backend.md`.
+- `npm run test:e2e:infra` tests the E2E launcher; `npm run test:e2e` rebuilds production output, builds the sidecar with the test-only `e2e` feature and runs the Playwright suite against the real Electron app with Xvfb, D-Bus, an isolated keyring and temporary profiles. It needs `xvfb`, `xauth`, `dbus-x11` and `gnome-keyring`; see `docs/e2e.md`. If a Playwright worker crashes (for example `SIGSEGV`), rerun the full suite and report both runs; a pass of only the failed spec does not count.
+- `npm run package:linux` builds the API with `--release` and runs the typecheck and the Electron build; a separate `npm run build` is not an extra required check. It generates the DEB, AppImage and `latest-linux.yml` in `release/`, and the `after-pack` hook checks that `bin/life-board-api` is executable and matches the target. Never publish these artifacts.
+- `release-checks.mts assets release` validates names, sizes, the feed's SHA-512 and the SHA-256 list. `dpkg-deb` must show package `life-board` for amd64 and `resources/bin/life-board-api`.
+- The Rust commands check the API in `src-tauri/crates/api` with the toolchain pinned in `rust-toolchain.toml`. `cargo test` runs in both time zones because day keys use the local time zone.
 - Run `desktop/scripts/smoke-deb.sh` against the DEB installed in a disposable Ubuntu 24.04 container as a non-root user, never on the host or a personal profile. Docker here cannot bind-mount `/mnt/linux-data/…`: use `docker create`, `docker cp` and `docker start -a`. The container needs `--security-opt seccomp=unconfined` so the Chromium sandbox can start. The smoke must reach `/api/health` and create `life-board.db` and `secret.key.enc`.
 
 Additional checks that apply only to some changes:

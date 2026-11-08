@@ -1,7 +1,5 @@
-//! The backend suite ported from `api/src/**/*.test.ts`, one module per TS file
-//! at the mirrored path. Each ported test is ignored with `pending #N` until the
-//! issue that implements its module turns it on. `routes`, `dto`, `golden` and
-//! `db::migrator` are Rust-only (see `tests/parity-allowlist.json`).
+//! The backend suite, ported from the Node API's tests with one module per file.
+//! `routes`, `dto`, `golden`, `http`, `sidecar` and `db::migrator` only exist here.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 

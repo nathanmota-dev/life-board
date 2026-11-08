@@ -1,5 +1,5 @@
+use crate::clock;
 use axum::Json;
-use chrono::Utc;
 use serde::Serialize;
 
 use super::RouteTable;
@@ -17,5 +17,5 @@ pub fn routes(table: RouteTable) -> RouteTable {
 }
 
 async fn health() -> Json<Health> {
-    Json(Health { ok: true, service: "life-board-api", time: to_iso(Utc::now()) })
+    Json(Health { ok: true, service: "life-board-api", time: to_iso(clock::now()) })
 }

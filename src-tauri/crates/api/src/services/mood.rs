@@ -1,6 +1,6 @@
+use crate::clock;
 use serde::Serialize;
 
-use chrono::Utc;
 use rusqlite::types::Value;
 
 use crate::db::Db;
@@ -62,14 +62,14 @@ impl MoodService {
 
     /// One entry per day: re-submitting the same day refines the existing entry.
     pub async fn upsert(&self, input: UpsertMoodBody) -> ApiResult<MoodUpsert> {
-        let day = input.day.unwrap_or_else(|| to_day_key(Utc::now()));
+        let day = input.day.unwrap_or_else(|| to_day_key(clock::now()));
         let note = input.note.flatten();
         if let Some(existing) = self.find_day(&day).await? {
             let mut set = Assignments::new();
             set.set("score", input.score)
                 .set("note", note)
                 .maybe("linked_task_ids", input.linked_task_ids.as_deref().map(list_value))
-                .set("updated_at", time_value(Utc::now()));
+                .set("updated_at", time_value(clock::now()));
             let set = set.into_fragment();
             let mut params = set.params;
             params.push(Value::Text(existing.id));

@@ -1,9 +1,8 @@
-import { join } from "node:path"
-import { app, BrowserWindow, ipcMain, shell, utilityProcess } from "electron"
-import type { UtilityProcess } from "electron"
-import backendPath from "./backend-process?modulePath"
+import { app, BrowserWindow, ipcMain, shell } from "electron"
 import icon from "../resources/icon.png?asset"
 import { registerAppLifecycle, trackMainWindowClose } from "./app-lifecycle"
+import { startBackend } from "./backend"
+import type { Backend } from "./backend"
 import { registerCaptureShortcut, unregisterCaptureShortcut } from "./capture-window"
 import { registerDirectoryPicker } from "./directory-picker"
 import { registerLocale } from "./locale"
@@ -19,7 +18,7 @@ import { registerStartupSettings } from "./startup-settings"
 import { createTray } from "./tray"
 import { defaultBounds, loadWindowState, trackWindowState } from "./window-state"
 
-let backend: UtilityProcess | null = null
+let backend: Backend | null = null
 let apiBaseUrl: Promise<string> | null = null
 let mainWindow: BrowserWindow | null = null
 
@@ -64,32 +63,12 @@ function showMainWindow(route?: string) {
   if (route) mainWindow.webContents.send("app:navigate", route)
 }
 
-function startBackend({ key, resetSecrets }: SecretKey) {
-  const migrationsDir = app.isPackaged
-    ? join(process.resourcesPath, "migrations")
-    : join(app.getAppPath(), "api/drizzle")
-
-  backend = utilityProcess.fork(backendPath, [], {
-    serviceName: "Life Board Backend",
-    env: {
-      ...process.env,
-      LIFE_BOARD_DATA_DIR: app.getPath("userData"),
-      LIFE_BOARD_MIGRATIONS_DIR: migrationsDir,
-    },
+function launchBackend({ key, resetSecrets }: SecretKey) {
+  backend = startBackend({
+    isPackaged: app.isPackaged, appPath: app.getAppPath(), resourcesPath: process.resourcesPath, platform: process.platform,
+    dataDir: app.getPath("userData"), key, resetSecrets,
   })
-  // Sent over the message port rather than env, which other processes can read.
-  backend.postMessage({ type: "secret-key", key: key.toString("base64"), resetSecrets })
-
-  return new Promise<string>((resolve, reject) => {
-    backend?.on("message", (message: { type?: string; url?: string }) => {
-      if (message?.type === "ready" && message.url) resolve(message.url)
-    })
-    backend?.on("exit", (code) => {
-      backend = null
-      if (code !== 0) console.error(`O backend encerrou com código ${code}.`)
-      reject(new Error("O backend encerrou antes de ficar pronto."))
-    })
-  })
+  return backend.url
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -120,7 +99,7 @@ if (!app.requestSingleInstanceLock()) {
       app.quit()
       return
     }
-    apiBaseUrl = startBackend(secretKey)
+    apiBaseUrl = launchBackend(secretKey)
     apiBaseUrl.then(
       () => { if (secretKey.resetSecrets) confirmSecretsReset(app.getPath("userData")) },
       (error: unknown) => console.error(error),
@@ -144,7 +123,7 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.on("before-quit", () => {
-    backend?.kill()
+    backend?.stop()
     backend = null
   })
 
