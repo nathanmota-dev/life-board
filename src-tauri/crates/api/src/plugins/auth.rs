@@ -29,5 +29,9 @@ impl Authenticator for AllowAll {
 
 /// The layer on every protected route (`registerProtected`): runs the state's authenticator first.
 pub async fn require_auth(State(state): State<AppState>, request: Request, next: Next) -> Response {
-    pending!(51, state, request, next)
+    let (parts, body) = request.into_parts();
+    if let Err(response) = state.authenticator.authenticate(&parts).await {
+        return response;
+    }
+    next.run(Request::from_parts(parts, body)).await
 }

@@ -26,7 +26,6 @@ impl Authenticator for RejectAll {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn lets_every_request_through_while_there_is_no_auth() {
     let ctx = TestApp::new().await;
 
@@ -34,7 +33,6 @@ async fn lets_every_request_through_while_there_is_no_auth() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn guards_every_domain_route_but_leaves_health_public() {
     let authenticate = Arc::new(RejectAll::default());
     let shared = Arc::clone(&authenticate);
