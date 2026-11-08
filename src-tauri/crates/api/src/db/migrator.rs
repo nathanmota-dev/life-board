@@ -2,7 +2,7 @@
 //! the way Drizzle does, so a profile migrated by Node is a no-op here and the
 //! other way around.
 
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use sha2::{Digest, Sha256};
 
 /// One `api/drizzle/<tag>.sql` file and its journal entry.
@@ -28,12 +28,50 @@ impl Migration {
 
     /// The statements between breakpoints, as Drizzle runs them.
     pub fn statements(&self) -> Vec<&'static str> {
-        pending!(51, self)
+        self.sql.split(STATEMENT_BREAKPOINT).collect()
     }
 }
 
 /// Creates `__drizzle_migrations` when missing and applies, in one transaction,
 /// the migrations newer than the last recorded `created_at`.
 pub fn migrate(conn: &mut Connection, migrations: &[Migration]) -> Result<(), super::DbError> {
-    pending!(51, conn, migrations)
+    conn.execute_batch(CREATE_MIGRATIONS_TABLE)?;
+    let last: Option<f64> = conn
+        .query_row(
+            "SELECT id, hash, created_at FROM \"__drizzle_migrations\" ORDER BY created_at DESC LIMIT 1",
+            [],
+            |row| row.get::<_, Option<f64>>(2),
+        )
+        .optional()?
+        .flatten();
+    let pending: Vec<&Migration> = migrations
+        .iter()
+        .filter(|migration| last.is_none_or(|created_at| created_at < migration.when as f64))
+        .collect();
+
+    // libSQL's `migrate()`: foreign keys off, one deferred transaction, foreign keys back on.
+    conn.execute_batch("PRAGMA foreign_keys=off")?;
+    let applied = apply(conn, &pending);
+    let restored = conn.execute_batch("PRAGMA foreign_keys=on");
+    applied?;
+    restored?;
+    Ok(())
+}
+
+/// Drizzle's statement, whitespace included: SQLite stores it in `sqlite_master`.
+const CREATE_MIGRATIONS_TABLE: &str = "\n\t\tCREATE TABLE IF NOT EXISTS \"__drizzle_migrations\" (\n\t\t\tid SERIAL PRIMARY KEY,\n\t\t\thash text NOT NULL,\n\t\t\tcreated_at numeric\n\t\t)\n\t";
+
+fn apply(conn: &mut Connection, pending: &[&Migration]) -> Result<(), super::DbError> {
+    let tx = conn.transaction_with_behavior(TransactionBehavior::Deferred)?;
+    for migration in pending {
+        for statement in migration.statements() {
+            tx.execute_batch(statement).map_err(|source| super::DbError::Migration { tag: migration.tag, source })?;
+        }
+        tx.execute(
+            "INSERT INTO \"__drizzle_migrations\" (\"hash\", \"created_at\") VALUES(?, ?)",
+            params![migration.hash(), migration.when],
+        )?;
+    }
+    tx.commit()?;
+    Ok(())
 }

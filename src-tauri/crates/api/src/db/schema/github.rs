@@ -169,7 +169,29 @@ impl GithubIssue {
 
 /// Also used by `startServer` tests and `resetSecrets` (#51).
 pub async fn insert_settings(db: &Db, rows: Vec<NewGithubSettings>) -> Result<(), DbError> {
-    pending!(51, db, rows)
+    db.call(move |conn| {
+        let tx = conn.transaction()?;
+        let now = chrono::Utc::now();
+        for row in rows {
+            tx.execute(
+                "INSERT INTO github_settings (id, token_ciphertext, token_iv, token_tag, login, org_filter, last_sync_at, last_sync_error, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                rusqlite::params![
+                    row.id,
+                    row.token_ciphertext,
+                    row.token_iv,
+                    row.token_tag,
+                    row.login,
+                    row.org_filter,
+                    row.last_sync_at.map(crate::db::columns::to_millis),
+                    row.last_sync_error,
+                    crate::db::columns::to_millis(row.created_at.unwrap_or(now)),
+                    crate::db::columns::to_millis(row.updated_at.unwrap_or(now)),
+                ],
+            )?;
+        }
+        tx.commit()
+    })
+    .await
 }
 
 pub async fn insert_prs(db: &Db, rows: Vec<NewGithubPr>) -> Result<(), DbError> {
