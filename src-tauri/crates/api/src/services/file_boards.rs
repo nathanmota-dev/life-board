@@ -51,7 +51,26 @@ impl FileBoardsService {
 
     /// Clears rows soft deleted by earlier versions, along with their files. Runs at startup.
     pub async fn purge_deleted(&self) -> ApiResult<()> {
-        pending!(51, self.db, self.storage)
+        let paths = self
+            .db
+            .call(|conn| {
+                let tx = conn.transaction()?;
+                let paths = {
+                    let mut statement = tx.prepare(
+                        "DELETE FROM file_items WHERE deleted_at IS NOT NULL OR board_id IN (SELECT id FROM file_boards WHERE deleted_at IS NOT NULL) RETURNING storage_path",
+                    )?;
+                    statement.query_map([], |row| row.get::<_, String>(0))?.collect::<Result<Vec<_>, _>>()?
+                };
+                tx.execute("DELETE FROM file_boards WHERE deleted_at IS NOT NULL", [])?;
+                tx.commit()?;
+                Ok(paths)
+            })
+            .await?;
+        // Best effort, like `removeFiles`.
+        for path in paths {
+            let _ = self.storage.remove(&path).await;
+        }
+        Ok(())
     }
 
     /// Newest first; `404` for an unknown board.

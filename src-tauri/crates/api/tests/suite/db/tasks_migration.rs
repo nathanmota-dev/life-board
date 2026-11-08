@@ -6,7 +6,6 @@ use serde_json::json;
 use crate::common::{assert_match, migrations_before, temp_dir, to_json};
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn upgrades_existing_tasks_onto_the_board_with_their_subtasks() {
     let dir = temp_dir("tasks-migration-");
     let path = dir.path().join("legacy.db");

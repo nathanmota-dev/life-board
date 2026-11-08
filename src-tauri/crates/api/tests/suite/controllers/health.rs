@@ -12,7 +12,6 @@ fn request(method: Method, uri: &str, headers: &[(&str, &str)]) -> Request<Body>
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn reports_the_service_as_up() {
     let ctx = TestApp::new().await;
     let response = ctx.get("/api/health").await;
@@ -22,7 +21,6 @@ async fn reports_the_service_as_up() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn allows_the_renderer_origins_through_cors() {
     let ctx = TestApp::new().await;
     let dev = ctx.send(request(Method::GET, "/api/health", &[("origin", "http://127.0.0.1:5180")])).await;
@@ -33,7 +31,6 @@ async fn allows_the_renderer_origins_through_cors() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn lets_the_renderer_edit_and_delete_through_the_cors_preflight() {
     let ctx = TestApp::new().await;
     let response = ctx

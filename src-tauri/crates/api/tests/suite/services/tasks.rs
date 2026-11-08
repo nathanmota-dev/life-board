@@ -48,7 +48,6 @@ fn with_children(list: TaskList) -> Vec<TaskWithChildren> {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn creates_tasks_with_defaults_and_stamps_completedat_when_created_as_done() {
     let (_ctx, service) = setup().await;
     let open = service.create(task("Open")).await.unwrap();
@@ -59,7 +58,6 @@ async fn creates_tasks_with_defaults_and_stamps_completedat_when_created_as_done
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn orders_open_tasks_by_priority_and_due_date_done_tasks_last() {
     let (_ctx, service) = setup().await;
     service
@@ -81,7 +79,6 @@ async fn orders_open_tasks_by_priority_and_due_date_done_tasks_last() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn filters_by_status_tag_parent_and_search() {
     let (_ctx, service) = setup().await;
     let parent = service.create(task("Parent")).await.unwrap();
@@ -117,7 +114,6 @@ async fn filters_by_status_tag_parent_and_search() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn never_lists_checklist_items_as_top_level_tasks() {
     let (_ctx, service) = setup().await;
     let parent = service
@@ -137,7 +133,6 @@ async fn never_lists_checklist_items_as_top_level_tasks() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn creates_checklist_items_with_the_task_and_returns_them_with_include_children() {
     let (_ctx, service) = setup().await;
     let created =
@@ -170,7 +165,6 @@ async fn creates_checklist_items_with_the_task_and_returns_them_with_include_chi
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn puts_new_tasks_on_top_of_the_board_and_saves_reorders() {
     let (_ctx, service) = setup().await;
     let first = service.create(task("First")).await.unwrap();
@@ -197,7 +191,6 @@ async fn puts_new_tasks_on_top_of_the_board_and_saves_reorders() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn rejects_reorders_with_unknown_duplicate_or_checklist_ids() {
     let (_ctx, service) = setup().await;
     let created = service.create(CreateTaskBody { items: items(&["Item"]), ..task("Task") }).await.unwrap();
@@ -213,7 +206,6 @@ async fn rejects_reorders_with_unknown_duplicate_or_checklist_ids() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn filters_by_color_and_hides_archived_tasks_unless_asked_for() {
     let (_ctx, service) = setup().await;
     let red = service
@@ -245,7 +237,6 @@ async fn filters_by_color_and_hides_archived_tasks_unless_asked_for() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn sets_completedat_when_moving_into_done_and_clears_it_when_leaving() {
     let (_ctx, service) = setup().await;
     let created = service.create(task("Task")).await.unwrap();
@@ -274,7 +265,6 @@ async fn sets_completedat_when_moving_into_done_and_clears_it_when_leaving() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn filters_by_focus_day_and_keeps_the_day_when_the_task_is_completed() {
     let (_ctx, service) = setup().await;
     let day = || Some(Some("2026-10-19".to_owned()));
@@ -304,7 +294,6 @@ async fn filters_by_focus_day_and_keeps_the_day_when_the_task_is_completed() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn refuses_a_fourth_focus_task_for_the_same_day() {
     let (_ctx, service) = setup().await;
     let day = "2026-10-19";
@@ -358,7 +347,6 @@ async fn refuses_a_fourth_focus_task_for_the_same_day() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn soft_deletes_and_then_treats_the_task_as_missing() {
     let (_ctx, service) = setup().await;
     let created = service.create(task("Task")).await.unwrap();
@@ -374,7 +362,6 @@ async fn soft_deletes_and_then_treats_the_task_as_missing() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn restores_a_deleted_task_with_the_checklist_items_deleted_alongside_it() {
     let (ctx, service) = setup().await;
     let created =

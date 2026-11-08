@@ -6,7 +6,8 @@ use serde::Serialize;
 
 use crate::db::Db;
 use crate::error::ApiResult;
-use crate::services::file_storage::FileStorageService;
+use crate::services::file_storage::{FileStorageService, absolute};
+use rusqlite::OptionalExtension;
 
 pub const SETTINGS_ID: &str = "default";
 
@@ -36,7 +37,30 @@ impl FilesSettingsService {
 
     /// Points the shared storage at the saved folder. Runs once at startup.
     pub async fn load(&self) -> ApiResult<()> {
-        pending!(51, self.db, self.storage, self.default_root)
+        let base_dir = self.saved_base_dir().await?;
+        self.storage.set_root(self.uploads_dir(base_dir.as_deref()));
+        Ok(())
+    }
+
+    /// `<base>/life-board-app/uploads`, or the default root without a base.
+    fn uploads_dir(&self, base_dir: Option<&str>) -> PathBuf {
+        match base_dir.filter(|base| !base.is_empty()) {
+            Some(base) => UPLOADS_SUBDIR.iter().fold(PathBuf::from(base), |path, part| path.join(part)),
+            None => absolute(&self.default_root),
+        }
+    }
+
+    async fn saved_base_dir(&self) -> ApiResult<Option<String>> {
+        Ok(self
+            .db
+            .call(|conn| {
+                conn.query_row("SELECT uploads_base_dir FROM app_settings WHERE id = ?", [SETTINGS_ID], |row| {
+                    row.get::<_, Option<String>>(0)
+                })
+                .optional()
+            })
+            .await?
+            .flatten())
     }
 
     pub async fn get(&self) -> ApiResult<FilesSettings> {

@@ -5,7 +5,6 @@ use life_board_api::services::crypto::{CryptoService, SealedSecret};
 use crate::common::crypto;
 
 #[test]
-#[ignore = "pending #51"]
 fn round_trips_secrets_with_a_fresh_iv_each_time() {
     let service = crypto(1);
     let first = service.seal("ghp_secret").unwrap();
@@ -16,7 +15,6 @@ fn round_trips_secrets_with_a_fresh_iv_each_time() {
 }
 
 #[test]
-#[ignore = "pending #51"]
 fn rejects_tampered_data_and_malformed_envelopes() {
     let service = crypto(1);
     let sealed = service.seal("ghp_secret").unwrap();

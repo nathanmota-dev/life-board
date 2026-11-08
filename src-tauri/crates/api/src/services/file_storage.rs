@@ -48,8 +48,9 @@ impl Disk for RealDisk {
         pending!(52, path)
     }
 
+    /// Also used at startup by `file_boards.purge_deleted` (#51).
     async fn remove_file(&self, path: &Path) -> io::Result<()> {
-        pending!(52, path)
+        tokio::fs::remove_file(path).await
     }
 
     async fn check_writable_dir(&self, path: &Path) -> io::Result<()> {
@@ -78,16 +79,16 @@ impl FileStorageService {
     }
 
     pub fn with_disk(root: impl Into<PathBuf>, disk: Arc<dyn Disk>) -> Self {
-        pending!(52, root.into(), disk)
+        Self { root: Arc::new(RwLock::new(absolute(&root.into()))), disk }
     }
 
     /// Another storage at `root` on the same disk (`new FileStorageService(root)` inside a service).
     pub fn at(&self, root: impl Into<PathBuf>) -> Self {
-        pending!(52, self.disk, root.into())
+        Self::with_disk(root, Arc::clone(&self.disk))
     }
 
     pub fn root(&self) -> PathBuf {
-        pending!(52, self.root)
+        self.root.read().map_or_else(|poisoned| poisoned.into_inner().clone(), |root| root.clone())
     }
 
     pub fn disk(&self) -> Arc<dyn Disk> {
@@ -96,7 +97,11 @@ impl FileStorageService {
 
     /// Points later saves and reads at another folder (Settings > Files).
     pub fn set_root(&self, root: impl Into<PathBuf>) {
-        pending!(52, self.root, root.into())
+        let root = absolute(&root.into());
+        match self.root.write() {
+            Ok(mut current) => *current = root,
+            Err(poisoned) => *poisoned.into_inner() = root,
+        }
     }
 
     /// Stores the bytes as `<ulid>-<sanitized name><ext>`.
@@ -120,11 +125,41 @@ impl FileStorageService {
 
     /// Removing a file that's already gone is fine; other errors are returned.
     pub async fn remove(&self, storage_path: &str) -> io::Result<()> {
-        pending!(52, self.root, storage_path)
+        match self.disk.remove_file(&self.resolve(storage_path)?).await {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+            other => other,
+        }
     }
 
     /// Refuses (`InvalidInput`, "Invalid storage path.") any path that lands outside the root.
     pub fn resolve(&self, storage_path: &str) -> io::Result<PathBuf> {
-        pending!(52, self.root, storage_path)
+        let root = self.root();
+        let full = normalize(&root.join(storage_path));
+        if full != root && full.starts_with(&root) {
+            Ok(full)
+        } else {
+            Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid storage path."))
+        }
     }
+}
+
+/// `path.resolve(path)`: absolute, with `.` and `..` folded.
+pub fn absolute(path: &Path) -> PathBuf {
+    normalize(&std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf()))
+}
+
+/// Folds `.` and `..` without touching the disk, like `path.resolve`.
+fn normalize(path: &Path) -> PathBuf {
+    use std::path::Component;
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            other => normalized.push(other.as_os_str()),
+        }
+    }
+    normalized
 }

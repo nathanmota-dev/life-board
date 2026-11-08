@@ -16,7 +16,6 @@ use crate::common::{list_dir, temp_dir};
 #[case::query_syntax("a&b=c;d")]
 #[case::question_mark("what?")]
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn opens_the_database_exactly_at(#[case] folder: &str) {
     if cfg!(windows) && folder.contains('?') {
         return;
@@ -41,7 +40,6 @@ async fn opens_the_database_exactly_at(#[case] folder: &str) {
 #[case::double_slash("//home/user/.config/life-board-app/life-board.db")]
 #[case::macos_profile("/Users/me/Library/Application Support/life-board-app/life-board.db")]
 #[test]
-#[ignore = "pending #51"]
 fn keeps_intact_for_libsql(#[case] path: &str) {
     assert!(!open_flags().contains(OpenFlags::SQLITE_OPEN_URI));
     assert_eq!(Path::new(path).to_str(), Some(path));

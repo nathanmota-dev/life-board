@@ -10,7 +10,6 @@ async fn titles(ctx: &TestApp, query: &str) -> Vec<Value> {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn runs_the_crud_flow() {
     let ctx = TestApp::new().await;
     let created = ctx.post("/api/tasks", json!({ "title": "Pay bills", "dueAt": "2026-10-20" })).await;
@@ -30,7 +29,6 @@ async fn runs_the_crud_flow() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn validates_bodies_and_queries() {
     let ctx = TestApp::new().await;
     let missing_title = ctx.post("/api/tasks", json!({})).await;
@@ -44,7 +42,6 @@ async fn validates_bodies_and_queries() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn serves_the_board_checklist_items_filters_reorder_archive_and_restore() {
     let ctx = TestApp::new().await;
     let created = ctx
@@ -87,7 +84,6 @@ async fn serves_the_board_checklist_items_filters_reorder_archive_and_restore() 
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn rejects_invalid_board_requests() {
     let ctx = TestApp::new().await;
     let status_of = |method: Method, url: &'static str, payload: Option<Value>| {
@@ -107,7 +103,6 @@ async fn rejects_invalid_board_requests() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn picks_focus_tasks_per_day_and_refuses_a_fourth_one() {
     let ctx = TestApp::new().await;
     let mut ids = Vec::new();
@@ -140,7 +135,6 @@ async fn picks_focus_tasks_per_day_and_refuses_a_fourth_one() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn validates_the_focus_day_format() {
     let ctx = TestApp::new().await;
     assert_eq!(ctx.get("/api/tasks?focusDay=today").await.status(), 400);
@@ -152,7 +146,6 @@ async fn validates_the_focus_day_format() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn returns_404_for_unknown_tasks() {
     let ctx = TestApp::new().await;
     let response = ctx.patch("/api/tasks/missing", json!({ "title": "x" })).await;

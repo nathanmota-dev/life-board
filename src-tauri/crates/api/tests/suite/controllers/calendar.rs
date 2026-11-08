@@ -3,7 +3,6 @@ use serde_json::json;
 use crate::common::{TestApp, len, text};
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn manages_events() {
     let ctx = TestApp::new().await;
     let created = ctx
@@ -25,7 +24,6 @@ async fn manages_events() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn returns_400_when_the_event_ends_before_it_starts() {
     let ctx = TestApp::new().await;
     let response = ctx
