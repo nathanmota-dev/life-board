@@ -10,7 +10,6 @@ async fn create_board(ctx: &TestApp) -> String {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn manages_boards() {
     let ctx = TestApp::new().await;
     let id = create_board(&ctx).await;
@@ -21,7 +20,6 @@ async fn manages_boards() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn uploads_downloads_updates_and_deletes_items() {
     let ctx = TestApp::new().await;
     let board_id = create_board(&ctx).await;
@@ -52,7 +50,6 @@ async fn uploads_downloads_updates_and_deletes_items() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn stops_serving_a_board_s_files_once_the_board_is_deleted() {
     let ctx = TestApp::new().await;
     let board_id = create_board(&ctx).await;
@@ -71,7 +68,6 @@ async fn stops_serving_a_board_s_files_once_the_board_is_deleted() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn rejects_uploads_without_a_file_with_bad_fields_or_over_the_size_limit() {
     let ctx = TestApp::new().await;
     let board_id = create_board(&ctx).await;

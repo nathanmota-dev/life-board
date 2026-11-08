@@ -4,11 +4,13 @@
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
+use chrono::{Local, Offset, TimeZone, Utc};
+use life_board_api::db::columns::Timestamp;
 use life_board_api::services::crypto::{CryptoService, SealedSecret};
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::common::{NODE_PROFILE, TestApp, fixture};
+use crate::common::{NODE_PROFILE, TestApp, fixture, to_json};
 
 #[derive(Deserialize)]
 struct Entry {
@@ -21,6 +23,16 @@ struct Entry {
 struct Recorded {
     status: u16,
     body: Value,
+}
+
+/// `clock.<zone>.json`: what the Node services answered at a fixed instant.
+#[derive(Deserialize)]
+struct ClockCase {
+    #[serde(with = "life_board_api::db::columns::js_date")]
+    at: Timestamp,
+    stats: Value,
+    goals: Value,
+    goal: Value,
 }
 
 #[derive(Deserialize)]
@@ -121,21 +133,58 @@ async fn habits_answer_like_node() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn goals_answer_like_node() {
     answers_like_node("goals").await;
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn projects_answer_like_node() {
     answers_like_node("projects").await;
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn file_boards_answer_like_node() {
     answers_like_node("file_boards").await;
+}
+
+#[tokio::test]
+async fn settings_answer_like_node() {
+    let ctx = TestApp::on_copy_of(NODE_PROFILE, node_crypto()).await;
+    let expected: Recorded = read(fixture(&format!("{NODE_PROFILE}/settings.files.json")));
+    let uploads = ctx.data_dir.join("uploads").to_string_lossy().into_owned();
+    let response = ctx.get("/api/settings/files").await;
+    assert_eq!(response.status(), expected.status);
+    let mut actual = response.json();
+    for key in ["uploadsDir", "defaultUploadsDir"] {
+        assert_eq!(actual[key], uploads, "{key}");
+        actual[key] = "<data>/uploads".into();
+    }
+    assert_eq!(actual, expected.body);
+}
+
+/// The recorded zone with the process's UTC offset, if there is one.
+fn recorded_zone() -> Option<&'static str> {
+    match Local.offset_from_utc_datetime(&Utc::now().naive_utc()).fix().local_minus_utc() {
+        0 => Some("UTC"),
+        -10_800 => Some("America_Sao_Paulo"),
+        _ => None,
+    }
+}
+
+#[tokio::test]
+async fn goals_and_stats_at_fixed_instants_answer_like_node() {
+    let Some(zone) = recorded_zone() else {
+        eprintln!("skipped: Node's answers were recorded for UTC and America/Sao_Paulo only");
+        return;
+    };
+    let ctx = TestApp::on_copy_of(NODE_PROFILE, node_crypto()).await;
+    let cases: Vec<ClockCase> = read(fixture(&format!("{NODE_PROFILE}/clock.{zone}.json")));
+    assert_eq!(cases.len(), 3);
+    for case in cases {
+        assert_eq!(to_json(&ctx.state.stats.this_week(case.at).await.unwrap()), case.stats, "stats at {}", case.at);
+        assert_eq!(to_json(&ctx.state.goals.list(case.at).await.unwrap()), case.goals, "goals at {}", case.at);
+        assert_eq!(to_json(&ctx.state.goals.get("g-books", case.at).await.unwrap()), case.goal, "goal at {}", case.at);
+    }
 }
 
 #[tokio::test]

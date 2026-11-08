@@ -123,9 +123,15 @@ rule (see `tests/suite/dto.rs`):
   `invalid_token`, `500 move_failed`, `502 sync_failed`, `github_unavailable`.
 - Body errors keep Fastify's codes: `400 FST_ERR_CTP_EMPTY_JSON_BODY`,
   `400 FST_ERR_CTP_INVALID_JSON_BODY`, `415 FST_ERR_CTP_INVALID_MEDIA_TYPE`,
-  `413 FST_ERR_CTP_BODY_TOO_LARGE` (JSON bodies up to 1 MiB; uploads up to
-  20 MiB and one file). A request without a body and without `Content-Type`
-  fails validation, like `undefined` in Zod.
+  `413 FST_ERR_CTP_BODY_TOO_LARGE` (JSON bodies up to 1 MiB). `text/plain` is
+  read as a string and fails the object schemas. A request without a body and
+  without `Content-Type` fails validation, like `undefined` in Zod.
+- Uploads follow `@fastify/multipart`: one file of up to 20 MiB, or
+  `413 FST_REQ_FILE_TOO_LARGE`. The first file part counts whatever its field
+  is named and later ones are ignored; a field name sent twice is dropped; more
+  than 1000 parts before the file is `413 FST_PARTS_LIMIT`. Field errors
+  (`400 FST_PROTO_VIOLATION`, `406 FST_INVALID_JSON_FIELD_ERROR`) only surface
+  when the form has no file. A malformed form is `500 internal_error`.
 - Other client errors pass through with `bad_request` when they have no code.
 - Anything unexpected is logged and returns `500 { "error": "internal_error", "message": "Something went wrong." }`.
 
@@ -158,6 +164,12 @@ format.
   puts `title like ? or body like ?` inside Drizzle's `and()` without
   parentheses, so a thought whose body matches is returned even when it is
   deleted or fails `pinned`, `tag` or `cursor`. Rust wraps the search (#51).
+
+- Settings > Files checks that a folder is writable by creating and removing an
+  empty file, because `access(W_OK)` has no safe Rust equivalent. The result
+  only differs where `access` is wrong about it (a folder without search
+  permission, or a read-only folder on Windows): Rust answers `400 invalid_dir`
+  where Node passed the check and then failed with `500`.
 
 ## JSON
 

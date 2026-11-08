@@ -7,7 +7,6 @@ async fn create(ctx: &TestApp, payload: Value) -> Value {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn runs_the_crud_flow() {
     let ctx = TestApp::new().await;
     let created = ctx.post("/api/projects", json!({ "title": "Side project" })).await;
@@ -27,7 +26,6 @@ async fn runs_the_crud_flow() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn moves_projects_between_columns() {
     let ctx = TestApp::new().await;
     let a = create(&ctx, json!({ "title": "A" })).await;
@@ -53,7 +51,6 @@ async fn moves_projects_between_columns() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn archives_lists_archived_projects_and_restores_them() {
     let ctx = TestApp::new().await;
     let idea = text(&create(&ctx, json!({ "title": "Idea" })).await, "id");
@@ -74,7 +71,6 @@ async fn archives_lists_archived_projects_and_restores_them() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn validates_the_input() {
     let ctx = TestApp::new().await;
     assert_eq!(ctx.post("/api/projects", json!({})).await.status(), 400);

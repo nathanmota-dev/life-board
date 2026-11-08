@@ -1,6 +1,9 @@
 use serde::Serialize;
 
-use crate::db::columns::{Timestamp, js_date};
+use chrono::Utc;
+use rusqlite::params;
+
+use crate::db::columns::{Timestamp, get_timestamp, js_date, to_millis};
 use crate::db::{Db, DbError};
 
 /// Single row (id = "default") for app-wide preferences the backend needs.
@@ -26,10 +29,31 @@ pub struct NewAppSettings {
 
 impl AppSettings {
     pub fn from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Self> {
-        pending!(52, row)
+        Ok(Self {
+            id: row.get("id")?,
+            uploads_base_dir: row.get("uploads_base_dir")?,
+            created_at: get_timestamp(row, "created_at")?,
+            updated_at: get_timestamp(row, "updated_at")?,
+        })
     }
 }
 
 pub async fn insert(db: &Db, rows: Vec<NewAppSettings>) -> Result<(), DbError> {
-    pending!(52, db, rows)
+    db.call(move |conn| {
+        let tx = conn.transaction()?;
+        let now = Utc::now();
+        for row in rows {
+            tx.execute(
+                "INSERT INTO app_settings (id, uploads_base_dir, created_at, updated_at) VALUES (?, ?, ?, ?)",
+                params![
+                    row.id,
+                    row.uploads_base_dir,
+                    to_millis(row.created_at.unwrap_or(now)),
+                    to_millis(row.updated_at.unwrap_or(now)),
+                ],
+            )?;
+        }
+        tx.commit()
+    })
+    .await
 }
