@@ -7,7 +7,6 @@ use serde_json::json;
 use crate::common::{assert_match, temp_dir, to_json};
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn upgrades_existing_habits_without_losing_daily_progress() {
     let dir = temp_dir("habit-migration-");
     let path = dir.path().join("legacy.db");
