@@ -10,7 +10,6 @@ fn is_day_key(text: &str) -> bool {
 }
 
 #[test]
-#[ignore = "pending #51"]
 fn converts_between_dates_and_local_day_keys() {
     assert_eq!(to_day_key(local(2026, 1, 5, 23, 59)), "2026-01-05");
     assert_eq!(from_day_key("2026-01-05"), Some(local_day(2026, 1, 5)));
@@ -18,14 +17,12 @@ fn converts_between_dates_and_local_day_keys() {
 }
 
 #[test]
-#[ignore = "pending #51"]
 fn adds_days_across_month_boundaries() {
     assert_eq!(to_day_key(add_days(local_day(2026, 1, 31), 1)), "2026-02-01");
     assert_eq!(to_day_key(add_days(local_day(2026, 3, 1), -1)), "2026-02-28");
 }
 
 #[test]
-#[ignore = "pending #51"]
 fn finds_the_sunday_that_starts_the_week() {
     assert_eq!(start_of_week(local(2026, 10, 17, 15, 0)), local_day(2026, 10, 11));
     assert_eq!(start_of_week(local(2026, 10, 11, 1, 0)), local_day(2026, 10, 11));
