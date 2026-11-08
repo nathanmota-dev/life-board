@@ -4,7 +4,6 @@ use serde_json::{Value, json};
 use crate::common::{TestApp, assert_match, len, merge, text};
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn creates_a_habit_and_logs_progress_toward_today_s_goal() {
     let ctx = TestApp::new().await;
     let created = ctx.post("/api/habits", json!({ "name": "Water", "target": 2, "unit": "glasses" })).await;
@@ -27,7 +26,6 @@ async fn creates_a_habit_and_logs_progress_toward_today_s_goal() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn validates_habits_and_log_deltas() {
     let ctx = TestApp::new().await;
     assert_eq!(ctx.post("/api/habits", json!({ "name": " ", "target": 1 })).await.status(), 400);
@@ -37,7 +35,6 @@ async fn validates_habits_and_log_deltas() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn edits_the_count_of_a_past_day() {
     let ctx = TestApp::new().await;
     let id = text(&ctx.post("/api/habits", json!({ "name": "Water", "target": 8 })).await.json(), "id");
@@ -58,7 +55,6 @@ async fn edits_the_count_of_a_past_day() {
 }
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn uses_backward_compatible_defaults_and_accepts_custom_amounts() {
     let ctx = TestApp::new().await;
     let defaults = ctx.post("/api/habits", json!({ "name": "Read", "target": 1 })).await;
@@ -78,7 +74,6 @@ async fn uses_backward_compatible_defaults_and_accepts_custom_amounts() {
 #[case::emoji_blank(json!({ "emoji": " " }))]
 #[case::emoji_too_long(json!({ "emoji": "x".repeat(33) }))]
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn rejects_invalid_customization(#[case] fields: Value) {
     let ctx = TestApp::new().await;
     let payload = merge(json!({ "name": "Water", "target": 3000 }), &fields);
