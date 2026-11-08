@@ -1,4 +1,5 @@
 mod client;
+mod columns;
 mod focus_day_migration;
 mod goals_migration;
 mod habits_migration;

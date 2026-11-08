@@ -29,12 +29,36 @@
       "reason": "A profile created by Rust has the schema and __drizzle_migrations rows Node writes, so Node opens it as up to date (#51)."
     },
     {
+      "test": "db::migrator::applies_only_the_missing_migrations_to_a_partially_migrated_profile",
+      "reason": "A profile left by an older version gets only the migrations it lacks, keeps its rows and the rows already in __drizzle_migrations, and ends with Node's schema (#51)."
+    },
+    {
+      "test": "db::migrator::reopening_a_migrated_profile_records_nothing_new",
+      "reason": "Opening an up-to-date Rust profile again runs no migration and adds no __drizzle_migrations row (#51)."
+    },
+    {
+      "test": "sidecar::*",
+      "reason": "The life-board-api binary follows the sidecar contract of CONTRACT.md (key line on stdin, ready line on stdout, exit when stdin closes, non-zero exit on bad startup); Node had no binary, Electron forked server.ts (#51)."
+    },
+    {
       "test": "golden::opens_secrets_sealed_by_node",
       "reason": "The Rust CryptoService opens the values in fixtures/crypto.json, sealed by the Node CryptoService (#51)."
     },
     {
       "test": "golden::*_like_node",
       "reason": "Golden tests: replay the recorded GET requests on a copy of fixtures/node-1.1.2.db and compare with Node's answers, one test per module, ignored until that module is implemented."
+    },
+    {
+      "test": "db::columns::*",
+      "reason": "Rows are read the way Drizzle maps them (fractional ms, `Number(value) === 1`, JSON.parse) and the seed helpers fill Drizzle's column defaults; Drizzle did this for Node (#51)."
+    },
+    {
+      "test": "http::*",
+      "reason": "Body parsing, query coercion, unknown routes and HEAD were Fastify's job in Node; these check the Rust router keeps the same status codes, `error` codes and JSON-pointer paths (#51)."
+    },
+    {
+      "test": "services::thoughts::searching_the_body_still_applies_the_other_filters",
+      "reason": "Intended fix, Rust only: Node's search leaves `title like ? or body like ?` unwrapped inside Drizzle's and(), so a thought whose body matches skips the deleted/pinned/tag/cursor filters. Rust wraps the search, so deleted thoughts never show up (#51)."
     }
   ],
   "translatedInSpirit": [
