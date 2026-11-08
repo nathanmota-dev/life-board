@@ -53,13 +53,10 @@ o mesmo banco SQLite, descritos em
 [`src-tauri/crates/api/CONTRACT.md`](../src-tauri/crates/api/CONTRACT.md). Até o
 fim da série, o Electron continua usando a API Node de `api/`.
 
-- Módulos, rotas, DTOs e métodos dos services já estão declarados. O que ainda
-  não foi implementado chama `pending!(N)`, com o número da issue responsável.
+- Todos os módulos e rotas da API Node já estão implementados no crate.
 - Os testes de `api/src/**/*.test.ts` foram traduzidos para
   `src-tauri/crates/api/tests/suite`, no caminho espelhado
-  (`services/tasks.service.test.ts` → `tests/suite/services/tasks.rs`). Cada
-  teste portado tem `#[ignore = "pending #N"]` até a issue `#N` implementar o
-  módulo e remover o `ignore`.
+  (`services/tasks.service.test.ts` → `tests/suite/services/tasks.rs`).
 - `npm run test:parity` falha quando um caso TS não tem teste Rust ou quando um
   teste Rust não tem caso TS nem entrada justificada em
   `tests/parity-allowlist.json`.
@@ -67,7 +64,8 @@ fim da série, o Electron continua usando a API Node de `api/`.
   em `tests/fixtures/` (perfil `node-<versão>.db`, respostas dos GETs, segredos
   selados com uma chave de teste e a lista das rotas). Para regenerar, rode
   `node src-tauri/scripts/record-node-fixtures.mjs`; rodar de novo sem mudar a
-  API não gera diff.
+  API não gera diff. O script também confere que o `CryptoService` do Node abre
+  valores selados pelo Rust.
 
 Comandos: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`,
 `cargo test --workspace` (`npm run test:rust`) e `npm run test:parity`.
