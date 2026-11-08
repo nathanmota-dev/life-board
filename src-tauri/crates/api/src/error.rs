@@ -97,7 +97,25 @@ impl IntoResponse for ApiError {
     /// `{ error, message }`, plus `issues` for validation errors; 5xx bodies are
     /// `{ error: "internal_error", message: "Something went wrong." }` and get logged.
     fn into_response(self) -> Response {
-        pending!(51, self)
+        let status = self.status();
+        let body = match &self {
+            Self::Validation { message, issues } => {
+                serde_json::json!({ "error": "validation_error", "message": message, "issues": issues })
+            }
+            Self::Http { code, message, .. } => serde_json::json!({ "error": code, "message": message }),
+            Self::Client { message, .. } if status.is_client_error() => {
+                serde_json::json!({ "error": self.code(), "message": message })
+            }
+            Self::Client { .. } | Self::Internal(_) => {
+                tracing::error!(error = %self, "request failed");
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    axum::Json(serde_json::json!({ "error": "internal_error", "message": "Something went wrong." })),
+                )
+                    .into_response();
+            }
+        };
+        (status, axum::Json(body)).into_response()
     }
 }
 
