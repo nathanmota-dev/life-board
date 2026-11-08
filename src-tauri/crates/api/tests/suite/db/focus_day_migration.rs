@@ -6,7 +6,6 @@ use serde_json::json;
 use crate::common::{assert_match, migrations_before, temp_dir, to_json};
 
 #[tokio::test]
-#[ignore = "pending #51"]
 async fn adds_the_focus_day_to_existing_tasks_without_picking_them() {
     let dir = temp_dir("focus-day-migration-");
     let path = dir.path().join("legacy.db");
