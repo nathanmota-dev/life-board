@@ -28,7 +28,8 @@ pub enum DbError {
 /// `SQLITE_OPEN_URI`, so the path is never parsed as a `file:` URL (profile
 /// paths may contain `?`, `#`, `%` or start with `//`).
 pub fn open_flags() -> rusqlite::OpenFlags {
-    pending!(51)
+    use rusqlite::OpenFlags;
+    OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_NO_MUTEX
 }
 
 /// Shared handle to the profile database. Cloning shares the same connection.
@@ -47,7 +48,17 @@ impl Db {
     /// Like [`Db::open`] with a subset of the migrations, for tests that build a
     /// profile as an older version left it (`createDb(url, previousFolder)`).
     pub async fn open_with(path: &Path, migrations: &'static [Migration]) -> Result<Self, DbError> {
-        pending!(51, path, migrations)
+        let path = path.to_path_buf();
+        let conn = tokio::task::spawn_blocking(move || -> Result<Connection, DbError> {
+            let mut conn = Connection::open_with_flags(&path, open_flags())?;
+            conn.execute_batch("PRAGMA foreign_keys = ON")?;
+            // Zero deleted rows on disk, so a disconnected GitHub token doesn't linger in free pages.
+            conn.execute_batch("PRAGMA secure_delete = ON")?;
+            migrator::migrate(&mut conn, migrations)?;
+            Ok(conn)
+        })
+        .await??;
+        Ok(Self { conn: Arc::new(Mutex::new(conn)) })
     }
 
     /// Runs `f` on the connection in a blocking task.
@@ -56,11 +67,23 @@ impl Db {
         F: FnOnce(&mut Connection) -> Result<T, rusqlite::Error> + Send + 'static,
         T: Send + 'static,
     {
-        pending!(51, f, self.conn)
+        let conn = Arc::clone(&self.conn);
+        tokio::task::spawn_blocking(move || {
+            let mut guard = conn.lock().map_err(|_| DbError::Poisoned)?;
+            f(&mut guard).map_err(DbError::from)
+        })
+        .await?
     }
 
     /// Closes the connection once every clone is dropped (`database.close()`).
     pub async fn close(self) -> Result<(), DbError> {
-        pending!(51, self)
+        match Arc::try_unwrap(self.conn) {
+            Ok(mutex) => {
+                let conn = mutex.into_inner().map_err(|_| DbError::Poisoned)?;
+                tokio::task::spawn_blocking(move || conn.close().map_err(|(_, error)| DbError::from(error))).await?
+            }
+            // Other clones still use it; the last one to drop closes it.
+            Err(_) => Ok(()),
+        }
     }
 }
