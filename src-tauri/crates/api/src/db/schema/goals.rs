@@ -158,13 +158,30 @@ impl Goal {
 
 impl GoalMilestone {
     pub fn from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Self> {
-        pending!(52, row)
+        Ok(Self {
+            id: row.get("id")?,
+            goal_id: row.get("goal_id")?,
+            title: row.get("title")?,
+            due_at: get_timestamp_opt(row, "due_at")?,
+            completed_at: get_timestamp_opt(row, "completed_at")?,
+            order: row.get("order")?,
+            created_at: get_timestamp(row, "created_at")?,
+            updated_at: get_timestamp(row, "updated_at")?,
+            deleted_at: get_timestamp_opt(row, "deleted_at")?,
+        })
     }
 }
 
 impl GoalProgressSnapshot {
     pub fn from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Self> {
-        pending!(52, row)
+        Ok(Self {
+            id: row.get("id")?,
+            goal_id: row.get("goal_id")?,
+            day: row.get("day")?,
+            progress: row.get("progress")?,
+            created_at: get_timestamp(row, "created_at")?,
+            updated_at: get_timestamp(row, "updated_at")?,
+        })
     }
 }
 
@@ -208,10 +225,55 @@ pub async fn insert_goals(db: &Db, rows: Vec<NewGoal>) -> Result<(), DbError> {
     .await
 }
 
+/// Inserts one milestone with the column defaults filled in and returns it.
+pub fn insert_milestone(conn: &rusqlite::Connection, row: NewGoalMilestone) -> rusqlite::Result<GoalMilestone> {
+    let now = Utc::now();
+    conn.query_row(
+        r#"INSERT INTO goal_milestones (id, goal_id, title, due_at, completed_at, "order", created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *"#,
+        params![
+            row.id,
+            row.goal_id,
+            row.title,
+            row.due_at.map(to_millis),
+            row.completed_at.map(to_millis),
+            row.order.unwrap_or(0),
+            to_millis(row.created_at.unwrap_or(now)),
+            to_millis(row.updated_at.unwrap_or(now)),
+            row.deleted_at.map(to_millis),
+        ],
+        GoalMilestone::from_row,
+    )
+}
+
 pub async fn insert_milestones(db: &Db, rows: Vec<NewGoalMilestone>) -> Result<(), DbError> {
-    pending!(52, db, rows)
+    db.call(move |conn| {
+        let tx = conn.transaction()?;
+        for row in rows {
+            insert_milestone(&tx, row)?;
+        }
+        tx.commit()
+    })
+    .await
 }
 
 pub async fn insert_snapshots(db: &Db, rows: Vec<NewGoalProgressSnapshot>) -> Result<(), DbError> {
-    pending!(52, db, rows)
+    db.call(move |conn| {
+        let tx = conn.transaction()?;
+        let now = Utc::now();
+        for row in rows {
+            tx.execute(
+                "INSERT INTO goal_progress_snapshots (id, goal_id, day, progress, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                params![
+                    row.id,
+                    row.goal_id,
+                    row.day,
+                    row.progress,
+                    to_millis(row.created_at.unwrap_or(now)),
+                    to_millis(row.updated_at.unwrap_or(now)),
+                ],
+            )?;
+        }
+        tx.commit()
+    })
+    .await
 }

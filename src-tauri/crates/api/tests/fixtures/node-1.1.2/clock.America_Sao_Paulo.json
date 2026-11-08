@@ -1,0 +1,509 @@
+[
+  {
+    "at": "2026-10-17T15:00:00.000Z",
+    "stats": {
+      "weekStart": "2026-10-11T03:00:00.000Z",
+      "thoughtsCreated": 0,
+      "tasksCompleted": 0,
+      "eventsCount": 1,
+      "milestonesHit": 0,
+      "habitGoalsMet": 2
+    },
+    "goals": [
+      {
+        "id": "g-run",
+        "title": "Run 10k",
+        "why": null,
+        "domain": "personal",
+        "status": "paused",
+        "startAt": null,
+        "targetAt": null,
+        "completedAt": null,
+        "color": "#ef4444",
+        "progress": 0,
+        "progressMode": "auto",
+        "linkedTaskIds": [
+          "t-trip"
+        ],
+        "linkedThoughtIds": [],
+        "linkedHabitIds": [],
+        "createdAt": "2026-10-02T12:00:00.000Z",
+        "updatedAt": "2026-10-02T12:00:00.000Z",
+        "deletedAt": null,
+        "breakdown": {
+          "milestones": null,
+          "tasks": {
+            "done": 0,
+            "total": 1
+          },
+          "habits": null
+        },
+        "expectedProgress": null,
+        "risk": null,
+        "milestoneMarkers": []
+      },
+      {
+        "id": "g-books",
+        "title": "Read 12 books",
+        "why": "Learn more",
+        "domain": "learning",
+        "status": "active",
+        "startAt": "2026-09-01T00:00:00.000Z",
+        "targetAt": "2026-12-31T00:00:00.000Z",
+        "completedAt": null,
+        "color": "#a855f7",
+        "progress": 40,
+        "progressMode": "manual",
+        "linkedTaskIds": [
+          "t-bills"
+        ],
+        "linkedThoughtIds": [
+          "th_plan"
+        ],
+        "linkedHabitIds": [
+          "h-read"
+        ],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null,
+        "breakdown": {
+          "milestones": {
+            "done": 1,
+            "total": 2
+          },
+          "tasks": {
+            "done": 0,
+            "total": 1
+          },
+          "habits": {
+            "done": 1,
+            "total": 15
+          }
+        },
+        "expectedProgress": 39,
+        "risk": null,
+        "milestoneMarkers": [
+          {
+            "id": "m-half",
+            "title": "Six books",
+            "dueAt": "2026-11-01T00:00:00.000Z",
+            "completedAt": null
+          }
+        ]
+      }
+    ],
+    "goal": {
+      "goal": {
+        "id": "g-books",
+        "title": "Read 12 books",
+        "why": "Learn more",
+        "domain": "learning",
+        "status": "active",
+        "startAt": "2026-09-01T00:00:00.000Z",
+        "targetAt": "2026-12-31T00:00:00.000Z",
+        "completedAt": null,
+        "color": "#a855f7",
+        "progress": 40,
+        "progressMode": "manual",
+        "linkedTaskIds": [
+          "t-bills"
+        ],
+        "linkedThoughtIds": [
+          "th_plan"
+        ],
+        "linkedHabitIds": [
+          "h-read"
+        ],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null,
+        "breakdown": {
+          "milestones": {
+            "done": 1,
+            "total": 2
+          },
+          "tasks": {
+            "done": 0,
+            "total": 1
+          },
+          "habits": {
+            "done": 1,
+            "total": 15
+          }
+        },
+        "expectedProgress": 39,
+        "risk": null,
+        "milestoneMarkers": [
+          {
+            "id": "m-half",
+            "title": "Six books",
+            "dueAt": "2026-11-01T00:00:00.000Z",
+            "completedAt": null
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "m-first",
+          "goalId": "g-books",
+          "title": "First book",
+          "dueAt": null,
+          "completedAt": "2026-09-15T00:00:00.000Z",
+          "order": 0,
+          "createdAt": "2026-10-01T12:00:00.000Z",
+          "updatedAt": "2026-10-01T12:00:00.000Z",
+          "deletedAt": null
+        },
+        {
+          "id": "m-half",
+          "goalId": "g-books",
+          "title": "Six books",
+          "dueAt": "2026-11-01T00:00:00.000Z",
+          "completedAt": null,
+          "order": 1,
+          "createdAt": "2026-10-01T12:00:00.000Z",
+          "updatedAt": "2026-10-01T12:00:00.000Z",
+          "deletedAt": null
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-11-30T12:00:00.000Z",
+    "stats": {
+      "weekStart": "2026-11-29T03:00:00.000Z",
+      "thoughtsCreated": 0,
+      "tasksCompleted": 0,
+      "eventsCount": 0,
+      "milestonesHit": 0,
+      "habitGoalsMet": 0
+    },
+    "goals": [
+      {
+        "id": "g-run",
+        "title": "Run 10k",
+        "why": null,
+        "domain": "personal",
+        "status": "paused",
+        "startAt": null,
+        "targetAt": null,
+        "completedAt": null,
+        "color": "#ef4444",
+        "progress": 0,
+        "progressMode": "auto",
+        "linkedTaskIds": [
+          "t-trip"
+        ],
+        "linkedThoughtIds": [],
+        "linkedHabitIds": [],
+        "createdAt": "2026-10-02T12:00:00.000Z",
+        "updatedAt": "2026-10-02T12:00:00.000Z",
+        "deletedAt": null,
+        "breakdown": {
+          "milestones": null,
+          "tasks": {
+            "done": 0,
+            "total": 1
+          },
+          "habits": null
+        },
+        "expectedProgress": null,
+        "risk": null,
+        "milestoneMarkers": []
+      },
+      {
+        "id": "g-books",
+        "title": "Read 12 books",
+        "why": "Learn more",
+        "domain": "learning",
+        "status": "active",
+        "startAt": "2026-09-01T00:00:00.000Z",
+        "targetAt": "2026-12-31T00:00:00.000Z",
+        "completedAt": null,
+        "color": "#a855f7",
+        "progress": 40,
+        "progressMode": "manual",
+        "linkedTaskIds": [
+          "t-bills"
+        ],
+        "linkedThoughtIds": [
+          "th_plan"
+        ],
+        "linkedHabitIds": [
+          "h-read"
+        ],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null,
+        "breakdown": {
+          "milestones": {
+            "done": 1,
+            "total": 2
+          },
+          "tasks": {
+            "done": 0,
+            "total": 1
+          },
+          "habits": {
+            "done": 1,
+            "total": 59
+          }
+        },
+        "expectedProgress": 75,
+        "risk": "at_risk",
+        "milestoneMarkers": [
+          {
+            "id": "m-half",
+            "title": "Six books",
+            "dueAt": "2026-11-01T00:00:00.000Z",
+            "completedAt": null
+          }
+        ]
+      }
+    ],
+    "goal": {
+      "goal": {
+        "id": "g-books",
+        "title": "Read 12 books",
+        "why": "Learn more",
+        "domain": "learning",
+        "status": "active",
+        "startAt": "2026-09-01T00:00:00.000Z",
+        "targetAt": "2026-12-31T00:00:00.000Z",
+        "completedAt": null,
+        "color": "#a855f7",
+        "progress": 40,
+        "progressMode": "manual",
+        "linkedTaskIds": [
+          "t-bills"
+        ],
+        "linkedThoughtIds": [
+          "th_plan"
+        ],
+        "linkedHabitIds": [
+          "h-read"
+        ],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null,
+        "breakdown": {
+          "milestones": {
+            "done": 1,
+            "total": 2
+          },
+          "tasks": {
+            "done": 0,
+            "total": 1
+          },
+          "habits": {
+            "done": 1,
+            "total": 59
+          }
+        },
+        "expectedProgress": 75,
+        "risk": "at_risk",
+        "milestoneMarkers": [
+          {
+            "id": "m-half",
+            "title": "Six books",
+            "dueAt": "2026-11-01T00:00:00.000Z",
+            "completedAt": null
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "m-first",
+          "goalId": "g-books",
+          "title": "First book",
+          "dueAt": null,
+          "completedAt": "2026-09-15T00:00:00.000Z",
+          "order": 0,
+          "createdAt": "2026-10-01T12:00:00.000Z",
+          "updatedAt": "2026-10-01T12:00:00.000Z",
+          "deletedAt": null
+        },
+        {
+          "id": "m-half",
+          "goalId": "g-books",
+          "title": "Six books",
+          "dueAt": "2026-11-01T00:00:00.000Z",
+          "completedAt": null,
+          "order": 1,
+          "createdAt": "2026-10-01T12:00:00.000Z",
+          "updatedAt": "2026-10-01T12:00:00.000Z",
+          "deletedAt": null
+        }
+      ]
+    }
+  },
+  {
+    "at": "2027-01-15T12:00:00.000Z",
+    "stats": {
+      "weekStart": "2027-01-10T03:00:00.000Z",
+      "thoughtsCreated": 0,
+      "tasksCompleted": 0,
+      "eventsCount": 0,
+      "milestonesHit": 0,
+      "habitGoalsMet": 0
+    },
+    "goals": [
+      {
+        "id": "g-run",
+        "title": "Run 10k",
+        "why": null,
+        "domain": "personal",
+        "status": "paused",
+        "startAt": null,
+        "targetAt": null,
+        "completedAt": null,
+        "color": "#ef4444",
+        "progress": 0,
+        "progressMode": "auto",
+        "linkedTaskIds": [
+          "t-trip"
+        ],
+        "linkedThoughtIds": [],
+        "linkedHabitIds": [],
+        "createdAt": "2026-10-02T12:00:00.000Z",
+        "updatedAt": "2026-10-02T12:00:00.000Z",
+        "deletedAt": null,
+        "breakdown": {
+          "milestones": null,
+          "tasks": {
+            "done": 0,
+            "total": 1
+          },
+          "habits": null
+        },
+        "expectedProgress": null,
+        "risk": null,
+        "milestoneMarkers": []
+      },
+      {
+        "id": "g-books",
+        "title": "Read 12 books",
+        "why": "Learn more",
+        "domain": "learning",
+        "status": "active",
+        "startAt": "2026-09-01T00:00:00.000Z",
+        "targetAt": "2026-12-31T00:00:00.000Z",
+        "completedAt": null,
+        "color": "#a855f7",
+        "progress": 40,
+        "progressMode": "manual",
+        "linkedTaskIds": [
+          "t-bills"
+        ],
+        "linkedThoughtIds": [
+          "th_plan"
+        ],
+        "linkedHabitIds": [
+          "h-read"
+        ],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null,
+        "breakdown": {
+          "milestones": {
+            "done": 1,
+            "total": 2
+          },
+          "tasks": {
+            "done": 0,
+            "total": 1
+          },
+          "habits": {
+            "done": 1,
+            "total": 105
+          }
+        },
+        "expectedProgress": 100,
+        "risk": "overdue",
+        "milestoneMarkers": [
+          {
+            "id": "m-half",
+            "title": "Six books",
+            "dueAt": "2026-11-01T00:00:00.000Z",
+            "completedAt": null
+          }
+        ]
+      }
+    ],
+    "goal": {
+      "goal": {
+        "id": "g-books",
+        "title": "Read 12 books",
+        "why": "Learn more",
+        "domain": "learning",
+        "status": "active",
+        "startAt": "2026-09-01T00:00:00.000Z",
+        "targetAt": "2026-12-31T00:00:00.000Z",
+        "completedAt": null,
+        "color": "#a855f7",
+        "progress": 40,
+        "progressMode": "manual",
+        "linkedTaskIds": [
+          "t-bills"
+        ],
+        "linkedThoughtIds": [
+          "th_plan"
+        ],
+        "linkedHabitIds": [
+          "h-read"
+        ],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null,
+        "breakdown": {
+          "milestones": {
+            "done": 1,
+            "total": 2
+          },
+          "tasks": {
+            "done": 0,
+            "total": 1
+          },
+          "habits": {
+            "done": 1,
+            "total": 105
+          }
+        },
+        "expectedProgress": 100,
+        "risk": "overdue",
+        "milestoneMarkers": [
+          {
+            "id": "m-half",
+            "title": "Six books",
+            "dueAt": "2026-11-01T00:00:00.000Z",
+            "completedAt": null
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "id": "m-first",
+          "goalId": "g-books",
+          "title": "First book",
+          "dueAt": null,
+          "completedAt": "2026-09-15T00:00:00.000Z",
+          "order": 0,
+          "createdAt": "2026-10-01T12:00:00.000Z",
+          "updatedAt": "2026-10-01T12:00:00.000Z",
+          "deletedAt": null
+        },
+        {
+          "id": "m-half",
+          "goalId": "g-books",
+          "title": "Six books",
+          "dueAt": "2026-11-01T00:00:00.000Z",
+          "completedAt": null,
+          "order": 1,
+          "createdAt": "2026-10-01T12:00:00.000Z",
+          "updatedAt": "2026-10-01T12:00:00.000Z",
+          "deletedAt": null
+        }
+      ]
+    }
+  }
+]

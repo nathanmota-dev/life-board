@@ -119,7 +119,6 @@ async fn snapshots_of(db: &Db, goal_id: &str) -> Vec<GoalProgressSnapshot> {
 }
 
 #[test]
-#[ignore = "pending #52"]
 fn averages_the_parts_the_goal_has() {
     assert_eq!(auto_progress(&breakdown(part(1, 4), None, None)), 25);
     assert_eq!(auto_progress(&breakdown(part(1, 2), part(1, 1), None)), 75);
@@ -127,13 +126,11 @@ fn averages_the_parts_the_goal_has() {
 }
 
 #[test]
-#[ignore = "pending #52"]
 fn sits_at_0_without_parts() {
     assert_eq!(auto_progress(&breakdown(None, None, None)), 0);
 }
 
 #[test]
-#[ignore = "pending #52"]
 fn counts_met_days_since_the_goal_s_start_with_today_only_once_it_s_met() {
     let today = local(2026, 10, 10, 15, 0);
     let water = habit_row("water", 2, local_day(2026, 9, 1));
@@ -151,7 +148,6 @@ fn counts_met_days_since_the_goal_s_start_with_today_only_once_it_s_met() {
 }
 
 #[test]
-#[ignore = "pending #52"]
 fn uses_the_creation_date_without_a_start_date_and_skips_days_before_the_habit_existed() {
     let today = local(2026, 10, 10, 15, 0);
     let unstarted = || goal_with(|g| (g.start_at, g.created_at) = (None, local_day(2026, 10, 5)));
@@ -162,7 +158,6 @@ fn uses_the_creation_date_without_a_start_date_and_skips_days_before_the_habit_e
 }
 
 #[test]
-#[ignore = "pending #52"]
 fn is_empty_for_a_goal_that_hasn_t_started() {
     let today = local(2026, 10, 10, 15, 0);
     let habit = habit_row("h", 1, local_day(2026, 1, 1));
@@ -175,7 +170,6 @@ fn risk(expected_progress: Option<i64>, risk: Option<GoalRisk>) -> RiskInfo {
 }
 
 #[test]
-#[ignore = "pending #52"]
 fn compares_progress_with_the_elapsed_share_of_the_timeline() {
     let at = local_day(2026, 10, 16);
     assert_eq!(goal_risk(&goal(), 50, at), risk(Some(50), None));
@@ -184,7 +178,6 @@ fn compares_progress_with_the_elapsed_share_of_the_timeline() {
 }
 
 #[test]
-#[ignore = "pending #52"]
 fn flags_active_goals_past_their_target_below_100() {
     let late = local_day(2026, 11, 2);
     assert_eq!(goal_risk(&goal(), 90, late), risk(Some(100), Some(GoalRisk::Overdue)));
@@ -193,7 +186,6 @@ fn flags_active_goals_past_their_target_below_100() {
 }
 
 #[test]
-#[ignore = "pending #52"]
 fn starts_from_the_creation_date_and_handles_missing_or_inverted_dates() {
     let at = local_day(2026, 10, 16);
     assert_eq!(goal_risk(&goal_with(|g| g.target_at = None), 0, at), risk(None, None));
@@ -207,7 +199,6 @@ fn starts_from_the_creation_date_and_handles_missing_or_inverted_dates() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn creates_a_goal_with_ordered_milestones() {
     let (_ctx, service) = setup().await;
     let created = service
@@ -237,7 +228,6 @@ async fn creates_a_goal_with_ordered_milestones() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn stamps_completedat_only_while_completed() {
     let (_ctx, service) = setup().await;
     let created = service
@@ -276,7 +266,6 @@ async fn stamps_completedat_only_while_completed() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn derives_auto_progress_from_milestones_alone() {
     let (_ctx, service) = setup().await;
     let created = service
@@ -302,7 +291,6 @@ async fn derives_auto_progress_from_milestones_alone() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn derives_auto_progress_from_linked_tasks_alone_ignoring_deleted_ones() {
     let (ctx, service) = setup().await;
     add_task(&ctx.db, "t1", TaskStatus::Done).await;
@@ -323,7 +311,6 @@ async fn derives_auto_progress_from_linked_tasks_alone_ignoring_deleted_ones() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn derives_auto_progress_from_habits_since_the_start_date() {
     let (ctx, service) = setup().await;
     let at = local(2026, 10, 5, 12, 0);
@@ -347,7 +334,6 @@ async fn derives_auto_progress_from_habits_since_the_start_date() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn combines_milestones_tasks_and_habits_and_shows_0_without_parts() {
     let (ctx, service) = setup().await;
     let at = local(2026, 10, 3, 12, 0);
@@ -377,7 +363,6 @@ async fn combines_milestones_tasks_and_habits_and_shows_0_without_parts() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn keeps_manual_progress_and_switches_between_modes_both_ways() {
     let (_ctx, service) = setup().await;
     let created =
@@ -391,7 +376,6 @@ async fn keeps_manual_progress_and_switches_between_modes_both_ways() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn records_today_s_snapshot_only_when_progress_changes() {
     let (ctx, service) = setup().await;
     let created = service
@@ -426,7 +410,6 @@ async fn records_today_s_snapshot_only_when_progress_changes() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn updates_snapshots_on_milestone_writes() {
     let (ctx, service) = setup().await;
     let created =
@@ -447,7 +430,6 @@ async fn updates_snapshots_on_milestone_writes() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn returns_the_progress_history_within_a_range_with_the_value_carried_into_it() {
     let (ctx, service) = setup().await;
     let created = service.create(titled("Goal")).await.unwrap();
@@ -487,7 +469,6 @@ async fn returns_the_progress_history_within_a_range_with_the_value_carried_into
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn removes_snapshots_with_the_goal() {
     let (ctx, service) = setup().await;
     let created = service.create(titled("Goal")).await.unwrap();
@@ -517,7 +498,6 @@ async fn removes_snapshots_with_the_goal() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn appends_updates_and_removes_milestones_within_their_goal_only() {
     let (_ctx, service) = setup().await;
     let created =
@@ -555,7 +535,6 @@ async fn appends_updates_and_removes_milestones_within_their_goal_only() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn throws_notfounderror_for_missing_or_deleted_goals() {
     let (_ctx, service) = setup().await;
     let created = service.create(titled("Goal")).await.unwrap();

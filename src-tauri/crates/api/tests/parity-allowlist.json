@@ -59,6 +59,22 @@
     {
       "test": "services::thoughts::searching_the_body_still_applies_the_other_filters",
       "reason": "Intended fix, Rust only: Node's search leaves `title like ? or body like ?` unwrapped inside Drizzle's and(), so a thought whose body matches skips the deleted/pinned/tag/cursor filters. Rust wraps the search, so deleted thoughts never show up (#51)."
+    },
+    {
+      "test": "services::file_storage::names_stored_files_like_the_node_path_and_regex_rules",
+      "reason": "The expected names come from running path.extname, path.basename and the Node regexes: dot files, UTF-16 replacement and the 100 and 8 character cuts (#52)."
+    },
+    {
+      "test": "services::file_storage::keeps_every_path_inside_the_root_on_each_os",
+      "reason": "Issue #52 asks for explicit traversal tests: ../, absolute paths and, on Windows, drive letters and backslashes."
+    },
+    {
+      "test": "services::file_storage::checks_that_a_folder_accepts_new_files_and_leaves_nothing_behind",
+      "reason": "Node's access(W_OK) has no safe Rust equivalent, so RealDisk creates and removes a probe file; Node's tests mock this call away (#52)."
+    },
+    {
+      "test": "db::seeds::*",
+      "reason": "Row mappers, insert helpers and text enums of the file, project and settings tables. Drizzle generated these for Node, so there is no TS test to port (#52)."
     }
   ],
   "translatedInSpirit": [
