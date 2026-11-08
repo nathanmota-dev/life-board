@@ -8,6 +8,8 @@
 //   node-<version>.db          a profile migrated by Node, with fixed rows in every table
 //   node-<version>/*.json      Node's answers to date-independent GET routes on that profile
 //   node-<version>/manifest.json  the requests, in the order they were made
+//   node-<version>/settings.files.json  GET /settings/files, with the data folder as <data>
+//   node-<version>/clock.<zone>.json    goals and stats at fixed instants, per time zone
 //   crypto.json                values sealed by the Node CryptoService with a fixed key
 //   node-routes.json           every route Fastify registers (method + path)
 //
@@ -78,6 +80,14 @@ const GETS = [
   ["github", "github.issues-kind", "/api/github/issues?kind=in_my_repos&limit=1"],
 ]
 
+/** Goals and stats depend on the clock and the time zone, so they are recorded from services that take `now`. */
+const INSTANTS = [
+  "2026-10-17T15:00:00.000Z", // on track, with habit logs inside the window
+  "2026-11-30T12:00:00.000Z", // g-books is at risk
+  "2027-01-15T12:00:00.000Z", // g-books is overdue
+]
+const ZONES = ["UTC", "America/Sao_Paulo"]
+
 // Fastify registers every route through find-my-way; record them as they are added.
 const routes = []
 const Router = createRequire(join(root, "api/package.json"))("find-my-way")
@@ -126,6 +136,8 @@ try {
       json(routes.filter((route) => route.path.startsWith("/api/") && route.method !== "HEAD" && route.method !== "OPTIONS")),
     )
     await recordGets(server.url)
+    await recordSettings(server.url, dataDir)
+    recordClock(await clockCases(server.app.services))
   } finally {
     await server.app.close()
   }
@@ -289,6 +301,44 @@ async function seed(db, s, token) {
     },
   ])
   await db.insert(s.appSettings).values({ id: "default", uploadsBaseDir: null, ...stamps() })
+}
+
+async function clockCases(services) {
+  const original = process.env.TZ
+  const byZone = {}
+  try {
+    for (const zone of ZONES) {
+      process.env.TZ = zone
+      byZone[zone] = []
+      for (const at of INSTANTS) {
+        const now = new Date(at)
+        byZone[zone].push(JSON.parse(JSON.stringify({
+          at,
+          stats: await services.stats.thisWeek(now),
+          goals: await services.goals.list(now),
+          goal: await services.goals.get("g-books", now),
+        })))
+      }
+    }
+  } finally {
+    if (original === undefined) delete process.env.TZ
+    else process.env.TZ = original
+  }
+  return byZone
+}
+
+function recordClock(byZone) {
+  for (const [zone, cases] of Object.entries(byZone)) {
+    writeFileSync(join(fixtures, profileName, `clock.${zone.replace("/", "_")}.json`), json(cases))
+  }
+}
+
+/** The folders in this answer are absolute; the fixture says `<data>` for the data folder. */
+async function recordSettings(baseUrl, dataDir) {
+  const path = "/api/settings/files"
+  const response = await fetch(`${baseUrl}${path}`)
+  const body = JSON.parse((await response.text()).replaceAll(dataDir, "<data>"))
+  writeFileSync(join(fixtures, profileName, "settings.files.json"), json({ path, status: response.status, body }))
 }
 
 async function recordGets(baseUrl) {

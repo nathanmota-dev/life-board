@@ -8,7 +8,6 @@ use life_board_api::services::projects::ProjectsService;
 use crate::common::{ms, temp_dir};
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn upgrades_existing_projects_to_per_column_order_with_a_status_history() {
     let dir = temp_dir("projects-migration-");
     let path = dir.path().join("legacy.db");

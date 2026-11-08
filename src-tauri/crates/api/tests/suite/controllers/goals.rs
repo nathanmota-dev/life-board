@@ -3,7 +3,6 @@ use serde_json::json;
 use crate::common::{ANY_STRING, TestApp, assert_match, len, text};
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn manages_goals_and_their_milestones() {
     let ctx = TestApp::new().await;
     let created = ctx
@@ -40,7 +39,6 @@ async fn manages_goals_and_their_milestones() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn returns_the_progress_history_of_a_goal() {
     let ctx = TestApp::new().await;
     let created = ctx.post("/api/goals", json!({ "title": "Save money", "progressMode": "manual" })).await.json();
@@ -59,7 +57,6 @@ async fn returns_the_progress_history_of_a_goal() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn validates_input() {
     let ctx = TestApp::new().await;
     assert_eq!(ctx.post("/api/goals", json!({ "title": "x", "color": "red" })).await.status(), 400);

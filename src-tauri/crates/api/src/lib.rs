@@ -40,6 +40,8 @@ pub fn build_app(state: AppState) -> Router {
         .nest(controllers::PREFIX, api)
         .fallback(not_found)
         .method_not_allowed_fallback(not_found)
+        // JSON bodies have their own limit in `extract`; uploads are limited per file.
+        .layer(axum::extract::DefaultBodyLimit::disable())
         .layer(plugins::cors::layer())
         .layer(axum::middleware::from_fn(plugins::cors::preflight_no_content))
         .with_state(state)

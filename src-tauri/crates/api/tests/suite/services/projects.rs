@@ -48,7 +48,6 @@ async fn archived_ids(service: &ProjectsService) -> Vec<String> {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn adds_new_projects_to_the_top_of_their_column() {
     let (_ctx, service) = setup().await;
     let first = service.create(titled("Budget app")).await.unwrap();
@@ -82,7 +81,6 @@ async fn adds_new_projects_to_the_top_of_their_column() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn keeps_the_pause_reason_of_projects_created_as_paused() {
     let (_ctx, service) = setup().await;
     let paused = || Some(ProjectStatus::Paused);
@@ -99,7 +97,6 @@ async fn keeps_the_pause_reason_of_projects_created_as_paused() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn lists_by_order_then_creation_time() {
     let (ctx, service) = setup().await;
     let project = |id: &str, order, created| NewProject {
@@ -118,7 +115,6 @@ async fn lists_by_order_then_creation_time() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn reorders_inside_a_column_without_gaps() {
     let (_ctx, service) = setup().await;
     let c = service.create(titled("C")).await.unwrap();
@@ -132,7 +128,6 @@ async fn reorders_inside_a_column_without_gaps() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn moves_across_columns_rewriting_both_of_them_and_recording_the_change() {
     let (_ctx, service) = setup().await;
     let b = service.create(titled("B")).await.unwrap();
@@ -176,7 +171,6 @@ async fn moves_across_columns_rewriting_both_of_them_and_recording_the_change() 
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn moves_a_project_when_its_status_is_edited() {
     let (_ctx, service) = setup().await;
     let a = service.create(titled("A")).await.unwrap();
@@ -207,7 +201,6 @@ async fn moves_a_project_when_its_status_is_edited() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn archives_done_projects_and_restores_them_to_the_top_of_done() {
     let (_ctx, service) = setup().await;
     let idea = service.create(titled("Idea")).await.unwrap();
@@ -243,7 +236,6 @@ async fn archives_done_projects_and_restores_them_to_the_top_of_done() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn archives_projects_that_have_been_done_for_over_14_days_when_the_board_is_listed() {
     let (ctx, service) = setup().await;
     let at = to_millis(now());
@@ -273,7 +265,6 @@ async fn archives_projects_that_have_been_done_for_over_14_days_when_the_board_i
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn undoes_a_delete_in_place() {
     let (_ctx, service) = setup().await;
     service.create(titled("B")).await.unwrap();
@@ -288,7 +279,6 @@ async fn undoes_a_delete_in_place() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn gets_updates_and_soft_deletes() {
     let (_ctx, service) = setup().await;
     let project = service.create(titled("Draft")).await.unwrap();
@@ -311,7 +301,6 @@ async fn gets_updates_and_soft_deletes() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn drops_archived_projects_from_deletes_too() {
     let (ctx, service) = setup().await;
     let done = service.create(CreateProjectBody { status: Some(ProjectStatus::Done), ..titled("Done") }).await.unwrap();

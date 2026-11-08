@@ -7,7 +7,6 @@ fn display(path: &std::path::Path) -> String {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn reads_and_changes_the_uploads_folder() {
     let ctx = TestApp::new().await;
     let default_uploads_dir = display(&ctx.data_dir.join("uploads"));
@@ -30,7 +29,6 @@ async fn reads_and_changes_the_uploads_folder() {
 }
 
 #[tokio::test]
-#[ignore = "pending #52"]
 async fn rejects_invalid_folders() {
     let ctx = TestApp::new().await;
     let empty = ctx.put("/api/settings/files", json!({ "baseDir": " " })).await;
