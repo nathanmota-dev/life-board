@@ -3,17 +3,17 @@
 [← Guia da documentação](guide.md)
 
 O Life Board é um app desktop com Electron, Vite, React, TypeScript,
-Tailwind CSS 4 e shadcn/ui. O backend usa Node, Fastify, Drizzle e SQLite.
+Tailwind CSS 4 e shadcn/ui. O backend usa Rust, axum e SQLite.
 Os caminhos abaixo são relativos à raiz do repositório.
 
 ## Estrutura
 
 - `desktop/src/main.ts`: janela e ciclo de vida do Electron.
 - `desktop/src/preload.ts`: APIs disponibilizadas para o React via `contextBridge`.
-- `desktop/src/backend-process.ts`: processo Node iniciado com `utilityProcess`.
-  Sobe a API de `api/` numa porta livre em `127.0.0.1`, avisa o processo
-  principal quando está pronta e encerra junto com o app.
-- `api/`: backend em Fastify + Drizzle + SQLite (veja [Backend](backend.md)).
+- `desktop/src/backend.ts`: inicia o binário `life-board-api`, que sobe a API
+  numa porta livre em `127.0.0.1`, avisa o processo principal com uma linha no
+  stdout e encerra quando o app fecha o stdin.
+- `src-tauri/crates/api/`: backend em Rust + SQLite (veja [Backend](backend.md)).
 - `web/src/main.tsx`: entrada React e layout compartilhado com sidebar e cabeçalho.
 - `web/src/router.ts`: TanStack Router, layout `sidebar` e rota `/dashboard`.
 - `web/src/routes/dashboard.tsx`: conteúdo da página Dashboard.

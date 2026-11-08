@@ -3,7 +3,7 @@
 [← Guia da documentação](guide.md)
 
 A suíte Playwright em `e2e/` abre o Life Board compilado com Electron real.
-React, preload, IPC, Fastify, `utilityProcess`, SQLite, migrations, uploads e
+React, preload, IPC, o binário Rust da API, SQLite, migrations, uploads e
 criptografia pelo chaveiro do sistema participam dos testes.
 
 ## Executar em segundo plano
@@ -65,8 +65,10 @@ avança de forma controlada nos processos e janelas para testar o pomodoro.
 Os adaptadores em `e2e/support/` são carregados antes do entrypoint compilado e
 não entram no pacote de produção:
 
-- O backend real recebe respostas REST/GraphQL sintéticas na fronteira HTTP do
-  GitHub. Token de teste, conta, PRs, issues, contribuições e repositórios são
+- O backend real é compilado com a feature `e2e` em `target/e2e`, que nunca entra
+  no pacote: ela faz a API seguir o relógio dos testes e falar com um servidor
+  local (`e2e/support/github-server.cjs`) no lugar de `api.github.com`.
+- Esse servidor responde REST/GraphQL sintético na fronteira HTTP do GitHub. Token de teste, conta, PRs, issues, contribuições e repositórios são
   fictícios. Cenários incluem conta vazia, credenciais inválidas e falhas externas.
 - Geolocalização e Open-Meteo são interceptados no renderer. Requisições externas
   inesperadas fazem o teste falhar.

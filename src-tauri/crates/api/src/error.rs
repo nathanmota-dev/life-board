@@ -7,7 +7,8 @@ use serde::Serialize;
 
 pub type ApiResult<T> = Result<T, ApiError>;
 
-/// One failed rule of a request DTO. `path` is a JSON pointer (`/title`, `/items/1`).
+/// One failed rule of a request DTO. `path` is a JSON pointer (`/title`, `/items/1`),
+/// and `/` for the body itself.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Issue {
     pub path: String,
@@ -16,7 +17,8 @@ pub struct Issue {
 
 impl Issue {
     pub fn new(path: impl Into<String>, message: impl Into<String>) -> Self {
-        Self { path: path.into(), message: message.into() }
+        let path = path.into();
+        Self { path: if path.is_empty() { "/".to_owned() } else { path }, message: message.into() }
     }
 }
 

@@ -680,7 +680,7 @@ pub fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures").join(name)
 }
 
-/// The profile recorded from the Node API (`record-node-fixtures.mjs`).
+/// The profile recorded from the Node API of 1.1.2.
 pub const NODE_PROFILE: &str = "node-1.1.2";
 
 impl TestApp {

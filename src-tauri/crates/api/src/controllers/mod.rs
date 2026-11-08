@@ -1,4 +1,4 @@
-//! Routes (`controllers/*.controller.ts`). Each controller registers its routes
+//! Routes. Each controller registers its routes
 //! on a [`RouteTable`], which builds the axum router and records every
 //! `(method, path)` so tests can compare them with the Node routes.
 //!

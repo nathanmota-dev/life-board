@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Opens the installed DEB headless as the current (non-root) user and checks
-# that the packaged backend answers, migrations run and the keyring is used.
+# that the packaged Rust API answers, migrations run and the keyring is used.
 # Requires: life-board, xvfb, xauth, gnome-keyring, dbus-x11 and curl.
 set -euo pipefail
 
@@ -35,6 +35,9 @@ fi
 
 curl -fsS "$url/api/health"
 echo
+binary="/opt/Life Board/resources/bin/life-board-api"
+test -x "$binary"
+pgrep -f "$binary" >/dev/null
 test -s "$data/secret.key.enc"
 test -s "$data/life-board.db"
 echo "Smoke test passed: $url"

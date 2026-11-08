@@ -1,7 +1,7 @@
+use crate::clock;
 use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use chrono::Utc;
 
 use super::RouteTable;
 use crate::db::schema::mood::MoodEntry;
@@ -21,7 +21,7 @@ pub fn routes(table: RouteTable) -> RouteTable {
 }
 
 async fn today(State(state): State<AppState>) -> ApiResult<Json<MoodToday>> {
-    Ok(Json(state.mood.today(Utc::now()).await?))
+    Ok(Json(state.mood.today(clock::now()).await?))
 }
 
 async fn list(

@@ -1,6 +1,6 @@
+use crate::clock;
 use serde::Serialize;
 
-use chrono::Utc;
 use rusqlite::params;
 
 use crate::db::columns::{Timestamp, get_timestamp, get_timestamp_opt, js_date, js_date_opt, string_enum, to_millis};
@@ -102,7 +102,7 @@ impl ProjectStatusChange {
 
 /// Inserts one project with the column defaults filled in and returns it.
 pub fn insert_project(conn: &rusqlite::Connection, row: NewProject) -> rusqlite::Result<Project> {
-    let now = Utc::now();
+    let now = clock::now();
     conn.query_row(
         r#"INSERT INTO projects (id, title, description, status, "order", status_changed_at, pause_reason, archived_at, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *"#,
         params![
@@ -131,7 +131,7 @@ pub fn insert_status_change(conn: &rusqlite::Connection, row: NewProjectStatusCh
             row.project_id,
             row.status,
             row.pause_reason,
-            to_millis(row.changed_at.unwrap_or_else(Utc::now))
+            to_millis(row.changed_at.unwrap_or_else(clock::now))
         ],
     )?;
     Ok(())

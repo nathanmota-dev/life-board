@@ -18,7 +18,7 @@ env:
 
 jobs:
   checks:
-    name: Audit, lint, typecheck and unit coverage
+    name: Audit, lint, typecheck and backend coverage
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -34,11 +34,25 @@ jobs:
           path: ${{ env.ELECTRON_CACHE }}
           key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
           restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
+      - name: Install the toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov@0.9.0
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-coverage-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          restore-keys: cargo-coverage-${{ runner.os }}-
       - run: npm ci --prefer-offline --no-audit
       - name: Dependency audit (critical blocks, lower severities reported)
         run: |
           for attempt in 1 2 3; do
-            if npm audit --workspace api --include-workspace-root --audit-level=critical --fetch-timeout=120000 --fetch-retries=0; then
+            if npm audit --include-workspace-root --audit-level=critical --fetch-timeout=120000 --fetch-retries=0; then
               exit 0
             fi
             if [ "$attempt" -lt 3 ]; then
@@ -57,11 +71,3 @@ jobs:
       - name: Unit tests with coverage
         if: ${{ !cancelled() }}
         run: npm run test:backend:coverage
-      - name: Upload coverage reports
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-coverage
-          retention-days: 14
-          if-no-files-found: warn
-          path: api/coverage/

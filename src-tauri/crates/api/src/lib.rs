@@ -1,6 +1,6 @@
-//! Life Board's HTTP API in Rust: the port of `api/` (Fastify + Drizzle) with
-//! the same routes, JSON and SQLite profile. See `CONTRACT.md`.
+//! Life Board's HTTP API. See `CONTRACT.md` for its routes, JSON and SQLite profile.
 
+pub mod clock;
 pub mod controllers;
 pub mod db;
 pub mod dto;

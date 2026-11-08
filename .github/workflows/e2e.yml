@@ -36,6 +36,18 @@ jobs:
           path: ${{ env.ELECTRON_CACHE }}
           key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
           restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
+      - name: Install the toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+      - name: Cache Cargo downloads and builds
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-e2e-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          restore-keys: cargo-e2e-${{ runner.os }}-
       - run: npm ci --prefer-offline --no-audit
       - name: Install Electron system dependencies
         run: |

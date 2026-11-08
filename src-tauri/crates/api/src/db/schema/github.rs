@@ -1,4 +1,4 @@
-use chrono::Utc;
+use crate::clock;
 use rusqlite::params;
 use serde::Serialize;
 
@@ -250,7 +250,7 @@ fn write_pr(conn: &rusqlite::Connection, row: NewGithubPr, on_conflict: &str) ->
             row.changed_files.unwrap_or(0),
             to_millis(row.created_at),
             to_millis(row.updated_at),
-            to_millis(row.synced_at.unwrap_or_else(Utc::now)),
+            to_millis(row.synced_at.unwrap_or_else(clock::now)),
         ],
     )?;
     Ok(())
@@ -276,7 +276,7 @@ fn write_issue(conn: &rusqlite::Connection, row: NewGithubIssue, on_conflict: &s
             row.comments.unwrap_or(0),
             to_millis(row.created_at),
             to_millis(row.updated_at),
-            to_millis(row.synced_at.unwrap_or_else(Utc::now)),
+            to_millis(row.synced_at.unwrap_or_else(clock::now)),
         ],
     )?;
     Ok(())
@@ -296,7 +296,7 @@ pub fn upsert_issue(conn: &rusqlite::Connection, row: NewGithubIssue) -> rusqlit
 pub async fn insert_settings(db: &Db, rows: Vec<NewGithubSettings>) -> Result<(), DbError> {
     db.call(move |conn| {
         let tx = conn.transaction()?;
-        let now = chrono::Utc::now();
+        let now = clock::now();
         for row in rows {
             tx.execute(
                 "INSERT INTO github_settings (id, token_ciphertext, token_iv, token_tag, login, org_filter, last_sync_at, last_sync_error, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",

@@ -15,7 +15,7 @@ function checkPeX64(path) {
 function checkWindowsPackage(appDir) {
   checkPeX64(join(appDir, "Life Board.exe"))
   const resources = join(appDir, "resources")
-  checkPeX64(join(resources, "app.asar.unpacked/node_modules/@libsql/win32-x64-msvc/index.node"))
+  checkPeX64(join(resources, "bin/life-board-api.exe"))
   const main = checkAppArchive(resources, "Windows")
   if (!main.includes("dev.nathanmota.lifeboard")) throw new Error("Missing Windows AppUserModelID.")
 }

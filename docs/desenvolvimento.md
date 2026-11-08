@@ -2,14 +2,15 @@
 
 [← Guia da documentação](guide.md)
 
-Requer Node.js 22.12 ou superior e npm. Execute os comandos na raiz do repo:
+Requer Node.js 22.12 ou superior, npm e o Rust da versão de `rust-toolchain.toml`
+(com `rustup`, ele é instalado no primeiro `cargo`). Execute os comandos na raiz do repo:
 
 ```bash
 npm install
 npm run dev
 ```
 
-O comando abre o Electron, inicia o backend Node e habilita a atualização
+O comando abre o Electron, compila e inicia o backend Rust e habilita a atualização
 automática da interface. Alterações em `desktop/` reiniciam o Electron.
 As dependências de `web/` são instaladas pelo workspace npm da raiz.
 
@@ -21,7 +22,7 @@ também usa essa opção. O DEB mantém o sandbox e instala um perfil do AppArmo
 ## Comandos
 
 ```bash
-npm run typecheck  # Verifica os tipos do desktop, frontend, backend e E2E
+npm run typecheck  # Verifica os tipos do desktop, frontend e E2E
 npm run build      # Compila o app para out/
 npm start          # Abre a versão compilada (execute build antes)
 npm run package    # Gera um instalador para o sistema atual em release/, sem publicar
@@ -40,14 +41,16 @@ As releases públicas são somente Linux, geradas pelo workflow de tag; veja
 
 ## Testes do backend
 
-Os testes de `api/` usam Vitest com SQLite real (um arquivo temporário por
-teste). Os services são testados direto contra o banco e os controllers via
-`app.inject()`. A cobertura mínima é 80% em linhas, funções, branches e
-statements; abaixo disso o comando falha.
+Os testes de `src-tauri/crates/api` usam SQLite real (um arquivo temporário por
+teste):
 
 ```bash
-npm run test:coverage  # Testes do backend com relatório de cobertura
+npm run test:rust      # cargo test --workspace
+npm run test:coverage  # cargo llvm-cov; falha abaixo de 80%
 ```
+
+O `test:coverage` precisa de `cargo install cargo-llvm-cov`. O Rust estável não
+mede branches, então o limite vale para linhas, funções e regiões.
 
 `npm test` na raiz roda os testes do desktop, do frontend e do backend.
 `npm run test:desktop` verifica a integração com o login do sistema, a

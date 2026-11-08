@@ -1,4 +1,5 @@
-use chrono::{TimeDelta, Utc};
+use crate::clock;
+use chrono::TimeDelta;
 use rusqlite::types::Value;
 use rusqlite::{Connection, params};
 
@@ -51,7 +52,7 @@ impl ProjectsService {
                         description: input.description,
                         status: Some(status),
                         order: Some(0),
-                        status_changed_at: Some(Utc::now()),
+                        status_changed_at: Some(clock::now()),
                         pause_reason: stored_reason(status, input.pause_reason),
                         ..Default::default()
                     },
@@ -109,7 +110,7 @@ impl ProjectsService {
                 if stays_paused && let Some(reason) = pause_reason {
                     set.set("pause_reason", non_empty(reason));
                 }
-                set.set("updated_at", time_value(Utc::now()));
+                set.set("updated_at", time_value(clock::now()));
                 let set = set.into_fragment();
                 let mut params = set.params;
                 params.push(Value::Text(id.clone()));
@@ -151,7 +152,7 @@ impl ProjectsService {
                 let row = query_first(
                     conn,
                     "UPDATE projects SET archived_at = ? WHERE id = ? RETURNING *",
-                    &[time_value(Utc::now()), Value::Text(id)],
+                    &[time_value(clock::now()), Value::Text(id)],
                     Project::from_row,
                 )?;
                 Ok(row.ok_or_else(not_found))
@@ -185,7 +186,7 @@ impl ProjectsService {
                 let mut ids = vec![id.clone()];
                 ids.extend(column_ids(&tx, ProjectStatus::Done)?);
                 write_order(&tx, &ids)?;
-                let now = time_value(Utc::now());
+                let now = time_value(clock::now());
                 let row = query_first(
                     &tx,
                     "UPDATE projects SET archived_at = NULL, status = ?, pause_reason = NULL, status_changed_at = ?, updated_at = ? WHERE id = ? RETURNING *",
@@ -210,7 +211,7 @@ impl ProjectsService {
                 query_first(
                     conn,
                     "UPDATE projects SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL RETURNING id",
-                    &[time_value(Utc::now()), Value::Text(id)],
+                    &[time_value(clock::now()), Value::Text(id)],
                     |row| row.get::<_, String>(0),
                 )
             })
@@ -243,7 +244,7 @@ fn list(conn: &Connection, archived: bool) -> rusqlite::Result<Items<Project>> {
         )?;
         return Ok(Items { items });
     }
-    archive_stale(conn, Utc::now())?;
+    archive_stale(conn, clock::now())?;
     let items = query_all(conn, &format!("{SELECT} WHERE {ON_BOARD} ORDER BY {BOARD_ORDER}"), &[], Project::from_row)?;
     Ok(Items { items })
 }
@@ -292,7 +293,7 @@ fn place(
 
     let previous: Vec<String> = column_ids(conn, project.status)?.into_iter().filter(|id| *id != project.id).collect();
     write_order(conn, &previous)?;
-    let now = time_value(Utc::now());
+    let now = time_value(clock::now());
     let row = query_first(
         conn,
         "UPDATE projects SET status = ?, status_changed_at = ?, pause_reason = ?, updated_at = ? WHERE id = ? RETURNING *",
