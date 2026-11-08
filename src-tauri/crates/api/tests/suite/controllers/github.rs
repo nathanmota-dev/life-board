@@ -82,7 +82,6 @@ async fn app_with(server: &MockServer) -> TestApp {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn connects_syncs_lists_and_disconnects() {
     let server = github().await;
     let ctx = app_with(&server).await;
@@ -110,7 +109,6 @@ async fn connects_syncs_lists_and_disconnects() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn maps_failures_to_http_errors() {
     let server = github().await;
     let ctx = app_with(&server).await;

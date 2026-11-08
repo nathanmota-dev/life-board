@@ -7,10 +7,11 @@ use base64::engine::general_purpose::STANDARD;
 use chrono::{Local, Offset, TimeZone, Utc};
 use life_board_api::db::columns::Timestamp;
 use life_board_api::services::crypto::{CryptoService, SealedSecret};
+use life_board_api::services::github::{GithubService, TracingLogger};
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::common::{NODE_PROFILE, TestApp, fixture, to_json};
+use crate::common::{FakeGithub, NODE_PROFILE, TestApp, fixture, to_json};
 
 #[derive(Deserialize)]
 struct Entry {
@@ -188,7 +189,23 @@ async fn goals_and_stats_at_fixed_instants_answer_like_node() {
 }
 
 #[tokio::test]
-#[ignore = "pending #53"]
 async fn github_answers_like_node() {
     answers_like_node("github").await;
+}
+
+#[tokio::test]
+async fn github_token_in_the_profile_opens_like_node() {
+    let ctx = TestApp::on_copy_of(NODE_PROFILE, node_crypto()).await;
+    let client = FakeGithub::new();
+    let service = GithubService::new(
+        ctx.db.clone(),
+        client.clone(),
+        ctx.state.crypto.clone(),
+        std::sync::Arc::new(TracingLogger),
+    );
+
+    service.contributions().await.unwrap();
+
+    let token = &crypto_fixture().cases[0].plaintext;
+    assert!(client.calls().contains(&format!("get_contributions({token}, octocat)")));
 }

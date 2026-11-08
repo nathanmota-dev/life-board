@@ -22,19 +22,9 @@ no `webkit2gtk`.
 
 ## Rust port in progress
 
-The crate already declares every module, route, DTO, state field and service
-method. Bodies that are not written yet call `pending!(N)`, which panics with
-the issue that implements them:
-
-| Issue | Scope |
-| --- | --- |
-| #51 | Foundation (database, migrator, errors, auth, CORS, crypto, dates, startup, sidecar) and tasks, thoughts, links, mood, calendar, habits |
-| #52 | Goals, projects, stats, settings, file boards and file storage |
-| #53 | GitHub client and service, then the switch from the Node API |
-
-Each ported test carries `#[ignore = "pending #N"]` and is turned on by the
-issue that implements its module. Golden tests (`tests/suite/golden.rs`) follow
-the same rule per module.
+The crate implements every route of the Node API, and the ported tests run with
+no `ignore`. The desktop app still starts the Node API; the second part of #53
+switches Electron to the sidecar and removes `api/`.
 
 ## Commands
 
