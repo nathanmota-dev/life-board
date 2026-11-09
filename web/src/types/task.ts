@@ -1,3 +1,4 @@
+import type { RefObject } from "react"
 export const TASK_STATUSES = ["inbox", "today", "upcoming", "someday", "done"] as const
 export const TASK_PRIORITIES = ["none", "low", "medium", "high"] as const
 export const TASK_COLORS = ["red", "orange", "yellow", "green", "teal", "blue", "purple", "pink", "gray"] as const
@@ -146,3 +147,9 @@ export type TaskFiltersProps = {
   onChange: (filters: TaskBoardFilters) => void
 }
 
+export type TaskComposerFieldsProps = {
+  draft: TaskDraft
+  notesRef: RefObject<HTMLTextAreaElement | null>
+  onDraftChange: (draft: TaskDraft) => void
+  onClose: () => void
+}

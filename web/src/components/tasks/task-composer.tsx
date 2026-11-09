@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ListChecks } from "lucide-react"
-import { TaskComposerChecklist } from "@/components/tasks/task-composer-checklist"
+import { TaskComposerFields } from "@/components/tasks/task-composer-fields"
 import { Button } from "@/components/ui/button"
 import { useCreateTask } from "@/hooks/queries/use-tasks"
 import { draftToInput, emptyDraft, toggleDraftChecklist } from "@/lib/tasks"
@@ -75,39 +75,7 @@ export function TaskComposer() {
           </Button>
         )}
       </div>
-      {open ? (
-        <div className="flex flex-col gap-2 px-4 pb-2">
-          {draft.checklist ? (
-            <TaskComposerChecklist items={draft.items} onChange={(items) => setDraft({ ...draft, items })} />
-          ) : (
-            <textarea
-              ref={notes}
-              rows={3}
-              value={draft.notes}
-              aria-label={t("common.notes")}
-              placeholder={t("tasks.notesPlaceholder")}
-              onChange={(event) => setDraft({ ...draft, notes: event.target.value })}
-              className="field-sizing-content max-h-80 min-h-16 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
-          )}
-          <div className="-mx-2 flex items-center justify-between gap-2">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-pressed={draft.checklist}
-              aria-label={t("tasks.checklistMode")}
-              title={t("tasks.checklistMode")}
-              className={cn(draft.checklist && "text-primary")}
-              onClick={() => setDraft(toggleDraftChecklist(draft))}
-            >
-              <ListChecks />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={close}>
-              {t("common.close")}
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      {open ? <TaskComposerFields draft={draft} notesRef={notes} onDraftChange={setDraft} onClose={close} /> : null}
     </div>
   )
 }

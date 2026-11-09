@@ -8,25 +8,9 @@ import type { Task, TaskStatus } from "@/types/task"
 
 type TriageMode = "idle" | "date" | "edit"
 
-/**
- * Walks the inbox one task at a time. `tasks` is the live inbox list: once a decision is
- * saved the task leaves it, so the session only keeps the order and the undo history.
- */
-export function useTriage(tasks: Task[], onExit: () => void) {
-  const [queue, setQueue] = useState(() => tasks.map((task) => task.id))
-  const [history, setHistory] = useState<TriageDecision[]>([])
-  const [mode, setMode] = useState<TriageMode>("idle")
+function useBusyRunner() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
-  const createTask = useCreateTask()
-  const updateTask = useUpdateTask()
-  const removeTask = useRemoveTask()
-  const createThought = useCreateThought()
-  const removeThought = useRemoveThought()
-
-  const byId = new Map(tasks.map((task) => [task.id, task]))
-  const remaining = queue.filter((id) => byId.has(id))
-  const current = remaining.length > 0 ? byId.get(remaining[0]) : undefined
 
   const run = async (work: () => Promise<void>) => {
     setBusy(true)
@@ -39,6 +23,41 @@ export function useTriage(tasks: Task[], onExit: () => void) {
       setBusy(false)
     }
   }
+
+  return { busy, error, run }
+}
+
+function useTriageShortcuts(enabled: boolean, perform: (action: TriageAction) => void) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const action = enabled && !event.defaultPrevented ? triageKeyAction(event) : null
+      if (!action) return
+      event.preventDefault()
+      perform(action)
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  })
+}
+
+/**
+ * Walks the inbox one task at a time. `tasks` is the live inbox list: once a decision is
+ * saved the task leaves it, so the session only keeps the order and the undo history.
+ */
+export function useTriage(tasks: Task[], onExit: () => void) {
+  const { busy, error, run } = useBusyRunner()
+  const [queue, setQueue] = useState(() => tasks.map((task) => task.id))
+  const [history, setHistory] = useState<TriageDecision[]>([])
+  const [mode, setMode] = useState<TriageMode>("idle")
+  const createTask = useCreateTask()
+  const updateTask = useUpdateTask()
+  const removeTask = useRemoveTask()
+  const createThought = useCreateThought()
+  const removeThought = useRemoveThought()
+
+  const byId = new Map(tasks.map((task) => [task.id, task]))
+  const remaining = queue.filter((id) => byId.has(id))
+  const current = remaining.length > 0 ? byId.get(remaining[0]) : undefined
 
   const decide = (decision: () => Promise<TriageDecision>) =>
     run(async () => {
@@ -106,16 +125,7 @@ export function useTriage(tasks: Task[], onExit: () => void) {
     if (current) void setStatus(current, "upcoming", fromDateInput(day))
   }
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const action = mode === "idle" && !busy && !event.defaultPrevented ? triageKeyAction(event) : null
-      if (!action) return
-      event.preventDefault()
-      perform(action)
-    }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  })
+  useTriageShortcuts(mode === "idle" && !busy, perform)
 
   return {
     current,

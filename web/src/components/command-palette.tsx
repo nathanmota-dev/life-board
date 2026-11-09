@@ -38,6 +38,24 @@ export function useCommandPalette() {
   return context
 }
 
+function CommandPaletteHints() {
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex items-center gap-4 border-t bg-muted/20 px-4 py-2 text-[11px] text-muted-foreground">
+      <span className="flex items-center gap-1">
+        <kbd className="rounded border p-0.5"><ArrowUp className="size-3" /></kbd>
+        <kbd className="rounded border p-0.5"><ArrowDown className="size-3" /></kbd>
+        {t("search.navigate")}
+      </span>
+      <span className="flex items-center gap-1">
+        <kbd className="rounded border p-0.5"><CornerDownLeft className="size-3" /></kbd>
+        {t("search.open")}
+      </span>
+    </div>
+  )
+}
+
 export function CommandPaletteProvider({ children }: WithChildren) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -125,17 +143,7 @@ export function CommandPaletteProvider({ children }: WithChildren) {
                 ))}
               </CommandGroup>
             </CommandList>
-            <div className="flex items-center gap-4 border-t bg-muted/20 px-4 py-2 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <kbd className="rounded border p-0.5"><ArrowUp className="size-3" /></kbd>
-                <kbd className="rounded border p-0.5"><ArrowDown className="size-3" /></kbd>
-                {t("search.navigate")}
-              </span>
-              <span className="flex items-center gap-1">
-                <kbd className="rounded border p-0.5"><CornerDownLeft className="size-3" /></kbd>
-                {t("search.open")}
-              </span>
-            </div>
+            <CommandPaletteHints />
           </Command>
         </DialogContent>
       </Dialog>

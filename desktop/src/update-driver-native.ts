@@ -34,11 +34,7 @@ function nativeEvent(source: EventEmitter, event: string, errors: EventEmitter, 
   })
 }
 
-export function createNativeUpdateDriver(format: "nsis" | "mac", installedVersion: string, lifecycle: UpdateLifecycle): UpdateDriver {
-  if (process.platform !== (format === "nsis" ? "win32" : "darwin")
-    || !(format === "nsis" ? ["x64"] : ["x64", "arm64"]).includes(process.arch)) throw new UpdateFailure("metadata")
-  const updater = format === "nsis" ? new WindowsUpdateAdapter() : new MacUpdateAdapter()
-  const arch = updater instanceof MacUpdateAdapter ? updater.updateArch : "x64"
+function configureUpdater(updater: WindowsUpdateAdapter | MacUpdateAdapter) {
   updater.autoDownload = false
   updater.autoInstallOnAppQuit = false
   updater.autoRunAppAfterInstall = true
@@ -48,6 +44,14 @@ export function createNativeUpdateDriver(format: "nsis" | "mac", installedVersio
   updater.disableDifferentialDownload = true
   // The packaging contract uses full NSIS installers, not unsigned web payloads.
   updater.disableWebInstaller = true
+}
+
+export function createNativeUpdateDriver(format: "nsis" | "mac", installedVersion: string, lifecycle: UpdateLifecycle): UpdateDriver {
+  if (process.platform !== (format === "nsis" ? "win32" : "darwin")
+    || !(format === "nsis" ? ["x64"] : ["x64", "arm64"]).includes(process.arch)) throw new UpdateFailure("metadata")
+  const updater = format === "nsis" ? new WindowsUpdateAdapter() : new MacUpdateAdapter()
+  const arch = updater instanceof MacUpdateAdapter ? updater.updateArch : "x64"
+  configureUpdater(updater)
   const stopped = new AbortController()
   let cancellation: CancellationToken | undefined
   let selected: WindowsUpdateInfo | null = null
