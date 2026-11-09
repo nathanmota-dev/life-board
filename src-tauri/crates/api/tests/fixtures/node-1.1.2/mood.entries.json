@@ -1,0 +1,28 @@
+{
+  "path": "/api/mood/entries",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "mood-2",
+        "day": "2026-10-16",
+        "score": 2,
+        "note": null,
+        "linkedTaskIds": [],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z"
+      },
+      {
+        "id": "mood-1",
+        "day": "2026-10-15",
+        "score": 4,
+        "note": "Good day",
+        "linkedTaskIds": [
+          "t-bills"
+        ],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z"
+      }
+    ]
+  }
+}

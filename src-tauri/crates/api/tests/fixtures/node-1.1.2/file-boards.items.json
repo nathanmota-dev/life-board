@@ -1,0 +1,30 @@
+{
+  "path": "/api/file-boards/b-receipts/items",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "fi-lunch",
+        "boardId": "b-receipts",
+        "kind": "receipt",
+        "title": "Lunch",
+        "notes": "Team lunch",
+        "mime": "image/png",
+        "sizeBytes": 3,
+        "storagePath": "01JFIXTURE0000000000000000-lunch.png",
+        "takenAt": "2026-10-02T13:00:00.000Z",
+        "amountCents": 1990,
+        "currency": "BRL",
+        "tags": [
+          "food"
+        ],
+        "linkedTaskIds": [
+          "t-bills"
+        ],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      }
+    ]
+  }
+}

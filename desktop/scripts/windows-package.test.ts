@@ -28,7 +28,6 @@ async function packaged(omit?: string, identity = "life-board-app") {
   const files = {
     "package.json": JSON.stringify({ name: identity, main: "./out/main/index.js" }),
     "out/main/index.js": 'app.setAppUserModelId("dev.nathanmota.lifeboard")',
-    "out/main/chunks/backend-process.js": "backend",
     "out/preload/index.js": "preload",
     "out/renderer/index.html": "renderer",
   }
@@ -37,7 +36,7 @@ async function packaged(omit?: string, identity = "life-board-app") {
     mkdirSync(dirname(join(source, path)), { recursive: true })
     writeFileSync(join(source, path), contents)
   }
-  const native = join(dir, "resources/app.asar.unpacked/node_modules/@libsql/win32-x64-msvc/index.node")
+  const native = join(dir, "resources/bin/life-board-api.exe")
   mkdirSync(dirname(native), { recursive: true })
   writeFileSync(native, pe())
   writeFileSync(join(dir, "Life Board.exe"), pe())
@@ -60,15 +59,15 @@ describe("Windows packaged resource inspection", () => {
     writeFileSync(file, bytes)
     expect(() => checkPeX64(file)).toThrow("Windows x64 PE")
   })
-  it.each(["out/preload/index.js", "out/renderer/index.html", "out/main/chunks/backend-process.js"])("rejects a package without %s", async path => {
+  it.each(["out/preload/index.js", "out/renderer/index.html"])("rejects a package without %s", async path => {
     const dir = await packaged(path)
     expect(() => checkWindowsPackage(dir)).toThrow(/missing/)
   })
-  it("rejects another app identity and a wrong native module architecture", async () => {
+  it("rejects another app identity and a wrong API binary architecture", async () => {
     const wrongIdentity = await packaged(undefined, "other-app")
     expect(() => checkWindowsPackage(wrongIdentity)).toThrow("identity")
     const dir = await packaged()
-    const native = join(dir, "resources/app.asar.unpacked/node_modules/@libsql/win32-x64-msvc/index.node")
+    const native = join(dir, "resources/bin/life-board-api.exe")
     const bytes = readFileSync(native)
     bytes.writeUInt16LE(0xaa64, 68)
     writeFileSync(native, bytes)

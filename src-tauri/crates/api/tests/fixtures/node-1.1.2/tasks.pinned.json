@@ -1,0 +1,32 @@
+{
+  "path": "/api/tasks?pinned=true&color=blue",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "t-trip",
+        "title": "Trip",
+        "description": "Pack <b>early</b>",
+        "status": "today",
+        "priority": "high",
+        "dueAt": "2026-10-20T00:00:00.000Z",
+        "completedAt": null,
+        "parentTaskId": null,
+        "tags": [
+          "travel"
+        ],
+        "linkedThoughtIds": [
+          "th_plan"
+        ],
+        "pinned": true,
+        "color": "blue",
+        "order": 0,
+        "archivedAt": null,
+        "focusDay": "2026-10-19",
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      }
+    ]
+  }
+}

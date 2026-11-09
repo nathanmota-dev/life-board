@@ -1,0 +1,77 @@
+name: Rust CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  checks:
+    name: Format and lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Install the toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-checks-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          restore-keys: cargo-checks-${{ runner.os }}-
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        if: ${{ !cancelled() }}
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+
+  test:
+    name: Tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # Paths, file storage and SQLite behavior depend on the OS; this is the
+        # backend's only Windows and macOS coverage.
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Install the toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-test-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          restore-keys: cargo-test-${{ runner.os }}-
+      - name: Test
+        run: cargo test --workspace --locked
+      # Day keys use the local time zone.
+      - name: Test in America/Sao_Paulo
+        if: ${{ runner.os != 'Windows' }}
+        env:
+          TZ: America/Sao_Paulo
+        run: cargo test --workspace --locked

@@ -1,0 +1,50 @@
+{
+  "path": "/api/thoughts",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "th_plan",
+        "title": "Plan",
+        "body": "<p>Trip <b>plan</b></p>",
+        "tags": [
+          "travel"
+        ],
+        "pinned": true,
+        "linkedTaskIds": [
+          "t-trip"
+        ],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      },
+      {
+        "id": "th_idea",
+        "title": "Idea",
+        "body": "A habit tracker",
+        "tags": [],
+        "pinned": false,
+        "linkedTaskIds": [],
+        "createdAt": "2026-10-06T09:00:00.000Z",
+        "updatedAt": "2026-10-06T09:00:00.000Z",
+        "deletedAt": null
+      },
+      {
+        "id": "th_note",
+        "title": null,
+        "body": "Groceries list",
+        "tags": [
+          "home"
+        ],
+        "pinned": false,
+        "linkedTaskIds": [
+          "t-trip"
+        ],
+        "createdAt": "2026-10-05T09:00:00.000Z",
+        "updatedAt": "2026-10-05T09:00:00.000Z",
+        "deletedAt": null
+      }
+    ],
+    "nextCursor": null
+  }
+}

@@ -1,0 +1,42 @@
+[workspace]
+resolver = "3"
+members = ["src-tauri/crates/api"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+
+[workspace.dependencies]
+aes-gcm = "0.11.1"
+async-trait = "0.1.92"
+axum = { version = "0.8.9", features = ["multipart"] }
+base64 = "0.23.1"
+bytes = "1.12.1"
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
+criterion = { version = "0.8.2", default-features = false, features = ["cargo_bench_support"] }
+http-body-util = "0.1.5"
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls"] }
+rstest = "0.28.0"
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+tempfile = "3.27.0"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["fs", "io-std", "io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tokio-util = { version = "0.7.20", features = ["io"] }
+tower = { version = "0.5.3", features = ["util"] }
+tower-http = { version = "0.7.1", features = ["cors"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["fmt"] }
+ulid = "3.0.0"
+wiremock = "0.6.5"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+expect_used = "deny"
+unwrap_used = "deny"

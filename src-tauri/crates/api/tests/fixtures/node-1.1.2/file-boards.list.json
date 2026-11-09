@@ -1,0 +1,30 @@
+{
+  "path": "/api/file-boards",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "b-receipts",
+        "name": "Receipts",
+        "description": "Paid bills",
+        "kind": "receipts",
+        "coverItemId": "fi-lunch",
+        "color": "#06b6d4",
+        "createdAt": "2026-10-03T12:00:00.000Z",
+        "updatedAt": "2026-10-03T12:00:00.000Z",
+        "deletedAt": null
+      },
+      {
+        "id": "b-photos",
+        "name": "Photos",
+        "description": null,
+        "kind": "photos",
+        "coverItemId": null,
+        "color": "#f97316",
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      }
+    ]
+  }
+}

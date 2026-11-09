@@ -1,0 +1,27 @@
+{
+  "path": "/api/calendar/events?from=2026-10-20&to=2026-10-21",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "ev-flight",
+        "title": "Flight",
+        "description": "Window seat",
+        "startAt": "2026-10-20T08:00:00.000Z",
+        "endAt": "2026-10-20T10:00:00.000Z",
+        "allDay": false,
+        "location": "GRU",
+        "color": "#22c55e",
+        "linkedTaskIds": [
+          "t-trip"
+        ],
+        "linkedThoughtIds": [
+          "th_plan"
+        ],
+        "createdAt": "2026-10-01T12:00:00.000Z",
+        "updatedAt": "2026-10-01T12:00:00.000Z",
+        "deletedAt": null
+      }
+    ]
+  }
+}

@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
   requestSingleInstanceLock: vi.fn(), whenReady: vi.fn(), quit: vi.fn(),
-  handle: vi.fn(), fork: vi.fn(), loadRenderer: vi.fn(), openSecretKey: vi.fn(), confirmSecretsReset: vi.fn(),
+  handle: vi.fn(), startBackend: vi.fn(), loadRenderer: vi.fn(), openSecretKey: vi.fn(), confirmSecretsReset: vi.fn(),
   isHiddenStartup: vi.fn(), keepInBackground: vi.fn(), isPomodoroActive: vi.fn(),
   registerLocale: vi.fn(), registerNotifications: vi.fn(), registerPomodoro: vi.fn(),
   registerStartupSettings: vi.fn(), registerCaptureShortcut: vi.fn(), unregisterCaptureShortcut: vi.fn(),
   registerUpdates: vi.fn(), registerDirectoryPicker: vi.fn(),
-  createTray: vi.fn(),
+  createTray: vi.fn(), loadWindowState: vi.fn(),
 }))
 
 class MockWindow extends EventEmitter {
@@ -29,7 +29,7 @@ const createWindow = vi.fn(function () {
   windows.push(window)
   return window
 })
-const backend = Object.assign(new EventEmitter(), { postMessage: vi.fn(), kill: vi.fn() })
+const backend = { url: Promise.resolve("http://127.0.0.1:1234"), stop: vi.fn() }
 const app = Object.assign(new EventEmitter(), {
   requestSingleInstanceLock: mocks.requestSingleInstanceLock,
   whenReady: mocks.whenReady, quit: mocks.quit,
@@ -39,11 +39,11 @@ const app = Object.assign(new EventEmitter(), {
 })
 
 vi.mock("electron", () => ({
-  app, BrowserWindow: createWindow, utilityProcess: { fork: mocks.fork },
+  app, BrowserWindow: createWindow,
   ipcMain: { handle: mocks.handle },
   shell: { openExternal: vi.fn() },
 }))
-vi.mock("./backend-process?modulePath", () => ({ default: "/backend.js" }))
+vi.mock("./backend", () => ({ startBackend: mocks.startBackend }))
 vi.mock("../resources/icon.png?asset", () => ({ default: "/icon.png" }))
 vi.mock("./capture-window", () => ({
   registerCaptureShortcut: mocks.registerCaptureShortcut,
@@ -63,7 +63,7 @@ vi.mock("./startup-settings", () => ({
 vi.mock("./register-updates", () => ({ registerUpdates: mocks.registerUpdates }))
 vi.mock("./tray", () => ({ createTray: mocks.createTray }))
 vi.mock("./window-state", () => ({
-  loadWindowState: () => ({ maximized: false, fullScreen: false }),
+  loadWindowState: mocks.loadWindowState,
   defaultBounds: () => ({ x: 0, y: 0, width: 1200, height: 800 }), trackWindowState: vi.fn(),
 }))
 
@@ -78,13 +78,14 @@ beforeEach(() => {
   mocks.isHiddenStartup.mockReturnValue(false)
   mocks.keepInBackground.mockReturnValue(true)
   mocks.isPomodoroActive.mockReturnValue(false)
-  mocks.fork.mockReturnValue(backend)
+  mocks.loadWindowState.mockReturnValue({ maximized: false, fullScreen: false })
+  backend.url = Promise.resolve("http://127.0.0.1:1234")
+  mocks.startBackend.mockImplementation(() => backend)
   mocks.loadRenderer.mockResolvedValue(undefined)
   mocks.openSecretKey.mockImplementation(() => ({ key: Buffer.alloc(32), resetSecrets: false }))
 })
 afterEach(() => {
   app.removeAllListeners()
-  backend.removeAllListeners()
 })
 
 function launchAgain(args: string[] = []) {
@@ -104,7 +105,7 @@ describe("single-instance startup", () => {
     expect(mocks.quit).toHaveBeenCalledOnce()
     expect(mocks.whenReady).not.toHaveBeenCalled()
     for (const initialize of [
-      mocks.handle, mocks.openSecretKey, mocks.fork, createWindow, mocks.createTray,
+      mocks.handle, mocks.openSecretKey, mocks.startBackend, createWindow, mocks.createTray,
       mocks.registerLocale, mocks.registerNotifications, mocks.registerPomodoro,
       mocks.registerStartupSettings, mocks.registerCaptureShortcut, mocks.registerUpdates,
       mocks.registerDirectoryPicker,
@@ -113,7 +114,8 @@ describe("single-instance startup", () => {
     expect(app.listenerCount("will-quit")).toBe(0)
   })
 
-  it("reopens the same hidden window without reloading or navigating", async () => {
+  it("reopens the same hidden window without reloading or navigating during a pomodoro", async () => {
+    mocks.isPomodoroActive.mockReturnValue(true)
     await import("./main")
     await ready()
     const window = windows[0]
@@ -131,7 +133,7 @@ describe("single-instance startup", () => {
     expect(window.webContents.send).not.toHaveBeenCalled()
     expect(mocks.loadRenderer).toHaveBeenCalledOnce()
     expect(createWindow).toHaveBeenCalledOnce()
-    expect(mocks.fork).toHaveBeenCalledOnce()
+    expect(mocks.startBackend).toHaveBeenCalledOnce()
     expect(mocks.createTray).toHaveBeenCalledOnce()
     expect(mocks.registerUpdates).toHaveBeenCalledOnce()
   })
@@ -156,13 +158,13 @@ describe("single-instance startup", () => {
     launchAgain()
     launchAgain()
     expect(createWindow).not.toHaveBeenCalled()
-    expect(mocks.fork).not.toHaveBeenCalled()
+    expect(mocks.startBackend).not.toHaveBeenCalled()
     await ready()
     launchAgain()
     launchAgain()
     expect(createWindow).toHaveBeenCalledOnce()
     expect(mocks.loadRenderer).toHaveBeenCalledOnce()
-    expect(mocks.fork).toHaveBeenCalledOnce()
+    expect(mocks.startBackend).toHaveBeenCalledOnce()
     expect(mocks.createTray).toHaveBeenCalledOnce()
     expect(mocks.registerUpdates).toHaveBeenCalledOnce()
     expect(windows[0].webContents.send).not.toHaveBeenCalled()
@@ -176,7 +178,7 @@ describe("single-instance startup", () => {
     launchAgain()
     launchAgain()
     expect(createWindow).toHaveBeenCalledOnce()
-    expect(mocks.fork).toHaveBeenCalledOnce()
+    expect(mocks.startBackend).toHaveBeenCalledOnce()
     expect(mocks.createTray).toHaveBeenCalledOnce()
     expect(mocks.registerUpdates).toHaveBeenCalledOnce()
   })
@@ -213,9 +215,65 @@ describe("single-instance startup", () => {
     launchAgain()
     launchAgain()
     expect(createWindow).toHaveBeenCalledTimes(2)
-    expect(mocks.fork).toHaveBeenCalledOnce()
+    expect(mocks.startBackend).toHaveBeenCalledOnce()
     expect(mocks.createTray).toHaveBeenCalledOnce()
     expect(mocks.registerUpdates).toHaveBeenCalledOnce()
+  })
+
+  it.each([undefined, "/pomodoro"])("recreates a window destroyed by a tray close at route %s", async (route) => {
+    await import("./main")
+    await ready()
+    const closing = { preventDefault: vi.fn() }
+    windows[0].emit("close", closing)
+    expect(closing.preventDefault).not.toHaveBeenCalled()
+    expect(windows[0].hide).not.toHaveBeenCalled()
+    expect(mocks.quit).not.toHaveBeenCalled()
+    windows[0].emit("closed")
+    const openRoute = mocks.createTray.mock.calls[0][1] as (route?: string) => void
+    openRoute(route)
+    expect(createWindow).toHaveBeenCalledTimes(2)
+    expect(mocks.loadRenderer).toHaveBeenLastCalledWith(windows[1], route)
+    expect(windows[1].webContents.send).not.toHaveBeenCalled()
+    expect(windows[0].show).not.toHaveBeenCalled()
+    expect(mocks.startBackend).toHaveBeenCalledOnce()
+    expect(mocks.createTray).toHaveBeenCalledOnce()
+  })
+
+  it.each([[true, false], [false, true]])("restores a recreated window as maximized=%s, fullScreen=%s", async (maximized, fullScreen) => {
+    await import("./main")
+    await ready()
+    windows[0].emit("closed")
+    mocks.loadWindowState.mockReturnValue({ maximized, fullScreen })
+    launchAgain()
+    windows[1].emit("ready-to-show")
+    expect(windows[1].maximize).toHaveBeenCalledTimes(maximized ? 1 : 0)
+    expect(windows[1].setFullScreen).toHaveBeenCalledTimes(fullScreen ? 1 : 0)
+    expect(windows[1].show).toHaveBeenCalledOnce()
+  })
+
+  it("stays in the tray when closing the window aborts its load", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    let abortLoad!: (error: Error) => void
+    mocks.loadRenderer.mockReturnValueOnce(new Promise((_resolve, reject) => { abortLoad = reject }))
+    await import("./main")
+    await ready()
+    windows[0].emit("close", { preventDefault: vi.fn() })
+    abortLoad(new Error("ERR_FAILED"))
+    await new Promise((resolve) => setTimeout(resolve))
+    expect(mocks.quit).not.toHaveBeenCalled()
+    expect(error).not.toHaveBeenCalled()
+    error.mockRestore()
+  })
+
+  it("quits when a live window cannot load the interface", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    mocks.loadRenderer.mockRejectedValueOnce(new Error("ERR_FILE_NOT_FOUND"))
+    await import("./main")
+    await ready()
+    await new Promise((resolve) => setTimeout(resolve))
+    expect(mocks.quit).toHaveBeenCalledOnce()
+    expect(error).toHaveBeenCalledOnce()
+    error.mockRestore()
   })
 
   it("keeps tray navigation, activation and Quit working after reopening", async () => {
@@ -231,7 +289,7 @@ describe("single-instance startup", () => {
     const close = { preventDefault: vi.fn() }
     windows[0].emit("close", close)
     expect(close.preventDefault).not.toHaveBeenCalled()
-    expect(backend.kill).toHaveBeenCalledOnce()
+    expect(backend.stop).toHaveBeenCalledOnce()
     app.emit("will-quit")
     expect(mocks.unregisterCaptureShortcut).toHaveBeenCalledOnce()
   })
@@ -245,27 +303,29 @@ describe("single-instance startup", () => {
     expect(mocks.openSecretKey).toHaveBeenCalledWith("/tmp/life-board-test")
     expect(mocks.quit).toHaveBeenCalledOnce()
     expect(createWindow).not.toHaveBeenCalled()
-    expect(mocks.fork).not.toHaveBeenCalled()
+    expect(mocks.startBackend).not.toHaveBeenCalled()
   })
 
   it.each([false, true])("confirms a secrets reset only after the backend is ready (reset=%s)", async (resetSecrets) => {
     const key = Buffer.alloc(32, 5)
+    let finish!: (url: string) => void
+    backend.url = new Promise<string>((resolve) => { finish = resolve })
     mocks.openSecretKey.mockReturnValue({ key, resetSecrets })
     await import("./main")
     await ready()
-    expect(backend.postMessage).toHaveBeenCalledWith({ type: "secret-key", key: key.toString("base64"), resetSecrets })
+    expect(mocks.startBackend).toHaveBeenCalledWith(expect.objectContaining({ key, resetSecrets, dataDir: "/tmp/life-board-test" }))
     expect(mocks.confirmSecretsReset).not.toHaveBeenCalled()
-    backend.emit("message", { type: "ready", url: "http://127.0.0.1:1234" })
+    finish("http://127.0.0.1:1234")
     await new Promise((resolve) => setTimeout(resolve))
     expect(mocks.confirmSecretsReset).toHaveBeenCalledTimes(resetSecrets ? 1 : 0)
   })
 
   it("keeps the reset pending when the backend exits before it is ready", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {})
+    mocks.startBackend.mockImplementation(() => ({ url: Promise.reject(new Error("exited")), stop: vi.fn() }))
     mocks.openSecretKey.mockReturnValue({ key: Buffer.alloc(32), resetSecrets: true })
     await import("./main")
     await ready()
-    backend.emit("exit", 1)
     await new Promise((resolve) => setTimeout(resolve))
     expect(mocks.confirmSecretsReset).not.toHaveBeenCalled()
   })

@@ -3,7 +3,7 @@
 [← Guia da documentação](guide.md)
 
 A suíte Playwright em `e2e/` abre o Life Board compilado com Electron real.
-React, preload, IPC, Fastify, `utilityProcess`, SQLite, migrations, uploads e
+React, preload, IPC, o binário Rust da API, SQLite, migrations, uploads e
 criptografia pelo chaveiro do sistema participam dos testes.
 
 ## Executar em segundo plano
@@ -65,8 +65,10 @@ avança de forma controlada nos processos e janelas para testar o pomodoro.
 Os adaptadores em `e2e/support/` são carregados antes do entrypoint compilado e
 não entram no pacote de produção:
 
-- O backend real recebe respostas REST/GraphQL sintéticas na fronteira HTTP do
-  GitHub. Token de teste, conta, PRs, issues, contribuições e repositórios são
+- O backend real é compilado com a feature `e2e` em `target/e2e`, que nunca entra
+  no pacote: ela faz a API seguir o relógio dos testes e falar com um servidor
+  local (`e2e/support/github-server.cjs`) no lugar de `api.github.com`.
+- Esse servidor responde REST/GraphQL sintético na fronteira HTTP do GitHub. Token de teste, conta, PRs, issues, contribuições e repositórios são
   fictícios. Cenários incluem conta vazia, credenciais inválidas e falhas externas.
 - Geolocalização e Open-Meteo são interceptados no renderer. Requisições externas
   inesperadas fazem o teste falhar.
@@ -90,7 +92,7 @@ uma página exige atualizar esse inventário e seus testes funcionais.
 | Specs | Fluxos |
 | --- | --- |
 | `routes` | As 15 páginas, link ativo, URL e recarga, vazias e preenchidas |
-| `dashboard-settings` | Paleta/teclado, histórico, breadcrumb, janela estreita; widgets, ordem, visibilidade, captura, foco/limite/pendências; aparência, cores, PT/EN, abas, autostart e segundo plano |
+| `dashboard-settings` | Paleta/teclado, histórico, breadcrumb, janela estreita; widgets, ordem, visibilidade, captura, foco/limite/pendências; aparência, cores, PT/EN, abas, autostart e fechamento para a bandeja com reabertura |
 | `inbox` | Tokens de captura e remoção, tarefa/ideia, triagem, datas, pular, editar, conversão, exclusão, desfazer, teclado; janela global, foco, sincronização e Escape |
 | `tasks` | Formulário, compositor, notas, checklist, conclusão/reabertura, quadro/lista, filtros, busca, cores, prazos, fixação, arraste, arquivo e desfazer |
 | `task-views` | Filtros de hoje/próximas/algum dia, limpar prazo, expandir/recolher itens concluídos e reabertura |
@@ -100,7 +102,7 @@ uma página exige atualizar esse inventário e seus testes funcionais.
 | `thoughts-tags-activity` | Ideias, fixação, busca, edição/exclusão, paginação; vínculos/backlinks, etiquetas e atividade entre módulos |
 | `calendar-files` | Agenda semanal, grade, intervalos inválidos, sobreposição, dia inteiro, edição pelo painel; quadros, uploads múltiplos, miniaturas, bytes, metadados e exclusão |
 | `github` | Token inválido/válido, sincronização, categorias de PRs, issues, contribuições/repositórios, links, persistência e desconexão; vazio e recuperação de falha |
-| `pomodoro-desktop` | Controles, presets/durações, fases, pausas, som, auto start, conclusão/estatísticas, bandeja/notificação, segundo plano, tamanho da janela, encerramento e instância única; clima/fallback/erro |
+| `pomodoro-desktop` | Controles, presets/durações, fases, pausas, som, auto start, conclusão/estatísticas, bandeja/notificação, janela oculta e som com pomodoro ativo, janela destruída e recriada pela bandeja, notificação e segunda instância, ciclos repetidos, tamanho da janela, encerramento; clima/fallback/erro |
 | `updates` | Descoberta, atualizado/disponível, notas/link, progresso entre páginas, cancelamento, falhas de rede/integridade/permissão e reinício controlado preservando dados/timer |
 | `failure-states` | Falhas de leitura nas páginas com API, recuperação por recarga, carregamento pendente e gravações malsucedidas preservando rascunho/progresso |
 

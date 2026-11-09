@@ -1,0 +1,274 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/health"
+  },
+  {
+    "method": "GET",
+    "path": "/api/tasks"
+  },
+  {
+    "method": "POST",
+    "path": "/api/tasks"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/tasks/order"
+  },
+  {
+    "method": "GET",
+    "path": "/api/tasks/:id"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/tasks/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/tasks/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/tasks/:id/restore"
+  },
+  {
+    "method": "GET",
+    "path": "/api/thoughts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/thoughts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/thoughts/:id"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/thoughts/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/thoughts/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/links/resolve"
+  },
+  {
+    "method": "GET",
+    "path": "/api/links/backlinks/:kind/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/goals"
+  },
+  {
+    "method": "POST",
+    "path": "/api/goals"
+  },
+  {
+    "method": "GET",
+    "path": "/api/goals/:id"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/goals/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/goals/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/goals/:id/progress"
+  },
+  {
+    "method": "POST",
+    "path": "/api/goals/:id/milestones"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/goals/:goalId/milestones/:milestoneId"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/goals/:goalId/milestones/:milestoneId"
+  },
+  {
+    "method": "GET",
+    "path": "/api/calendar/events"
+  },
+  {
+    "method": "POST",
+    "path": "/api/calendar/events"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/calendar/events/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/calendar/events/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/mood/today"
+  },
+  {
+    "method": "GET",
+    "path": "/api/mood/entries"
+  },
+  {
+    "method": "POST",
+    "path": "/api/mood/entries"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/mood/entries/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/habits"
+  },
+  {
+    "method": "POST",
+    "path": "/api/habits"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/habits/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/habits/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/habits/logs"
+  },
+  {
+    "method": "POST",
+    "path": "/api/habits/:id/logs"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/habits/:id/logs/:day"
+  },
+  {
+    "method": "GET",
+    "path": "/api/projects"
+  },
+  {
+    "method": "POST",
+    "path": "/api/projects"
+  },
+  {
+    "method": "GET",
+    "path": "/api/projects/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/projects/:id/history"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/projects/:id"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/projects/:id/move"
+  },
+  {
+    "method": "POST",
+    "path": "/api/projects/:id/archive"
+  },
+  {
+    "method": "POST",
+    "path": "/api/projects/:id/restore"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/projects/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stats/this-week"
+  },
+  {
+    "method": "GET",
+    "path": "/api/github/status"
+  },
+  {
+    "method": "POST",
+    "path": "/api/github/connect"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/github/disconnect"
+  },
+  {
+    "method": "POST",
+    "path": "/api/github/sync"
+  },
+  {
+    "method": "GET",
+    "path": "/api/github/contributions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/github/repos/recent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/github/prs"
+  },
+  {
+    "method": "GET",
+    "path": "/api/github/issues"
+  },
+  {
+    "method": "GET",
+    "path": "/api/file-boards"
+  },
+  {
+    "method": "POST",
+    "path": "/api/file-boards"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/file-boards/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/file-boards/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/file-boards/:id/items"
+  },
+  {
+    "method": "POST",
+    "path": "/api/file-boards/:id/items"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/file-items/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/file-items/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/file-items/:id/file"
+  },
+  {
+    "method": "GET",
+    "path": "/api/settings/files"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/settings/files"
+  }
+]

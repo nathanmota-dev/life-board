@@ -1,0 +1,8 @@
+{
+  "path": "/api/projects/p-gone",
+  "status": 404,
+  "body": {
+    "error": "not_found",
+    "message": "Project not found."
+  }
+}

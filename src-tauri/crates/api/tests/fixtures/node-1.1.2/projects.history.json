@@ -1,0 +1,22 @@
+{
+  "path": "/api/projects/p-garden/history",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "c-garden-2",
+        "projectId": "p-garden",
+        "status": "in_progress",
+        "pauseReason": null,
+        "changedAt": "2026-10-02T12:00:00.000Z"
+      },
+      {
+        "id": "c-garden-1",
+        "projectId": "p-garden",
+        "status": "idea",
+        "pauseReason": null,
+        "changedAt": "2026-10-01T12:00:00.000Z"
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "path": "/api/github/status",
+  "status": 200,
+  "body": {
+    "connected": true,
+    "login": "octocat",
+    "lastSyncAt": "2026-10-10T08:00:00.000Z",
+    "lastSyncError": null
+  }
+}

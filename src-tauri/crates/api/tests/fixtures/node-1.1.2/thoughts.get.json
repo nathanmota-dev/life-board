@@ -1,0 +1,19 @@
+{
+  "path": "/api/thoughts/th_plan",
+  "status": 200,
+  "body": {
+    "id": "th_plan",
+    "title": "Plan",
+    "body": "<p>Trip <b>plan</b></p>",
+    "tags": [
+      "travel"
+    ],
+    "pinned": true,
+    "linkedTaskIds": [
+      "t-trip"
+    ],
+    "createdAt": "2026-10-01T12:00:00.000Z",
+    "updatedAt": "2026-10-01T12:00:00.000Z",
+    "deletedAt": null
+  }
+}

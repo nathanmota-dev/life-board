@@ -1,5 +1,5 @@
 import { test as base, expect, _electron, request, type APIRequestContext, type ElectronApplication, type Page } from "@playwright/test"
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, symlinkSync, rmSync, renameSync } from "node:fs"
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, renameSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import type { ChildProcess } from "node:child_process"
@@ -41,7 +41,6 @@ export class Workspace {
     for (const directory of [this.launchDir, join(this.home, "resources"), join(this.home, "electron")]) mkdirSync(directory, { recursive: true })
     const metadata = JSON.parse(readFileSync("package.json", "utf8"))
     writeFileSync(join(this.launchDir, "package.json"), JSON.stringify({ name: metadata.name, version: metadata.version, main: resolve("e2e/support/main.cjs") }))
-    symlinkSync(resolve("api/drizzle"), join(this.home, "resources/migrations"), "dir")
     writeFileSync(join(this.home, "installed.AppImage"), "synthetic original artifact")
     writeFileSync(join(this.home, "clock"), "0")
     writeFileSync(join(this.home, "calls.jsonl"), "")
@@ -199,6 +198,21 @@ export class Workspace {
       if (!item || !item.enabled) throw new Error(`Missing tray action: ${label}`)
       item.click()
     }, label)
+  }
+  windowCount() { return this.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length) }
+  rendererCount() { return this.app.evaluate(({ app }) => app.getAppMetrics().filter(metric => metric.type === "Tab").length) }
+  /** Closes the main window through its real close handler and waits until it is destroyed. */
+  async closeToTray() {
+    await this.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
+    await expect.poll(() => this.windowCount()).toBe(0)
+  }
+  /** Runs an action that recreates the main window and adopts it as the current page. */
+  async reopen(action: () => Promise<unknown>) {
+    const opened = this.app.waitForEvent("window")
+    await action()
+    this.page = await opened
+    await expect.poll(() => this.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible())).toBe(true)
+    return this.page
   }
   async stop() {
     this.stopping = true

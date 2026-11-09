@@ -1,0 +1,5 @@
+# Drizzle stores the SHA-256 of each migration file in __drizzle_migrations, and
+# the Rust API embeds the same files; keep their bytes identical on every OS.
+src-tauri/crates/api/migrations/*.sql text eol=lf
+# Fixtures recorded from the Node API are compared byte for byte or parsed as is.
+src-tauri/crates/api/tests/fixtures/** -text

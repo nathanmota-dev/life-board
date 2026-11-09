@@ -293,7 +293,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
           path: |
-            api/coverage/
             desktop/coverage/
             web/coverage/
             coverage/
