@@ -108,14 +108,11 @@ These files define the gates, baselines, benchmarks and PR report. `scripts/prot
 - `.github/workflows/pr-validation.yml`
 - `clippy.toml`
 - `package.json`
-- `api/package.json`
 - `web/package.json`
-- `api/vitest.config.ts`
 - `web/vitest.config.ts`
 - `desktop/vitest.config.ts`
-- `api/vitest.benchmark.config.ts`
 - `web/vitest.benchmark.config.ts`
-- `api/benchmarks/**`
+- `src-tauri/crates/api/benches/**`
 - `web/benchmarks/**`
 
 ### Exceptions

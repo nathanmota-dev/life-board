@@ -44,9 +44,10 @@
     "typecheck:backend": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.e2e.json",
     "typecheck:frontend": "tsc --noEmit -p web/tsconfig.json",
     "test:backend:coverage": "npm run test:desktop && npm run test:coverage",
-    "test:coverage:ci": "npm run test:coverage --workspace api && npm run test:coverage --workspace web && vitest run --config desktop/vitest.config.ts --coverage",
+    "test:coverage:api": "mkdir -p coverage/api && cargo llvm-cov --workspace --locked --no-report && cargo llvm-cov report --json --output-path coverage/api/coverage.json && cargo llvm-cov report --lcov --output-path coverage/api/lcov.info",
+    "test:coverage:ci": "npm run test:coverage:api && npm run test:coverage --workspace web && vitest run --config desktop/vitest.config.ts --coverage",
     "test:quality": "node --test scripts/*.test.js",
-    "benchmark:api": "npm run benchmark:ci --workspace api",
+    "benchmark:api": "node scripts/run-rust-benchmark.js",
     "benchmark:web": "npm run benchmark:ci --workspace web",
     "benchmark:ci": "npm run benchmark:api && npm run benchmark:web",
     "test:frontend:coverage": "npm run test:coverage --workspace web"

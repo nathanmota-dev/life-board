@@ -3,11 +3,15 @@
 //! trimming, string lengths in code points, `z.coerce` for query strings and dates, and
 //! issues collected with JSON-pointer paths.
 
-use chrono::{Local, LocalResult, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
+mod scalars;
+pub use scalars::*;
+mod dates;
+pub use dates::*;
+
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::db::columns::{StringEnum, Timestamp};
+use crate::db::columns::StringEnum;
 use crate::error::Issue;
 
 /// A request DTO: built from the JSON body, or from the query string or path
@@ -125,132 +129,6 @@ fn kind(value: &Value) -> &'static str {
     }
 }
 
-/// A `.regex(...)` check and its message.
-type Pattern = (fn(&str) -> bool, &'static str);
-
-/// `z.string()` with optional `.trim()`, `.min()`, `.max()`, `.length()` and a pattern.
-#[derive(Clone, Copy)]
-pub struct Text {
-    trim: bool,
-    min: Option<usize>,
-    max: Option<usize>,
-    pattern: Option<Pattern>,
-}
-
-pub const fn text() -> Text {
-    Text { trim: false, min: None, max: None, pattern: None }
-}
-
-impl Text {
-    pub const fn trim(mut self) -> Self {
-        self.trim = true;
-        self
-    }
-
-    pub const fn min(mut self, min: usize) -> Self {
-        self.min = Some(min);
-        self
-    }
-
-    pub const fn max(mut self, max: usize) -> Self {
-        self.max = Some(max);
-        self
-    }
-
-    pub const fn length(self, length: usize) -> Self {
-        self.min(length).max(length)
-    }
-
-    pub const fn pattern(mut self, matches: fn(&str) -> bool, message: &'static str) -> Self {
-        self.pattern = Some((matches, message));
-        self
-    }
-}
-
-impl Rule<String> for Text {
-    fn check(&self, ctx: &mut Ctx, value: &Value, path: &str) -> Option<String> {
-        let Value::String(raw) = value else {
-            return ctx.issue(path, format!("Invalid input: expected string, received {}", kind(value)));
-        };
-        let text = if self.trim { raw.trim() } else { raw.as_str() };
-        // Zod 4 counts code points, so an emoji is one character.
-        let length = text.chars().count();
-        if let Some(min) = self.min.filter(|min| length < *min) {
-            return ctx.issue(path, format!("Too small: expected string to have >={min} characters"));
-        }
-        if let Some(max) = self.max.filter(|max| length > *max) {
-            return ctx.issue(path, format!("Too big: expected string to have <={max} characters"));
-        }
-        if let Some((matches, message)) = self.pattern
-            && !matches(text)
-        {
-            return ctx.issue(path, message);
-        }
-        Some(text.to_owned())
-    }
-}
-
-/// `z.number().int()` (or `z.coerce.number().int()` with [`Int::coerce`]) with bounds.
-#[derive(Clone, Copy)]
-pub struct Int {
-    coerce: bool,
-    min: Option<i64>,
-    max: Option<i64>,
-}
-
-pub const fn int() -> Int {
-    Int { coerce: false, min: None, max: None }
-}
-
-impl Int {
-    pub const fn coerce(mut self) -> Self {
-        self.coerce = true;
-        self
-    }
-
-    pub const fn min(mut self, min: i64) -> Self {
-        self.min = Some(min);
-        self
-    }
-
-    pub const fn max(mut self, max: i64) -> Self {
-        self.max = Some(max);
-        self
-    }
-
-    pub const fn range(self, min: i64, max: i64) -> Self {
-        self.min(min).max(max)
-    }
-}
-
-const MAX_SAFE_INTEGER: f64 = 9_007_199_254_740_991.0;
-
-impl Rule<i64> for Int {
-    fn check(&self, ctx: &mut Ctx, value: &Value, path: &str) -> Option<i64> {
-        let number = match value {
-            Value::Number(number) => number.as_f64(),
-            other if self.coerce => Some(js_number(other)),
-            _ => None,
-        };
-        let Some(number) = number.filter(|number| !number.is_nan()) else {
-            return ctx.issue(path, format!("Invalid input: expected number, received {}", kind(value)));
-        };
-        if number.fract() != 0.0 || number.abs() > MAX_SAFE_INTEGER {
-            return ctx.issue(path, "Invalid input: expected int, received number");
-        }
-        // Safe integers fit an i64 exactly.
-        #[allow(clippy::cast_possible_truncation)]
-        let number = number as i64;
-        if let Some(min) = self.min.filter(|min| number < *min) {
-            return ctx.issue(path, format!("Too small: expected number to be >={min}"));
-        }
-        if let Some(max) = self.max.filter(|max| number > *max) {
-            return ctx.issue(path, format!("Too big: expected number to be <={max}"));
-        }
-        Some(number)
-    }
-}
-
 /// `Number(value)` for the values `z.coerce.number()` receives.
 pub fn js_number(value: &Value) -> f64 {
     match value {
@@ -318,70 +196,6 @@ pub fn one_of<E: StringEnum>(ctx: &mut Ctx, value: &Value, path: &str) -> Option
     }
     let options = E::ALL.iter().map(|item| format!("{:?}", item.as_str())).collect::<Vec<_>>().join("|");
     ctx.issue(path, format!("Invalid option: expected one of {options}"))
-}
-
-/// `z.coerce.date()`: `new Date(value)` must be a valid date.
-pub fn date(ctx: &mut Ctx, value: &Value, path: &str) -> Option<Timestamp> {
-    let parsed = match value {
-        Value::String(text) => parse_js_date(text),
-        Value::Number(number) => number.as_f64().and_then(millis_to_timestamp),
-        Value::Null => millis_to_timestamp(0.0),
-        Value::Bool(flag) => millis_to_timestamp(f64::from(u8::from(*flag))),
-        Value::Array(_) | Value::Object(_) => None,
-    };
-    parsed.or_else(|| ctx.issue(path, "Invalid input: expected date, received Date"))
-}
-
-fn millis_to_timestamp(millis: f64) -> Option<Timestamp> {
-    // `new Date(ms)` keeps ±8.64e15 ms and truncates the fraction.
-    if !millis.is_finite() || millis.abs() > 8.64e15 {
-        return None;
-    }
-    #[allow(clippy::cast_possible_truncation)]
-    Utc.timestamp_millis_opt(millis.trunc() as i64).single()
-}
-
-/// The date strings `new Date(text)` reads the same way in every engine: ISO 8601
-/// dates (UTC) and date-times (with `Z` or an offset; local time without one).
-pub fn parse_js_date(text: &str) -> Option<Timestamp> {
-    let text = text.trim();
-    if let Ok(value) = chrono::DateTime::parse_from_rfc3339(text) {
-        return Some(value.to_utc());
-    }
-    let date_only = match text.len() {
-        4 => NaiveDate::parse_from_str(&format!("{text}-01-01"), "%Y-%m-%d").ok(),
-        7 => NaiveDate::parse_from_str(&format!("{text}-01"), "%Y-%m-%d").ok(),
-        10 => NaiveDate::parse_from_str(text, "%Y-%m-%d").ok(),
-        _ => None,
-    };
-    if let Some(day) = date_only.filter(|_| text.bytes().all(|b| b.is_ascii_digit() || b == b'-')) {
-        return Some(day.and_time(NaiveTime::MIN).and_utc());
-    }
-    let upper = text.to_ascii_uppercase();
-    const NAIVE: [&str; 4] = ["%Y-%m-%dT%H:%M:%S%.f", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S%.f", "%Y-%m-%d %H:%M"];
-    if let Some(utc) = upper.strip_suffix('Z') {
-        return NAIVE
-            .iter()
-            .find_map(|format| NaiveDateTime::parse_from_str(utc, format).ok())
-            .map(|naive| naive.and_utc());
-    }
-    for format in ["%Y-%m-%dT%H:%M:%S%.f%:z", "%Y-%m-%dT%H:%M%:z"] {
-        if let Ok(value) = chrono::DateTime::parse_from_str(&upper, format) {
-            return Some(value.to_utc());
-        }
-    }
-    NAIVE.iter().find_map(|format| NaiveDateTime::parse_from_str(&upper, format).ok()).and_then(local_to_utc)
-}
-
-/// A wall-clock time in the local zone; like `Date`, the earlier instant when it
-/// repeats and the instant one hour later when it falls in a DST gap.
-pub fn local_to_utc(naive: NaiveDateTime) -> Option<Timestamp> {
-    match Local.from_local_datetime(&naive) {
-        LocalResult::Single(value) | LocalResult::Ambiguous(value, _) => Some(value.to_utc()),
-        LocalResult::None => {
-            Local.from_local_datetime(&(naive + chrono::Duration::hours(1))).earliest().map(|value| value.to_utc())
-        }
-    }
 }
 
 /// `z.array(item)` with `.min()` and `.max()` on its length.

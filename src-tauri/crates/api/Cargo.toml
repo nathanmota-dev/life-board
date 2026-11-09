@@ -22,6 +22,10 @@ path = "src/main.rs"
 name = "suite"
 path = "tests/suite/main.rs"
 
+[[bench]]
+name = "date"
+harness = false
+
 [dependencies]
 aes-gcm.workspace = true
 async-trait.workspace = true
@@ -47,6 +51,7 @@ ulid.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
+criterion.workspace = true
 http-body-util.workspace = true
 rstest.workspace = true
 tempfile.workspace = true
