@@ -199,6 +199,21 @@ export class Workspace {
       item.click()
     }, label)
   }
+  windowCount() { return this.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length) }
+  rendererCount() { return this.app.evaluate(({ app }) => app.getAppMetrics().filter(metric => metric.type === "Tab").length) }
+  /** Closes the main window through its real close handler and waits until it is destroyed. */
+  async closeToTray() {
+    await this.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
+    await expect.poll(() => this.windowCount()).toBe(0)
+  }
+  /** Runs an action that recreates the main window and adopts it as the current page. */
+  async reopen(action: () => Promise<unknown>) {
+    const opened = this.app.waitForEvent("window")
+    await action()
+    this.page = await opened
+    await expect.poll(() => this.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible())).toBe(true)
+    return this.page
+  }
   async stop() {
     this.stopping = true
     await this.api?.dispose()

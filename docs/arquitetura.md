@@ -40,15 +40,20 @@ em `$XDG_CONFIG_HOME/autostart/dev.nathanmota.lifeboard.desktop` no Linux
 o registro aponta para o AppImage instalado, não para sua montagem temporária.
 Se o item for removido ou desativado no sistema, a opção reflete essa mudança.
 
-Continuar em segundo plano faz o fechamento da janela apenas ocultá-la;
-use o ícone instalado ou Abrir no menu da bandeja para reabrir e Sair para
-encerrar o app. Abrir novamente reutiliza a janela existente, preservando
-a tela atual, o tema e o estado da interface. O app mantém uma única instância
-por perfil, inclusive quando a janela já está visível. Uma nova execução com
-`--hidden` não traz a janela à frente.
+Continuar em segundo plano faz o fechamento da janela destruí-la, liberando a
+memória do renderer, enquanto o app, a API e a bandeja continuam ativos; use o
+ícone instalado ou Abrir no menu da bandeja para reabrir e Sair para encerrar o
+app. Abrir novamente cria outra janela com o tamanho, a posição e a
+maximização salvos, na tela inicial ou na rota pedida pela notificação ou pela
+bandeja. A interface é recarregada e busca os dados atuais; texto não salvo em
+formulários é perdido. O app mantém uma única instância por perfil, inclusive
+quando a janela já está visível. Uma nova execução com `--hidden` não traz a
+janela à frente.
 Um pomodoro em execução ou pausado sempre mantém o app em segundo plano,
-mesmo com essa opção desativada. Sem ele e com a opção desativada, fechar
-a janela encerra o app em todos os sistemas. As preferências ficam em
-`startup-settings.json` na pasta de dados do Electron.
+mesmo com essa opção desativada. Nesse caso a janela é apenas ocultada, porque
+o som de conclusão é tocado pelo renderer, e reabrir reutiliza a mesma tela.
+Sem ele e com a opção desativada, fechar a janela encerra o app em todos os
+sistemas. As preferências ficam em `startup-settings.json` na pasta de dados do
+Electron.
 
 O processo principal também mantém um único serviço de atualizações, com histórico durável, notificações, download verificado e instalação explícita para DEB/AppImage. Consulte [Atualizações](atualizacoes.md).
