@@ -81,7 +81,7 @@ em PRs para `main` e `release/**` e bloqueia o empacotamento de releases em caso
 [Testes E2E](e2e.md) para dependências Linux, comandos, matriz de cobertura e debug.
 
 `npm run package:linux` gera AppImage e DEB Linux com metadados de atualização.
-`desktop/scripts/packaging.test.ts` cobre a verificação do módulo nativo, os nomes
+`desktop/scripts/packaging.test.ts` cobre a verificação do binário da API, os nomes
 dos pacotes, a assinatura do macOS e a escolha do ZIP do macOS pelo updater.
 `desktop/scripts/release-checks.test.ts` cobre a validação da tag, do feed, dos
 checksums, da proveniência de `build-info.json` e dos arquivos enviados usada pelos

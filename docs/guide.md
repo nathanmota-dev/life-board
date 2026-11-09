@@ -9,7 +9,7 @@ repositório, salvo indicação em contrário.
   comunicação com a interface e comportamento em segundo plano.
 - [Frontend](frontend.md): organização das views e componentes, temas, idiomas e
   componentes do shadcn/ui.
-- [Backend](backend.md): API, módulos, banco de dados, migrations e credenciais.
+- [Backend](backend.md): API em Rust, módulos, banco de dados, migrations e credenciais.
 - [Qualidade](qualidade.md): quality gate, performance e relatório único dos PRs.
 - [Desenvolvimento](desenvolvimento.md): ambiente local, comandos, build,
   empacotamento e testes.
@@ -22,7 +22,7 @@ repositório, salvo indicação em contrário.
 - [Instalação e atualização no macOS](instalacao-macos.md): DMG por processador,
   Gatekeeper, Keychain, itens de login e recuperação.
 - [Empacotamento multiplataforma](multiplataforma.md): builds locais e distribuição Linux, nomes dos arquivos
-  e feeds de Linux, Windows e macOS, módulos nativos, caminhos e validação.
+  e feeds de Linux, Windows e macOS, binário do backend, caminhos e validação.
 - [Atualizações do aplicativo](atualizacoes.md): cadência, consentimento, DEB/AppImage,
   contrato do feed e testes empacotados.
 - [Publicação de releases](releases.md): workflow por tag, arquivos da release,

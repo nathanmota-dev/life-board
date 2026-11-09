@@ -9,7 +9,7 @@ Todo pull request passa por workflows independentes. O `PR Validation` reconcili
 | Workflow | O que verifica |
 | --- | --- |
 | Frontend CI | auditoria, lint, typecheck, testes e cobertura do `web/` |
-| Rust CI | formatação, Clippy e testes em Linux, Windows e macOS (somente com `Cargo.toml`) |
+| Rust CI | formatação, Clippy e testes em Linux, Windows e macOS |
 | Electron E2E | suíte Playwright contra o app real |
 | PR Quality Gate | auditorias, cobertura e métricas de qualidade |
 | Performance | microbenchmarks com limite de 20% de perda |
@@ -61,8 +61,7 @@ node scripts/benchmark-gate.js --update-baseline
 
 ## API em Rust
 
-Com `Cargo.toml` na raiz e `src-tauri/crates/api/src`, o pacote `api` passa a ser
-medido em Rust:
+O pacote `api` (`src-tauri/crates/api/src`) é medido em Rust:
 
 - `npm run test:coverage:ci` precisa gravar `coverage/api/coverage.json`
   (`cargo llvm-cov --json`) e `coverage/api/lcov.info`.

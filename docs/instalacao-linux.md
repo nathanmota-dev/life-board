@@ -138,7 +138,8 @@ a pasta de dados é a mesma.
 ## Instalar a partir do código
 
 Para desenvolvimento ou para gerar um build local, use Node.js 22.12 ou superior,
-npm e Git. Veja também [Desenvolvimento](desenvolvimento.md).
+npm, Git e Rust (via `rustup`, na versão de `rust-toolchain.toml`). Veja também
+[Desenvolvimento](desenvolvimento.md).
 
 ```bash
 git clone https://github.com/nathanmota-dev/life-board.git

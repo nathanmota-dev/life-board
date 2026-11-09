@@ -12,7 +12,7 @@ fora do escopo atual; não impede compilar o código localmente para desenvolvim
 
 ## Requisitos
 
-- Um Mac da mesma arquitetura do alvo, Node.js 22.12 ou superior, npm e Git.
+- Um Mac da mesma arquitetura do alvo, Node.js 22.12 ou superior, npm, Git e Rust (via `rustup`, na versão de `rust-toolchain.toml`).
 - Uma conta descartável para testes de instalação e Keychain.
 
 Os testes anteriores nos runners macOS com assinatura ad-hoc são históricos. Não
@@ -76,7 +76,7 @@ não precisar mais deles.
 
 ## Gerar a partir do código
 
-Em um Mac do mesmo processador do alvo, com Node.js 22.12 ou superior, npm e Git:
+Em um Mac do mesmo processador do alvo, com Node.js 22.12 ou superior, npm, Git e Rust (via `rustup`):
 
 ```bash
 npm ci

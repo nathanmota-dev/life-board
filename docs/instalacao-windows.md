@@ -12,7 +12,7 @@ necessária para executar o código: você pode compilar localmente para uso e t
 
 ## Requisitos
 
-- Windows x64, Node.js 22.12 ou superior, npm e Git para compilar.
+- Windows x64, Node.js 22.12 ou superior, npm, Git e Rust (via `rustup`, na versão de `rust-toolchain.toml`) para compilar.
 - Uma conta descartável para testes de instalação; o aplicativo instalado usa uma
   conta comum, sem privilégios de administrador.
 
@@ -78,7 +78,7 @@ manualmente se não precisar mais dos dados.
 
 ## Gerar a partir do código
 
-Em uma máquina Windows x64 com Node.js 22.12 ou superior, npm e Git:
+Em uma máquina Windows x64 com Node.js 22.12 ou superior, npm, Git e Rust (via `rustup`):
 
 ```powershell
 npm ci
