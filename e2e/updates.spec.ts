@@ -56,6 +56,41 @@ test.describe("controlled updater", () => {
     } finally { chmodSync(workspace.home, 0o700) }
   })
 
+  test("updates: a recreated window shows the current update state", async ({ workspace, page }) => {
+    await workspace.go("Configurações")
+    await page.getByRole("switch", { name: "Continuar em segundo plano ao fechar a janela", exact: true }).click()
+    await page.getByRole("tab", { name: "Atualizações", exact: true }).click()
+    await page.getByRole("button", { name: "Baixar atualização", exact: true }).click()
+    await expect(page.getByRole("button", { name: "Instalar e reiniciar", exact: true })).toBeEnabled()
+    await workspace.closeToTray()
+    await workspace.reopen(() => workspace.app.evaluate(({ app }) => app.emit("activate")))
+    await workspace.ready("Painel")
+    await workspace.go("Configurações")
+    await workspace.page.getByRole("tab", { name: "Atualizações", exact: true }).click()
+    await expect(workspace.page.getByText("A atualização foi verificada e está pronta para instalar.", { exact: true })).toBeVisible()
+  })
+
+  test("updates: installing with no main window still relaunches", async ({ workspace, page }) => {
+    await workspace.go("Configurações")
+    await page.getByRole("switch", { name: "Continuar em segundo plano ao fechar a janela", exact: true }).click()
+    await page.getByRole("tab", { name: "Atualizações", exact: true }).click()
+    await page.getByRole("button", { name: "Baixar atualização", exact: true }).click()
+    await expect(page.getByRole("button", { name: "Instalar e reiniciar", exact: true })).toBeEnabled()
+    await workspace.closeToTray()
+    // With the main window gone, the capture window is the only one left that can start it.
+    const opened = workspace.app.waitForEvent("window")
+    await workspace.app.evaluate(() => globalThis.e2e.shortcuts["CommandOrControl+Shift+Space"]())
+    const capture = await opened
+    await capture.waitForLoadState("load")
+    await workspace.checkpoint()
+    workspace.stopping = true
+    const closed = workspace.app.waitForEvent("close")
+    await capture.evaluate(() => { void window.desktop!.updates!.install() })
+    await closed
+    const calls = readFileSync(join(workspace.home, "calls.jsonl"), "utf8").trim().split("\n").map(line => JSON.parse(line))
+    expect(calls.filter(call => call.kind === "relaunch")).toHaveLength(1)
+  })
+
   for (const paused of [false, true]) {
     test(`updates: simulated restart preserves data and ${paused ? "paused" : "running"} pomodoro`, async ({ workspace, page }) => {
       await workspace.create("tasks", { title: "Preserved across update" })

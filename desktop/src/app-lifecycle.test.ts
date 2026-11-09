@@ -13,9 +13,9 @@ afterEach(() => { app.removeAllListeners(); vi.unstubAllGlobals() })
 
 describe("main window lifecycle", () => {
   it.each([
-    [false, "idle", false], [false, "running", true], [false, "paused", true],
-    [true, "idle", true], [true, "running", true], [true, "paused", true],
-  ] as const)("background=%s, pomodoro=%s keeps running=%s", async (background, status, staysAlive) => {
+    [false, "idle", "quit"], [false, "running", "hide"], [false, "paused", "hide"],
+    [true, "idle", "destroy"], [true, "running", "hide"], [true, "paused", "hide"],
+  ] as const)("background=%s, pomodoro=%s closes with %s", async (background, status, outcome) => {
     mocks.keepInBackground.mockReturnValue(background)
     mocks.isPomodoroActive.mockReturnValue(status !== "idle")
     const { registerAppLifecycle, trackMainWindowClose } = await import("./app-lifecycle")
@@ -24,9 +24,9 @@ describe("main window lifecycle", () => {
     trackMainWindowClose(window as unknown as BrowserWindow)
     const event = { preventDefault: vi.fn() }
     window.emit("close", event)
-    expect(event.preventDefault).toHaveBeenCalledOnce()
-    expect(window.hide).toHaveBeenCalledTimes(staysAlive ? 1 : 0)
-    expect(mocks.quit).toHaveBeenCalledTimes(staysAlive ? 0 : 1)
+    expect(event.preventDefault).toHaveBeenCalledTimes(outcome === "destroy" ? 0 : 1)
+    expect(window.hide).toHaveBeenCalledTimes(outcome === "hide" ? 1 : 0)
+    expect(mocks.quit).toHaveBeenCalledTimes(outcome === "quit" ? 1 : 0)
   })
 
   it.each(["linux", "darwin", "win32"])("quits after all windows close on %s without background work", async (platform) => {

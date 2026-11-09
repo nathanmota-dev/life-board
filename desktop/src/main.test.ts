@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   registerLocale: vi.fn(), registerNotifications: vi.fn(), registerPomodoro: vi.fn(),
   registerStartupSettings: vi.fn(), registerCaptureShortcut: vi.fn(), unregisterCaptureShortcut: vi.fn(),
   registerUpdates: vi.fn(), registerDirectoryPicker: vi.fn(),
-  createTray: vi.fn(),
+  createTray: vi.fn(), loadWindowState: vi.fn(),
 }))
 
 class MockWindow extends EventEmitter {
@@ -63,7 +63,7 @@ vi.mock("./startup-settings", () => ({
 vi.mock("./register-updates", () => ({ registerUpdates: mocks.registerUpdates }))
 vi.mock("./tray", () => ({ createTray: mocks.createTray }))
 vi.mock("./window-state", () => ({
-  loadWindowState: () => ({ maximized: false, fullScreen: false }),
+  loadWindowState: mocks.loadWindowState,
   defaultBounds: () => ({ x: 0, y: 0, width: 1200, height: 800 }), trackWindowState: vi.fn(),
 }))
 
@@ -78,6 +78,7 @@ beforeEach(() => {
   mocks.isHiddenStartup.mockReturnValue(false)
   mocks.keepInBackground.mockReturnValue(true)
   mocks.isPomodoroActive.mockReturnValue(false)
+  mocks.loadWindowState.mockReturnValue({ maximized: false, fullScreen: false })
   backend.url = Promise.resolve("http://127.0.0.1:1234")
   mocks.startBackend.mockImplementation(() => backend)
   mocks.loadRenderer.mockResolvedValue(undefined)
@@ -113,7 +114,8 @@ describe("single-instance startup", () => {
     expect(app.listenerCount("will-quit")).toBe(0)
   })
 
-  it("reopens the same hidden window without reloading or navigating", async () => {
+  it("reopens the same hidden window without reloading or navigating during a pomodoro", async () => {
+    mocks.isPomodoroActive.mockReturnValue(true)
     await import("./main")
     await ready()
     const window = windows[0]
@@ -216,6 +218,62 @@ describe("single-instance startup", () => {
     expect(mocks.startBackend).toHaveBeenCalledOnce()
     expect(mocks.createTray).toHaveBeenCalledOnce()
     expect(mocks.registerUpdates).toHaveBeenCalledOnce()
+  })
+
+  it.each([undefined, "/pomodoro"])("recreates a window destroyed by a tray close at route %s", async (route) => {
+    await import("./main")
+    await ready()
+    const closing = { preventDefault: vi.fn() }
+    windows[0].emit("close", closing)
+    expect(closing.preventDefault).not.toHaveBeenCalled()
+    expect(windows[0].hide).not.toHaveBeenCalled()
+    expect(mocks.quit).not.toHaveBeenCalled()
+    windows[0].emit("closed")
+    const openRoute = mocks.createTray.mock.calls[0][1] as (route?: string) => void
+    openRoute(route)
+    expect(createWindow).toHaveBeenCalledTimes(2)
+    expect(mocks.loadRenderer).toHaveBeenLastCalledWith(windows[1], route)
+    expect(windows[1].webContents.send).not.toHaveBeenCalled()
+    expect(windows[0].show).not.toHaveBeenCalled()
+    expect(mocks.startBackend).toHaveBeenCalledOnce()
+    expect(mocks.createTray).toHaveBeenCalledOnce()
+  })
+
+  it.each([[true, false], [false, true]])("restores a recreated window as maximized=%s, fullScreen=%s", async (maximized, fullScreen) => {
+    await import("./main")
+    await ready()
+    windows[0].emit("closed")
+    mocks.loadWindowState.mockReturnValue({ maximized, fullScreen })
+    launchAgain()
+    windows[1].emit("ready-to-show")
+    expect(windows[1].maximize).toHaveBeenCalledTimes(maximized ? 1 : 0)
+    expect(windows[1].setFullScreen).toHaveBeenCalledTimes(fullScreen ? 1 : 0)
+    expect(windows[1].show).toHaveBeenCalledOnce()
+  })
+
+  it("stays in the tray when closing the window aborts its load", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    let abortLoad!: (error: Error) => void
+    mocks.loadRenderer.mockReturnValueOnce(new Promise((_resolve, reject) => { abortLoad = reject }))
+    await import("./main")
+    await ready()
+    windows[0].emit("close", { preventDefault: vi.fn() })
+    abortLoad(new Error("ERR_FAILED"))
+    await new Promise((resolve) => setTimeout(resolve))
+    expect(mocks.quit).not.toHaveBeenCalled()
+    expect(error).not.toHaveBeenCalled()
+    error.mockRestore()
+  })
+
+  it("quits when a live window cannot load the interface", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    mocks.loadRenderer.mockRejectedValueOnce(new Error("ERR_FILE_NOT_FOUND"))
+    await import("./main")
+    await ready()
+    await new Promise((resolve) => setTimeout(resolve))
+    expect(mocks.quit).toHaveBeenCalledOnce()
+    expect(error).toHaveBeenCalledOnce()
+    error.mockRestore()
   })
 
   it("keeps tray navigation, activation and Quit working after reopening", async () => {

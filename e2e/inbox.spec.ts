@@ -86,3 +86,17 @@ test("capture window: registered shortcut, autofocus, save, synchronization and 
   await closeWindowWithKey(second, "Escape")
   expect(workspace.app.windows()).toHaveLength(1)
 })
+
+test("capture window: saves with no main window and leaves the app in the tray", async ({ workspace, page }) => {
+  await workspace.go("Configurações")
+  await page.getByRole("switch", { name: "Continuar em segundo plano ao fechar a janela", exact: true }).click()
+  await workspace.closeToTray()
+  const opened = workspace.app.waitForEvent("window")
+  await workspace.app.evaluate(() => globalThis.e2e.shortcuts["CommandOrControl+Shift+Space"]())
+  const capture = await opened
+  await expect(capture.getByRole("textbox", { name: "Texto da captura" })).toBeFocused()
+  await capture.getByRole("textbox", { name: "Texto da captura" }).fill("Captured from the tray")
+  await closeWindowWithKey(capture, "Enter")
+  await expect.poll(() => workspace.windowCount()).toBe(0)
+  await expect.poll(async () => (await workspace.list("tasks")).map(task => task.title)).toContain("Captured from the tray")
+})
