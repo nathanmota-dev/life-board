@@ -1,6 +1,6 @@
+use crate::clock;
 use axum::Json;
 use axum::extract::State;
-use chrono::Utc;
 
 use super::RouteTable;
 use crate::error::ApiResult;
@@ -12,5 +12,5 @@ pub fn routes(table: RouteTable) -> RouteTable {
 }
 
 async fn this_week(State(state): State<AppState>) -> ApiResult<Json<WeekStats>> {
-    Ok(Json(state.stats.this_week(Utc::now()).await?))
+    Ok(Json(state.stats.this_week(clock::now()).await?))
 }

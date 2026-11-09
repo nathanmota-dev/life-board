@@ -1,7 +1,7 @@
+use crate::clock;
 use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use chrono::Utc;
 
 use super::RouteTable;
 use crate::db::schema::goals::GoalMilestone;
@@ -28,7 +28,7 @@ pub fn routes(table: RouteTable) -> RouteTable {
 }
 
 async fn list(State(state): State<AppState>) -> ApiResult<Json<Items<GoalSummary>>> {
-    Ok(Json(Items { items: state.goals.list(Utc::now()).await? }))
+    Ok(Json(Items { items: state.goals.list(clock::now()).await? }))
 }
 
 async fn create(
@@ -42,7 +42,7 @@ async fn get(
     State(state): State<AppState>,
     ValidatedPath(params): ValidatedPath<IdParams>,
 ) -> ApiResult<Json<GoalDetail>> {
-    Ok(Json(state.goals.get(&params.id, Utc::now()).await?))
+    Ok(Json(state.goals.get(&params.id, clock::now()).await?))
 }
 
 async fn update(

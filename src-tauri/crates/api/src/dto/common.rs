@@ -1,6 +1,6 @@
-//! Shared rules (`dto/common.dto.ts`) and the small toolkit that applies Zod's
+//! Shared rules and the small toolkit that applies Zod's
 //! semantics by hand: required vs optional vs nullable fields, defaults,
-//! trimming, UTF-16 string lengths, `z.coerce` for query strings and dates, and
+//! trimming, string lengths in code points, `z.coerce` for query strings and dates, and
 //! issues collected with JSON-pointer paths.
 
 use chrono::{Local, LocalResult, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
@@ -125,11 +125,6 @@ fn kind(value: &Value) -> &'static str {
     }
 }
 
-/// JavaScript's `string.length` (UTF-16 code units), which Zod's min/max count.
-pub fn js_length(text: &str) -> usize {
-    text.encode_utf16().count()
-}
-
 /// A `.regex(...)` check and its message.
 type Pattern = (fn(&str) -> bool, &'static str);
 
@@ -178,7 +173,8 @@ impl Rule<String> for Text {
             return ctx.issue(path, format!("Invalid input: expected string, received {}", kind(value)));
         };
         let text = if self.trim { raw.trim() } else { raw.as_str() };
-        let length = js_length(text);
+        // Zod 4 counts code points, so an emoji is one character.
+        let length = text.chars().count();
         if let Some(min) = self.min.filter(|min| length < *min) {
             return ctx.issue(path, format!("Too small: expected string to have >={min} characters"));
         }

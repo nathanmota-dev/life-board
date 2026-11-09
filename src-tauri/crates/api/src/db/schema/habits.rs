@@ -1,6 +1,6 @@
+use crate::clock;
 use serde::Serialize;
 
-use chrono::Utc;
 use rusqlite::params;
 
 use crate::db::columns::{Timestamp, get_timestamp, get_timestamp_opt, js_date, js_date_opt, to_millis};
@@ -97,7 +97,7 @@ impl HabitLog {
 
 /// Inserts one habit with the column defaults filled in and returns it.
 pub fn insert_habit(conn: &rusqlite::Connection, row: NewHabit) -> rusqlite::Result<Habit> {
-    let now = Utc::now();
+    let now = clock::now();
     conn.query_row(
         "INSERT INTO habits (id, name, unit, target, step, emoji, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         params![
@@ -129,7 +129,7 @@ pub async fn insert_habits(db: &Db, rows: Vec<NewHabit>) -> Result<(), DbError> 
 pub async fn insert_logs(db: &Db, rows: Vec<NewHabitLog>) -> Result<(), DbError> {
     db.call(move |conn| {
         let tx = conn.transaction()?;
-        let now = Utc::now();
+        let now = clock::now();
         for row in rows {
             tx.execute(
                 "INSERT INTO habit_logs (id, habit_id, day, count, target, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",

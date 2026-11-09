@@ -1,6 +1,6 @@
+use crate::clock;
 use std::collections::HashSet;
 
-use chrono::Utc;
 use rusqlite::types::Value;
 use rusqlite::{Connection, params};
 use serde::Serialize;
@@ -133,7 +133,7 @@ impl TasksService {
     /// Soft deletes the task and its checklist items with the same `deletedAt`.
     pub async fn remove(&self, id: &str) -> ApiResult<()> {
         let id = id.to_owned();
-        let deleted_at = to_millis(Utc::now());
+        let deleted_at = to_millis(clock::now());
         let found = self
             .db
             .call(move |conn| {
@@ -321,7 +321,7 @@ fn assert_focus_slot(conn: &Connection, focus_day: &str, task_id: Option<&str>) 
 }
 
 fn create(conn: &Connection, input: CreateTaskBody) -> rusqlite::Result<ApiResult<TaskWithChildren>> {
-    let completed_at = (input.status == Some(TaskStatus::Done)).then(Utc::now);
+    let completed_at = (input.status == Some(TaskStatus::Done)).then(clock::now);
     if let Some(focus_day) = input.focus_day.as_ref().and_then(truthy)
         && let Err(error) = assert_focus_slot(conn, focus_day, None)?
     {
@@ -390,7 +390,7 @@ fn update(conn: &Connection, id: &str, input: UpdateTaskBody) -> rusqlite::Resul
     // Moving into "done" stamps completedAt; moving out of it clears it.
     let mut completed_at = input.completed_at;
     match input.status {
-        Some(TaskStatus::Done) if completed_at.is_none() => completed_at = Some(Some(Utc::now())),
+        Some(TaskStatus::Done) if completed_at.is_none() => completed_at = Some(Some(clock::now())),
         Some(status) if status != TaskStatus::Done => completed_at = Some(None),
         _ => {}
     }
@@ -414,7 +414,7 @@ fn update(conn: &Connection, id: &str, input: UpdateTaskBody) -> rusqlite::Resul
         .maybe("focus_day", input.focus_day)
         .maybe("completed_at", completed_at.map(time_opt))
         .maybe("archived_at", input.archived_at.map(time_opt))
-        .set("updated_at", time_value(Utc::now()));
+        .set("updated_at", time_value(clock::now()));
     let set = set.into_fragment();
     let mut params = set.params;
     params.push(Value::Text(id.to_owned()));

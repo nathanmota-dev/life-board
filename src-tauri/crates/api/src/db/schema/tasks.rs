@@ -1,6 +1,6 @@
+use crate::clock;
 use serde::Serialize;
 
-use chrono::Utc;
 use rusqlite::params;
 
 use crate::db::columns::{
@@ -110,7 +110,7 @@ pub const COLUMNS: &str = r#""id", "title", "description", "status", "priority",
 
 /// Inserts one row with the column defaults filled in and returns it.
 pub fn insert_row(conn: &rusqlite::Connection, row: NewTask) -> rusqlite::Result<Task> {
-    let now = Utc::now();
+    let now = clock::now();
     conn.query_row(
         &format!(
             "INSERT INTO tasks ({COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *"

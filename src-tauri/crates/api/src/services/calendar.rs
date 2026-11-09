@@ -1,4 +1,4 @@
-use chrono::Utc;
+use crate::clock;
 use rusqlite::types::Value;
 
 use crate::db::Db;
@@ -67,7 +67,7 @@ impl CalendarService {
             .maybe("color", input.color)
             .maybe("linked_task_ids", input.linked_task_ids.as_deref().map(list_value))
             .maybe("linked_thought_ids", input.linked_thought_ids.as_deref().map(list_value))
-            .set("updated_at", time_value(Utc::now()));
+            .set("updated_at", time_value(clock::now()));
         let set = set.into_fragment();
         let mut params = set.params;
         params.push(Value::Text(id.to_owned()));
@@ -78,7 +78,7 @@ impl CalendarService {
     /// Soft delete.
     pub async fn remove(&self, id: &str) -> ApiResult<()> {
         self.find(id).await?;
-        let params = [time_value(Utc::now()), Value::Text(id.to_owned())];
+        let params = [time_value(clock::now()), Value::Text(id.to_owned())];
         self.db
             .call(move |conn| {
                 conn.execute(

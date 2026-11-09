@@ -1,4 +1,4 @@
-use chrono::Utc;
+use crate::clock;
 use rusqlite::Connection;
 use rusqlite::types::Value;
 
@@ -80,7 +80,7 @@ impl FileBoardsService {
             .maybe("kind", input.kind.map(enum_value))
             .maybe("color", input.color)
             .maybe("cover_item_id", input.cover_item_id)
-            .set("updated_at", time_value(Utc::now()));
+            .set("updated_at", time_value(clock::now()));
         let set = set.into_fragment();
         let mut params = set.params;
         params.push(Value::Text(id.to_owned()));
@@ -198,7 +198,7 @@ impl FileBoardsService {
             .maybe("taken_at", input.taken_at.map(time_opt))
             .maybe("tags", input.tags.as_deref().map(list_value))
             .maybe("linked_task_ids", input.linked_task_ids.as_deref().map(list_value))
-            .set("updated_at", time_value(Utc::now()));
+            .set("updated_at", time_value(clock::now()));
         let set = set.into_fragment();
         let mut params = set.params;
         params.push(Value::Text(id.to_owned()));

@@ -21,7 +21,7 @@ pub fn layer() -> CorsLayer {
         .allow_credentials(true)
 }
 
-/// tower-http answers preflights with `200`; `@fastify/cors` answers `204`.
+/// tower-http answers preflights with `200`; the renderer has always received `204`.
 pub async fn preflight_no_content(request: Request, next: Next) -> Response {
     let preflight = request.method() == Method::OPTIONS;
     let mut response = next.run(request).await;

@@ -1,5 +1,5 @@
 import { test as base, expect, _electron, request, type APIRequestContext, type ElectronApplication, type Page } from "@playwright/test"
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, symlinkSync, rmSync, renameSync } from "node:fs"
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, renameSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import type { ChildProcess } from "node:child_process"
@@ -41,7 +41,6 @@ export class Workspace {
     for (const directory of [this.launchDir, join(this.home, "resources"), join(this.home, "electron")]) mkdirSync(directory, { recursive: true })
     const metadata = JSON.parse(readFileSync("package.json", "utf8"))
     writeFileSync(join(this.launchDir, "package.json"), JSON.stringify({ name: metadata.name, version: metadata.version, main: resolve("e2e/support/main.cjs") }))
-    symlinkSync(resolve("api/drizzle"), join(this.home, "resources/migrations"), "dir")
     writeFileSync(join(this.home, "installed.AppImage"), "synthetic original artifact")
     writeFileSync(join(this.home, "clock"), "0")
     writeFileSync(join(this.home, "calls.jsonl"), "")

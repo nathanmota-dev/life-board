@@ -43,8 +43,8 @@ fn reports_every_issue_as_a_json_pointer() {
     let issues =
         paths(CreateTaskBody::parse(&json!({ "items": ["ok", " "], "focusDay": "19/10/2026", "tags": ["a", 1] })));
     assert_eq!(issues, ["/title", "/tags/1", "/focusDay", "/items/1"]);
-    assert_eq!(paths(CreateTaskBody::parse(&Value::Null)), [""]);
-    assert_eq!(paths(ReorderTasksBody::parse(&json!([]))), [""]);
+    assert_eq!(paths(CreateTaskBody::parse(&Value::Null)), ["/"]);
+    assert_eq!(paths(ReorderTasksBody::parse(&json!([]))), ["/"]);
     assert_eq!(paths(ReorderTasksBody::parse(&json!([{ "id": "", "order": 1 }]))), ["/0/id", "/0/pinned"]);
     assert_eq!(
         ReorderTasksBody::parse(&json!([{ "id": "a", "order": -1, "pinned": true }])).unwrap(),
@@ -53,11 +53,11 @@ fn reports_every_issue_as_a_json_pointer() {
 }
 
 #[test]
-fn trims_strings_and_counts_lengths_in_utf16_units() {
-    let body = CreateHabitBody::parse(&json!({ "name": "  Water ", "target": 1, "emoji": "💧".repeat(16) })).unwrap();
+fn trims_strings_and_counts_lengths_in_code_points() {
+    let body = CreateHabitBody::parse(&json!({ "name": "  Water ", "target": 1, "emoji": "💧".repeat(32) })).unwrap();
     assert_eq!(body.name, "Water");
     assert_eq!(
-        paths(CreateHabitBody::parse(&json!({ "name": "Water", "target": 1, "emoji": "💧".repeat(17) }))),
+        paths(CreateHabitBody::parse(&json!({ "name": "Water", "target": 1, "emoji": "💧".repeat(33) }))),
         ["/emoji"]
     );
     assert_eq!(paths(CreateHabitBody::parse(&json!({ "name": " ", "target": 1 }))), ["/name"]);

@@ -1,4 +1,4 @@
-//! Business rules and database access (`services/*.service.ts`).
+//! Business rules and database access.
 
 pub mod calendar;
 pub mod crypto;

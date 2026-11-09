@@ -19,13 +19,13 @@ function checkMacPackage(appPath, arch, name = "Life Board") {
   const contents = join(appPath, "Contents")
   checkMachO(join(contents, "MacOS", name), arch)
   checkMachO(join(contents, "Frameworks/Electron Framework.framework/Versions/A/Electron Framework"), arch)
-  // The utilityProcess backend runs in the plain helper; renderers and GPU in their own.
+  // Electron runs its network service in the plain helper; renderers and GPU in their own.
   for (const suffix of HELPERS) {
     const helper = `${name} Helper${suffix}`
     checkMachO(join(contents, "Frameworks", `${helper}.app`, "Contents/MacOS", helper), arch)
   }
   const resources = join(contents, "Resources")
-  checkMachO(join(resources, `app.asar.unpacked/node_modules/@libsql/darwin-${arch}/index.node`), arch)
+  checkMachO(join(resources, "bin/life-board-api"), arch)
   checkAppArchive(resources, "macOS")
 }
 

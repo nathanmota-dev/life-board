@@ -1,6 +1,6 @@
+use crate::clock;
 use serde::Serialize;
 
-use chrono::Utc;
 use rusqlite::params;
 
 use crate::db::columns::{
@@ -138,7 +138,7 @@ impl FileItem {
 
 /// Inserts one board with the column defaults filled in and returns it.
 pub fn insert_board(conn: &rusqlite::Connection, row: NewFileBoard) -> rusqlite::Result<FileBoard> {
-    let now = Utc::now();
+    let now = clock::now();
     conn.query_row(
         "INSERT INTO file_boards (id, name, description, kind, cover_item_id, color, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         params![
@@ -158,7 +158,7 @@ pub fn insert_board(conn: &rusqlite::Connection, row: NewFileBoard) -> rusqlite:
 
 /// Inserts one item with the column defaults filled in and returns it.
 pub fn insert_item(conn: &rusqlite::Connection, row: NewFileItem) -> rusqlite::Result<FileItem> {
-    let now = Utc::now();
+    let now = clock::now();
     conn.query_row(
         "INSERT INTO file_items (id, board_id, kind, title, notes, mime, size_bytes, storage_path, taken_at, amount_cents, currency, tags, linked_task_ids, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         params![

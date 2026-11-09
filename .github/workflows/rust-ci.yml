@@ -18,17 +18,13 @@ env:
 
 jobs:
   checks:
-    name: Format, lint and test parity
+    name: Format and lint
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24.18.0
-          cache: npm
       - name: Install the toolchain from rust-toolchain.toml
         run: rustup toolchain install
       - uses: actions/cache@v4
@@ -40,16 +36,11 @@ jobs:
             target/
           key: cargo-checks-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
           restore-keys: cargo-checks-${{ runner.os }}-
-      # The parity script only needs TypeScript's parser; skip the Electron download.
-      - run: npm ci --ignore-scripts --prefer-offline --no-audit
       - name: Format
         run: cargo fmt --all --check
       - name: Clippy
         if: ${{ !cancelled() }}
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
-      - name: Test parity with the Node suite
-        if: ${{ !cancelled() }}
-        run: npm run test:parity
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
   test:
     name: Tests (${{ matrix.os }})
@@ -57,7 +48,7 @@ jobs:
       fail-fast: false
       matrix:
         # Paths, file storage and SQLite behavior depend on the OS; this is the
-        # backend port's only Windows and macOS coverage.
+        # backend's only Windows and macOS coverage.
         os: [ubuntu-24.04, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
@@ -78,7 +69,7 @@ jobs:
           restore-keys: cargo-test-${{ runner.os }}-
       - name: Test
         run: cargo test --workspace --locked
-      # Day keys use the local time zone, like date.service.ts.
+      # Day keys use the local time zone.
       - name: Test in America/Sao_Paulo
         if: ${{ runner.os != 'Windows' }}
         env:
