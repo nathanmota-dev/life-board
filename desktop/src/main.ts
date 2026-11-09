@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron"
 import icon from "../resources/icon.png?asset"
-import { registerAppLifecycle, trackMainWindowClose } from "./app-lifecycle"
+import { isClosingToTray, registerAppLifecycle, trackMainWindowClose } from "./app-lifecycle"
 import { startBackend } from "./backend"
 import type { Backend } from "./backend"
 import { registerCaptureShortcut, unregisterCaptureShortcut } from "./capture-window"
@@ -49,6 +49,8 @@ function createWindow(route?: string) {
     trackWindowState(window, dataDir)
   })
   void loadRenderer(window, route).catch((error: unknown) => {
+    // The load rejects before the window reports being destroyed.
+    if (isClosingToTray(window)) return
     console.error("Não foi possível carregar a interface:", error)
     app.quit()
   })
