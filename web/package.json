@@ -5,7 +5,9 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "benchmark": "vitest bench --run --config vitest.benchmark.config.ts",
+    "benchmark:ci": "npm run benchmark -- --reporter=json --outputFile=../reports/benchmarks/web.json"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

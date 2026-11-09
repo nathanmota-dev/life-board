@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "generatedFromCommit": "64f72ed3170b",
+  "languages": {
+    "api": "typescript",
+    "web": "typescript"
+  },
+  "runtime": {
+    "node": "v24.18.0",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "policy": {
+    "maxRegressionPercent": 20
+  },
+  "projects": {
+    "api": {
+      "benchmarks": {
+        "benchmarks/date.bench.ts > date helpers > 10000 day key conversions": {
+          "hz": 1916.3969778963187,
+          "mean": 0.5251856598425187,
+          "median": 0.5121299999999565,
+          "rme": 0.4156576155462299,
+          "sampleCount": 1905
+        },
+        "benchmarks/date.bench.ts > date helpers > 10000 day key round trips with week start": {
+          "hz": 199.68240600623585,
+          "mean": 5.0121578300000005,
+          "median": 4.9782515000001695,
+          "rme": 0.42457900605020116,
+          "sampleCount": 200
+        }
+      }
+    },
+    "web": {
+      "benchmarks": {
+        "benchmarks/parse-capture.bench.ts > quick capture parsing > 1000 captures with dates, priorities and tags": {
+          "hz": 212.22091534054684,
+          "mean": 4.750296957345966,
+          "median": 4.5802309999999125,
+          "rme": 1.438934214164194,
+          "sampleCount": 211
+        },
+        "benchmarks/tasks.bench.ts > task ordering > group 2000 board tasks": {
+          "hz": 27877.63960355604,
+          "mean": 0.03835885051783648,
+          "median": 0.0318609999999353,
+          "rme": 0.41870731394593236,
+          "sampleCount": 26070
+        },
+        "benchmarks/tasks.bench.ts > task ordering > sort 2000 list tasks": {
+          "hz": 314.98848382076426,
+          "mean": 3.186417652866255,
+          "median": 3.122663999999986,
+          "rme": 0.761602262953803,
+          "sampleCount": 314
+        }
+      }
+    }
+  }
+}

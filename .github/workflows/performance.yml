@@ -1,0 +1,259 @@
+name: Performance
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  electron_config_cache: ${{ github.workspace }}/.cache/electron
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+
+jobs:
+  evaluate:
+    name: Microbenchmarks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Detect benchmark-relevant changes
+        id: changes
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          api_changed=false
+          web_changed=false
+
+          if [[ -z "$BASE_SHA" ]]; then
+            api_changed=true
+            web_changed=true
+          fi
+
+          while IFS= read -r file; do
+            case "$file" in
+              api/*|src-tauri/*|Cargo.toml|Cargo.lock|rust-toolchain.toml|rustfmt.toml|clippy.toml)
+                api_changed=true
+                ;;
+              web/*|.github/workflows/frontend-ci.yml)
+                web_changed=true
+                ;;
+              scripts/benchmark-*|scripts/run-rust-benchmark*|.github/workflows/performance.yml)
+                api_changed=true
+                web_changed=true
+                ;;
+            esac
+          done < <([[ -n "$BASE_SHA" ]] && git diff --no-renames --name-only "$BASE_SHA" "$HEAD_SHA")
+
+          projects=()
+          [[ "$api_changed" == "true" ]] && projects+=("api")
+          [[ "$web_changed" == "true" ]] && projects+=("web")
+          projects_csv=$(IFS=,; echo "${projects[*]}")
+
+          {
+            echo "api=$api_changed"
+            echo "web=$web_changed"
+            echo "projects=$projects_csv"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.18.0
+          cache: npm
+
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_CACHE }}
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install the toolchain from rust-toolchain.toml
+        if: hashFiles('Cargo.toml') != ''
+        run: rustup toolchain install
+
+      - name: Cache Cargo downloads and builds
+        if: hashFiles('Cargo.toml') != ''
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-bench-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          restore-keys: cargo-bench-${{ runner.os }}-
+
+      - name: Prepare report directories
+        run: mkdir -p reports/benchmarks
+
+      # Measured on this same runner so hardware differences do not skew the
+      # comparison, and built by the base commit's own gate.
+      - name: Measure base benchmarks on this runner
+        id: base_benchmarks
+        continue-on-error: true
+        shell: bash
+        run: |
+          base_sha=$(git rev-parse HEAD^1)
+          if ! git cat-file -e "${base_sha}:scripts/benchmark-gate.js"; then
+            echo "BENCHMARK_BASELINE_PATH=$GITHUB_WORKSPACE/scripts/benchmark-baseline.json" >> "$GITHUB_ENV"
+            echo "BENCHMARK_BASELINE_LABEL=bootstrap:scripts/benchmark-baseline.json" >> "$GITHUB_ENV"
+            echo "BENCHMARK_BASELINE_TRUSTED=false" >> "$GITHUB_ENV"
+            echo "::notice::The base branch has no benchmark gate yet; capturing a non-blocking reference."
+            exit 0
+          fi
+
+          base_tree="$RUNNER_TEMP/base-tree"
+          git worktree add --detach "$base_tree" "$base_sha"
+          (cd "$base_tree" && npm ci --prefer-offline --no-audit && mkdir -p reports/benchmarks && npm run benchmark:ci)
+          (cd "$base_tree" && BENCHMARK_COMMIT="${base_sha:0:12}" node scripts/benchmark-gate.js --bootstrap --projects api,web > /dev/null)
+
+          baseline_path="$RUNNER_TEMP/benchmark-baseline.json"
+          cp "$base_tree/reports/benchmark-candidate-baseline.json" "$baseline_path"
+          {
+            echo "BENCHMARK_BASELINE_PATH=$baseline_path"
+            echo "BENCHMARK_BASELINE_LABEL=base@${base_sha:0:12} measured on this runner"
+            echo "BENCHMARK_BASELINE_TRUSTED=true"
+          } >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        id: install
+        if: steps.changes.outputs.projects != ''
+        continue-on-error: true
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Run API microbenchmarks
+        id: benchmark_api
+        if: steps.changes.outputs.api == 'true' && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run benchmark:api
+
+      - name: Run web microbenchmarks
+        id: benchmark_web
+        if: steps.changes.outputs.web == 'true' && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run benchmark:web
+
+      - name: Test benchmark gate
+        id: test_benchmark_gate
+        if: always()
+        continue-on-error: true
+        run: node --test scripts/benchmark-gate.test.js scripts/run-rust-benchmark.test.js
+
+      - name: Compare benchmark results
+        id: benchmark_gate
+        if: >-
+          always()
+          && steps.base_benchmarks.outcome == 'success'
+          && (steps.changes.outputs.api != 'true' || steps.benchmark_api.outcome == 'success')
+          && (steps.changes.outputs.web != 'true' || steps.benchmark_web.outcome == 'success')
+        continue-on-error: true
+        env:
+          SELECTED_PROJECTS: ${{ steps.changes.outputs.projects }}
+        shell: bash
+        run: |
+          args=(--projects "$SELECTED_PROJECTS")
+          if [[ "$BENCHMARK_BASELINE_TRUSTED" != "true" ]]; then
+            args+=(--bootstrap)
+          fi
+          node scripts/benchmark-gate.js "${args[@]}"
+
+      - name: Compose performance report
+        if: always()
+        env:
+          API_CHANGED: ${{ steps.changes.outputs.api }}
+          WEB_CHANGED: ${{ steps.changes.outputs.web }}
+          INSTALL: ${{ steps.install.outcome }}
+          BENCHMARK_API: ${{ steps.benchmark_api.outcome }}
+          BENCHMARK_WEB: ${{ steps.benchmark_web.outcome }}
+          BASE_BENCHMARKS: ${{ steps.base_benchmarks.outcome }}
+          TEST_BENCHMARK_GATE: ${{ steps.test_benchmark_gate.outcome }}
+          BENCHMARK_GATE: ${{ steps.benchmark_gate.outcome }}
+        shell: bash
+        run: |
+          failures=()
+          [[ "$TEST_BENCHMARK_GATE" == "success" ]] || failures+=("benchmark-gate tests")
+          [[ "$BASE_BENCHMARKS" == "success" ]] || failures+=("base benchmarks")
+          [[ "$BENCHMARK_GATE" == "success" ]] || failures+=("benchmark comparison")
+          if [[ "$API_CHANGED" == "true" ]]; then
+            [[ "$INSTALL" == "success" ]] || failures+=("npm ci")
+            [[ "$BENCHMARK_API" == "success" ]] || failures+=("API microbenchmarks")
+          fi
+          if [[ "$WEB_CHANGED" == "true" ]]; then
+            [[ "$INSTALL" == "success" ]] || failures+=("npm ci")
+            [[ "$BENCHMARK_WEB" == "success" ]] || failures+=("web microbenchmarks")
+          fi
+
+          if (( ${#failures[@]} > 0 )); then
+            printf '%s\n' "${failures[@]}" > reports/blocking-failures.txt
+            status="**FAIL** — Blocking checks failed: ${failures[*]}."
+          else
+            : > reports/blocking-failures.txt
+            status="**PASS** — All blocking performance checks passed."
+          fi
+
+          {
+            echo "# PR Performance"
+            echo
+            echo "$status"
+            echo
+            echo "| Check | Result | Selected |"
+            echo "|---|---|---:|"
+            echo "| API microbenchmarks | \`$BENCHMARK_API\` | $API_CHANGED |"
+            echo "| Web microbenchmarks | \`$BENCHMARK_WEB\` | $WEB_CHANGED |"
+            echo "| Base benchmarks (this runner) | \`$BASE_BENCHMARKS\` | Always |"
+            echo "| Benchmark-gate tests | \`$TEST_BENCHMARK_GATE\` | Always |"
+            echo "| Baseline comparison | \`$BENCHMARK_GATE\` | Always |"
+            echo
+            echo "---"
+            echo
+            if [[ -f reports/performance.md ]]; then
+              cat reports/performance.md
+            else
+              echo "**ERROR** — The performance report was not generated. Inspect the workflow logs."
+            fi
+          } > reports/pr-performance.md
+          mv reports/pr-performance.md reports/performance.md
+          cat reports/performance.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload performance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-pr-${{ github.event.pull_request.number || 'manual' }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            reports/benchmarks/
+            reports/performance.md
+            reports/performance.json
+            reports/benchmark-candidate-baseline.json
+            scripts/benchmark-current.json
+
+      - name: Enforce blocking performance checks
+        if: always()
+        shell: bash
+        run: |
+          if [[ ! -f reports/blocking-failures.txt ]]; then
+            echo "The performance report step did not run."
+            exit 1
+          fi
+          if [[ -s reports/blocking-failures.txt ]]; then
+            echo "Blocking performance checks failed:"
+            cat reports/blocking-failures.txt
+            exit 1
+          fi

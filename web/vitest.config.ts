@@ -12,9 +12,9 @@ export default defineConfig({
     environment: "jsdom",
     coverage: {
       provider: "v8",
-      reporter: ["text", "html", "json-summary"],
+      reporter: ["text", "html", "json-summary", "json"],
       include: ["src/**/*.{ts,tsx}"],
-      exclude: ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**", "src/routeTree.gen.ts"],
+      exclude: ["src/**/*.{test,spec}.{ts,tsx}", "src/**/*.d.ts", "src/test/**", "src/routeTree.gen.ts"],
     },
     // Native hosted runners, especially macOS Intel, render interaction-heavy
     // jsdom tests more slowly. Keep a bounded CI budget without dropping checks.

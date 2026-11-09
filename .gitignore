@@ -9,4 +9,6 @@ release/
 coverage/
 playwright-report/
 test-results/
+reports/
+scripts/benchmark-current.json
 .cache/

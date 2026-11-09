@@ -1,0 +1,314 @@
+name: PR Quality Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-gate-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  electron_config_cache: ${{ github.workspace }}/.cache/electron
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+
+jobs:
+  evaluate:
+    name: Audit & Quality Metrics
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.18.0
+          cache: npm
+
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ELECTRON_CACHE }}
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install the toolchain from rust-toolchain.toml
+        if: hashFiles('Cargo.toml') != ''
+        run: rustup toolchain install
+
+      - name: Install cargo tools
+        if: hashFiles('Cargo.toml') != ''
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov@0.9.0,cargo-audit
+
+      - name: Cache Cargo downloads and builds
+        if: hashFiles('Cargo.toml') != ''
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-quality-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          restore-keys: cargo-quality-${{ runner.os }}-
+
+      - name: Prepare report directory
+        run: mkdir -p reports
+
+      - name: Enforce validation policy immutability
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          # The PR that introduces the reporter establishes this policy; later PRs
+          # cannot change the protected inputs without explicit approval.
+          if ! git cat-file -e "${BASE_SHA}:.github/workflows/pr-validation.yml"; then
+            echo "Validation policy bootstrap: protected paths are being introduced."
+            exit 0
+          fi
+
+          # The list and its matcher come from the base commit, so a pull request
+          # cannot shrink the list it is checked against.
+          trusted="$RUNNER_TEMP/trusted-policy"
+          mkdir -p "$trusted"
+          git show "${BASE_SHA}:scripts/protected-paths.json" > "$trusted/protected-paths.json"
+          git show "${BASE_SHA}:scripts/pr-validation.js" > "$trusted/pr-validation.js"
+          git diff --no-renames --name-only "${BASE_SHA}" "${HEAD_SHA}" > "$trusted/changed-paths.txt"
+          node -e '
+            const fs = require("node:fs");
+            const trusted = process.argv[1];
+            const { findProtectedChanges, isApprovedInfrastructureChange } = require(`${trusted}/pr-validation.js`);
+            const policy = require(`${trusted}/protected-paths.json`);
+            const violations = findProtectedChanges(fs.readFileSync(`${trusted}/changed-paths.txt`, "utf8").split("\n"), policy);
+            if (violations.length === 0) process.exit(0);
+            console.log(`Protected validation paths changed: ${violations.join(" ")}`);
+            if (isApprovedInfrastructureChange({
+              labels: JSON.parse(process.env.LABELS),
+              headBranch: process.env.HEAD_BRANCH,
+              headRepository: process.env.HEAD_REPOSITORY,
+              repository: process.env.GITHUB_REPOSITORY,
+            })) {
+              console.log("Approved validation-infrastructure change; all quality checks remain required.");
+              process.exit(0);
+            }
+            console.log("::error::Protected changes require a same-repository ci/ branch and the validation-infrastructure-approved label.");
+            process.exit(1);
+          ' "$trusted"
+
+      # The trusted reference is the merge commit's first parent: the commit this
+      # pull request lands on, measured on this runner with that commit's own
+      # scripts. Every delta is therefore this pull request's own.
+      - name: Measure trusted base metrics on this runner
+        id: base_metrics
+        continue-on-error: true
+        shell: bash
+        run: |
+          base_sha=$(git rev-parse HEAD^1)
+          echo "QUALITY_GATE_DIFF_BASE=$base_sha" >> "$GITHUB_ENV"
+          if ! git cat-file -e "${base_sha}:scripts/quality-gate.js"; then
+            echo "QUALITY_GATE_BASELINE_PATH=$GITHUB_WORKSPACE/scripts/baseline.json" >> "$GITHUB_ENV"
+            echo "QUALITY_GATE_BASELINE_LABEL=bootstrap:scripts/baseline.json" >> "$GITHUB_ENV"
+            echo "::notice::The base branch has no quality gate yet; using the checked-in bootstrap baseline."
+            exit 0
+          fi
+
+          base_tree="$RUNNER_TEMP/base-tree"
+          git worktree add --detach "$base_tree" "$base_sha"
+          (cd "$base_tree" && npm ci --prefer-offline --no-audit && npm run test:coverage:ci)
+
+          # Exit 1 only says the base differs from its own checked-in baseline;
+          # its measured metrics are still written. Exit 2 means they are not.
+          status=0
+          (cd "$base_tree" && QUALITY_GATE_DIFF_BASE="$base_sha" node scripts/quality-gate.js > "$RUNNER_TEMP/base-quality-gate.log" 2>&1) || status=$?
+          if (( status > 1 )) || [[ ! -f "$base_tree/reports/candidate-baseline.json" ]]; then
+            cat "$RUNNER_TEMP/base-quality-gate.log"
+            echo "::error::Base metrics could not be collected (exit $status)."
+            exit 1
+          fi
+
+          cp "$base_tree/reports/candidate-baseline.json" "$RUNNER_TEMP/quality-gate-baseline.json"
+          echo "QUALITY_GATE_BASELINE_PATH=$RUNNER_TEMP/quality-gate-baseline.json" >> "$GITHUB_ENV"
+          echo "QUALITY_GATE_BASELINE_LABEL=base@${base_sha:0:12} measured on this runner" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        id: install
+        continue-on-error: true
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Critical npm audit
+        id: audit_critical
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            if npm audit --workspaces --include-workspace-root --audit-level=critical --fetch-timeout=120000 --fetch-retries=0 | tee reports/npm-audit-critical.txt; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              echo "::warning::Audit attempt $attempt failed; retrying in 10 seconds"
+              sleep 10
+            fi
+          done
+          exit 1
+
+      - name: High npm audit (warning only)
+        id: audit_high
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          npm audit --workspaces --include-workspace-root --audit-level=high --fetch-timeout=120000 --fetch-retries=2 | tee reports/npm-audit-high.txt
+
+      - name: Rust dependency audit
+        id: audit_rust
+        if: always() && hashFiles('Cargo.lock') != ''
+        continue-on-error: true
+        run: cargo audit
+
+      - name: Lint Electron, E2E and tooling
+        id: lint_desktop
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run lint:backend -- --max-warnings=0
+
+      - name: Typecheck Electron and E2E
+        id: typecheck
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run typecheck:backend
+
+      - name: Tests with coverage
+        id: coverage
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run test:coverage:ci
+
+      - name: Test quality gate
+        id: test_quality_gate
+        if: always()
+        continue-on-error: true
+        run: npm run test:quality
+
+      - name: Collect and compare quality metrics
+        id: quality_gate
+        if: >-
+          always()
+          && steps.base_metrics.outcome == 'success'
+          && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: node scripts/quality-gate.js
+
+      - name: Compose PR quality report
+        if: always()
+        env:
+          BASE_METRICS: ${{ steps.base_metrics.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          AUDIT_CRITICAL: ${{ steps.audit_critical.outcome }}
+          AUDIT_HIGH: ${{ steps.audit_high.outcome }}
+          AUDIT_RUST: ${{ steps.audit_rust.outcome }}
+          LINT_DESKTOP: ${{ steps.lint_desktop.outcome }}
+          TYPECHECK: ${{ steps.typecheck.outcome }}
+          COVERAGE: ${{ steps.coverage.outcome }}
+          TEST_QUALITY_GATE: ${{ steps.test_quality_gate.outcome }}
+          QUALITY_GATE: ${{ steps.quality_gate.outcome }}
+        shell: bash
+        run: |
+          # Rust steps are skipped while the repository has no Cargo workspace.
+          checks=(
+            "Base metrics (this runner)|$BASE_METRICS|Yes"
+            "npm ci|$INSTALL|Yes"
+            "Critical npm audit|$AUDIT_CRITICAL|Yes"
+            "High npm audit|$AUDIT_HIGH|No (warning)"
+            "Rust dependency audit|$AUDIT_RUST|When Rust exists"
+            "Electron, E2E and tooling lint|$LINT_DESKTOP|Yes"
+            "Electron and E2E typecheck|$TYPECHECK|Yes"
+            "Tests with coverage|$COVERAGE|Yes"
+            "Quality-gate tests|$TEST_QUALITY_GATE|Yes"
+            "Quality metric comparison|$QUALITY_GATE|Yes"
+          )
+          failures=()
+          table=""
+          for entry in "${checks[@]}"; do
+            IFS='|' read -r name result blocking <<< "$entry"
+            table+="| $name | \`$result\` | $blocking |"$'\n'
+            if [[ "$blocking" == "Yes" && "$result" != "success" ]]; then failures+=("$name"); fi
+            if [[ "$blocking" == "When Rust exists" && "$result" != "success" && "$result" != "skipped" ]]; then failures+=("$name"); fi
+          done
+
+          if (( ${#failures[@]} > 0 )); then
+            printf '%s\n' "${failures[@]}" > reports/blocking-failures.txt
+            status="**FAIL** — One or more blocking workflow checks failed."
+          else
+            : > reports/blocking-failures.txt
+            status="**PASS** — All blocking workflow checks passed."
+          fi
+
+          {
+            echo "# PR Quality Gate"
+            echo
+            echo "$status"
+            echo
+            echo "## Workflow checks"
+            echo
+            echo "| Check | Result | Blocking |"
+            echo "|---|---|---:|"
+            printf '%s' "$table"
+            echo
+            echo "---"
+            echo
+            if [[ -f reports/quality-gate.md ]]; then
+              cat reports/quality-gate.md
+            else
+              echo "**ERROR** — The quality report was not generated. Inspect the failed steps above."
+            fi
+          } > reports/pr-quality-gate.md
+          mv reports/pr-quality-gate.md reports/quality-gate.md
+          cat reports/quality-gate.md >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$AUDIT_HIGH" == "failure" ]]; then
+            echo "::warning::A high-severity npm audit did not pass. Inspect the audit report; this warning does not block the gate."
+          fi
+
+      - name: Upload quality artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gate-pr-${{ github.event.pull_request.number || 'manual' }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            api/coverage/
+            desktop/coverage/
+            web/coverage/
+            coverage/
+            reports/
+
+      - name: Enforce blocking checks
+        if: always()
+        shell: bash
+        run: |
+          if [[ ! -f reports/blocking-failures.txt ]]; then
+            echo "The quality report step did not run."
+            exit 1
+          fi
+          if [[ -s reports/blocking-failures.txt ]]; then
+            echo "Blocking quality checks failed:"
+            cat reports/blocking-failures.txt
+            exit 1
+          fi

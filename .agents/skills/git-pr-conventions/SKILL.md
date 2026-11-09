@@ -136,15 +136,13 @@ Write the description in English. Keep the content factual and use bullets for b
 - `<command>` — <passed, failed, or not run with a reason>
 ```
 
-For any repository or source change, follow the root `AGENTS.md`. The current repository requires this complete validation sequence; read [quality-gate-safe-delivery](../quality-gate-safe-delivery/SKILL.md) before running it:
+For any repository or source change, follow the root `AGENTS.md`. The root `AGENTS.md` checklist includes this quality sequence; read [quality-gate-safe-delivery](../quality-gate-safe-delivery/SKILL.md) before running it:
 
 ```text
-npm --prefix backend run test:coverage:ci
-npm --prefix frontend run test:coverage:ci
+npm run test:quality
+npm run test:coverage:ci
 node scripts/quality-gate.js
-npm --prefix backend run benchmark:ci
-npm --prefix frontend run benchmark:ci
-node scripts/benchmark-gate.test.js
+npm run benchmark:ci
 node scripts/benchmark-gate.js
 ```
 

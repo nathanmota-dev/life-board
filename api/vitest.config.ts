@@ -10,6 +10,7 @@ export default defineConfig({
     hookTimeout: 30_000,
     coverage: {
       provider: "v8",
+      reporter: ["text", "json-summary", "json"],
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.test.ts", "src/test/**"],
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },

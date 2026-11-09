@@ -27,7 +27,7 @@ Life Board is a personal Electron desktop app for organizing and tracking everyt
 
 Before implementing or modifying any code, read and follow all instructions in ./RULES.md.
 
-When a task requires creating a Git branch, commit, or pull request, follow the `git-pr-conventions` skill at `.agents/skills/git-pr-conventions/SKILL.md`. That skill came from another project: its validation commands (`npm --prefix backend …`, `scripts/quality-gate.js`, benchmarks) do not exist here. Use the checklist below instead and list it under **Validation** in the PR.
+When a task requires creating a Git branch, commit, or pull request, follow the `git-pr-conventions` skill at `.agents/skills/git-pr-conventions/SKILL.md`. List the checklist below under **Validation** in the PR. Before running it, read and follow `.agents/skills/quality-gate-safe-delivery/SKILL.md`, which defines the implementation scope and the rules for handling regressions.
 
 ## Mandatory verification before completing a task
 
@@ -38,6 +38,11 @@ npm ci
 npm run typecheck
 npm test
 npm run test:coverage
+npm run test:quality
+npm run test:coverage:ci
+node scripts/quality-gate.js
+npm run benchmark:ci
+node scripts/benchmark-gate.js
 npm run test:e2e:infra
 npm run test:e2e
 npm run package:linux
@@ -55,6 +60,7 @@ Use Node.js 22.12 or newer (CI uses 24.18.0) on Linux x64.
 - `npm run typecheck` checks the desktop, frontend, API and E2E projects.
 - `npm test` runs the desktop, frontend and API unit tests.
 - `npm run test:coverage` runs the API suite with coverage and fails below 80% for lines, functions, branches or statements.
+- `npm run test:quality` tests the gate scripts. `npm run test:coverage:ci` writes the coverage reports that `node scripts/quality-gate.js` compares; `npm run benchmark:ci` writes the results that `node scripts/benchmark-gate.js` compares. Inspect `reports/quality-gate.md` and `reports/performance.md`. See `docs/qualidade.md`.
 - `npm run test:e2e:infra` tests the E2E launcher; `npm run test:e2e` rebuilds production output and runs the Playwright suite against the real Electron app with Xvfb, D-Bus, an isolated keyring and temporary profiles. It needs `xvfb`, `xauth`, `dbus-x11` and `gnome-keyring`; see `docs/e2e.md`. If a Playwright worker crashes (for example `SIGSEGV`), rerun the full suite and report both runs; a pass of only the failed spec does not count.
 - `npm run package:linux` already runs `npm run build` (and therefore the typecheck); a separate `npm run build` is not an extra required check. It generates the DEB, AppImage and `latest-linux.yml` in `release/` and must load `@libsql/linux-x64-gnu` in the `after-pack` hook. Never publish these artifacts.
 - `release-checks.mts assets release` validates names, sizes, the feed's SHA-512 and the SHA-256 list. `dpkg-deb` must show package `life-board` for amd64, the migrations and the unpacked native module.
@@ -68,6 +74,44 @@ Additional checks that apply only to some changes:
 - **Migrations:** besides the suites above, confirm that a profile created by the previous version opens and keeps its data.
 
 Fix verification failures and rerun the affected checks before completing the task. In the final response and in the PR, list each command with its real result. If an environment problem prevents a required check from running or passing, name the blocked check and the reason; never silently skip it or claim that verification passed. Do not open a PR while a required check is failing or blocked unless the user explicitly accepts it.
+
+### Protected validation policy
+
+These files define the gates, baselines, benchmarks and PR report. `scripts/protected-paths.json` is the machine-readable source; the workflows read it from the trusted base or default branch, and a test keeps this list in sync with it. After the policy is on the base branch, a pull request that changes them needs a same-repository `ci/` branch and the `validation-infrastructure-approved` label:
+
+- `AGENTS.md`
+- `.agents/skills/quality-gate-safe-delivery/SKILL.md`
+- `scripts/protected-paths.json`
+- `scripts/baseline.json`
+- `scripts/benchmark-baseline.json`
+- `scripts/quality-gate.js`
+- `scripts/quality-gate.test.js`
+- `scripts/diff-coverage.js`
+- `scripts/diff-coverage.test.js`
+- `scripts/check-test-markers.js`
+- `scripts/check-test-markers.test.js`
+- `scripts/benchmark-gate.js`
+- `scripts/benchmark-gate.test.js`
+- `scripts/run-rust-benchmark.js`
+- `scripts/run-rust-benchmark.test.js`
+- `scripts/pr-validation.js`
+- `scripts/pr-validation.test.js`
+- `.github/workflows/frontend-ci.yml`
+- `.github/workflows/e2e.yml`
+- `.github/workflows/quality-gate.yml`
+- `.github/workflows/performance.yml`
+- `.github/workflows/pr-validation.yml`
+- `clippy.toml`
+- `package.json`
+- `api/package.json`
+- `web/package.json`
+- `api/vitest.config.ts`
+- `web/vitest.config.ts`
+- `desktop/vitest.config.ts`
+- `api/vitest.benchmark.config.ts`
+- `web/vitest.benchmark.config.ts`
+- `api/benchmarks/**`
+- `web/benchmarks/**`
 
 ### Exceptions
 

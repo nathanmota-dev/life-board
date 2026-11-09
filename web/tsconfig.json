@@ -14,5 +14,5 @@
     "forceConsistentCasingInFileNames": true,
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src", "vitest.config.ts"]
+  "include": ["src", "vitest.config.ts", "benchmarks", "vitest.benchmark.config.ts"]
 }
