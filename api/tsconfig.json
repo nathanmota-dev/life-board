@@ -11,5 +11,5 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts", "vitest.config.ts", "drizzle.config.ts"]
+  "include": ["src/**/*.ts", "vitest.config.ts", "drizzle.config.ts", "benchmarks", "vitest.benchmark.config.ts"]
 }
