@@ -30,7 +30,7 @@ async fn opens_the_database_exactly_at(#[case] folder: &str) {
     database.close().await.unwrap();
 }
 
-// Node encodes the path into a libsql `file:` URL. rusqlite takes the path
+// Node encoded the path into a `file:` URL. rusqlite takes the path
 // itself, so the equivalent is opening without SQLite's URI parsing: a path
 // is never read as `file:<path>?<query>#<fragment>` or an `//authority`.
 #[rstest]
@@ -40,7 +40,7 @@ async fn opens_the_database_exactly_at(#[case] folder: &str) {
 #[case::double_slash("//home/user/.config/life-board-app/life-board.db")]
 #[case::macos_profile("/Users/me/Library/Application Support/life-board-app/life-board.db")]
 #[test]
-fn keeps_intact_for_libsql(#[case] path: &str) {
+fn keeps_the_path_intact(#[case] path: &str) {
     assert!(!open_flags().contains(OpenFlags::SQLITE_OPEN_URI));
     assert_eq!(Path::new(path).to_str(), Some(path));
 }

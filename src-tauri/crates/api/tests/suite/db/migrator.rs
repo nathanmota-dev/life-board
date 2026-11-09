@@ -19,7 +19,7 @@ struct JournalEntry {
 }
 
 fn drizzle_folder() -> std::path::PathBuf {
-    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../api/drizzle")
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("migrations")
 }
 
 fn recorded(path: &std::path::Path) -> Vec<(String, i64)> {

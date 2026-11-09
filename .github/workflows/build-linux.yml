@@ -81,6 +81,22 @@ jobs:
           key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
           restore-keys: electron-builder-${{ runner.os }}-${{ runner.arch }}-
 
+      - name: Install the toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+      - name: Cache Cargo downloads and builds
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-package-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          restore-keys: cargo-package-${{ runner.os }}-
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov@0.9.0
+
       - name: Verify toolchain
         run: |
           node -e 'if (process.versions.node !== "24.18.0" || process.platform !== "linux" || process.arch !== "x64") process.exit(1)'
@@ -126,10 +142,11 @@ jobs:
           contents=$(dpkg-deb --contents "$deb")
           for path in "./opt/Life Board/life-board-app" "./opt/Life Board/resources/app.asar" \
             "./opt/Life Board/resources/app-update.yml" "./opt/Life Board/resources/package-type" \
-            "./opt/Life Board/resources/migrations/meta/_journal.json" \
+            "./opt/Life Board/resources/bin/life-board-api" \
             ./usr/share/applications/life-board-app.desktop ./usr/share/icons/hicolor/1024x1024/apps/life-board-app.png; do
             grep -qF " $path" <<<"$contents" || { echo "::error::Missing $path"; exit 1; }
           done
+          if grep -q 'app.asar.unpacked/node_modules' <<<"$contents"; then echo "::error::The package still ships native Node modules"; exit 1; fi
 
       - name: Install DEB and smoke test
         run: |

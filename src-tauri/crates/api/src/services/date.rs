@@ -1,11 +1,11 @@
-//! Local calendar days (`date.service.ts`), using the process time zone like `Date`.
+//! Local calendar days, using the process time zone like `Date`.
 
 use chrono::{Datelike, Duration, Local, NaiveDate, NaiveTime};
 
 use crate::db::columns::Timestamp;
 use crate::dto::common::local_to_utc;
 
-/// Local calendar day as `YYYY-MM-DD` (`toDayKey`; pass `Utc::now()` for today).
+/// Local calendar day as `YYYY-MM-DD` (`toDayKey`; pass `clock::now()` for today).
 pub fn to_day_key(date: Timestamp) -> String {
     date.with_timezone(&Local).format("%Y-%m-%d").to_string()
 }

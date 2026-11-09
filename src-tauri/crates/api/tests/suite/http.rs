@@ -1,6 +1,6 @@
-//! Rust-only: the request and routing edges that Fastify handled for the Node
-//! API (body parsing, query coercion, unknown routes, HEAD), so the Rust
-//! router answers them with the same status and `error` code.
+//! Rust-only: the request and routing edges the Node API's framework handled
+//! (body parsing, query coercion, unknown routes, HEAD), kept with the same
+//! status and `error` code.
 
 use axum::body::Body;
 use axum::http::{Method, Request};
@@ -19,7 +19,7 @@ fn raw(method: Method, uri: &str, content_type: Option<&str>, body: impl Into<Bo
 }
 
 #[tokio::test]
-async fn rejects_unreadable_json_bodies_with_fastify_codes() {
+async fn rejects_unreadable_json_bodies_with_node_api_codes() {
     let ctx = TestApp::new().await;
     let cases = [
         (Some("application/json"), "", 400, "FST_ERR_CTP_EMPTY_JSON_BODY"),
@@ -56,6 +56,9 @@ async fn reports_validation_issues_as_json_pointers() {
     let reorder = ctx.patch("/api/tasks/order", json!([{ "id": "a", "order": 1.5, "pinned": true }])).await;
     assert_eq!(pluck(&reorder.json()["issues"], "path"), [json!("/0/order")]);
 
+    let root = ctx.patch("/api/tasks/order", json!([])).await;
+    assert_eq!(pluck(&root.json()["issues"], "path"), [json!("/")]);
+
     let query = ctx.get("/api/tasks?limit=1000").await;
     assert_eq!((query.status(), pluck(&query.json()["issues"], "path")), (400, vec![json!("/limit")]));
     let repeated = ctx.get("/api/tasks?search=a&search=b").await;
@@ -63,7 +66,7 @@ async fn reports_validation_issues_as_json_pointers() {
 }
 
 #[tokio::test]
-async fn answers_unknown_routes_and_methods_like_fastify() {
+async fn answers_unknown_routes_and_methods_like_the_node_api() {
     let ctx = TestApp::new().await;
 
     let unknown = ctx.get("/api/nope?x=1").await;
@@ -115,7 +118,7 @@ async fn upload(ctx: &TestApp, board: &str, parts: &[String]) -> crate::common::
 }
 
 #[tokio::test]
-async fn limits_uploads_like_fastify_multipart() {
+async fn limits_uploads_like_the_node_api() {
     let ctx = TestApp::new().await;
     let board = upload_board(&ctx).await;
     let content = "a".repeat(MAX_UPLOAD_BYTES);
@@ -135,7 +138,7 @@ async fn limits_uploads_like_fastify_multipart() {
 }
 
 #[tokio::test]
-async fn reads_multipart_forms_like_fastify_multipart() {
+async fn reads_multipart_forms_like_the_node_api() {
     let ctx = TestApp::new().await;
     let board = upload_board(&ctx).await;
     let png = || file_part("file", "a.png", "image/png", "1");
@@ -144,6 +147,10 @@ async fn reads_multipart_forms_like_fastify_multipart() {
     assert_eq!(after["title"], "After");
     let any_name = upload(&ctx, &board, &[file_part("photo", "a.png", "IMAGE/PNG; q=1", "1")]).await.json();
     assert_eq!((&any_name["mime"], &any_name["kind"]), (&json!("image/png"), &json!("image")));
+
+    // Browsers send the name as raw UTF-8, which is not a valid `str` header value.
+    let accented = upload(&ctx, &board, &[file_part("file", "ação 1.png", "image/png", "1")]).await;
+    assert_eq!((accented.status(), accented.json()["mime"].clone()), (201, json!("image/png")));
 
     let no_type = format!("--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"a\"\r\n\r\nx\r\n");
     assert_eq!(upload(&ctx, &board, &[no_type]).await.json()["mime"], "text/plain");
@@ -183,7 +190,7 @@ async fn reads_multipart_forms_like_fastify_multipart() {
 }
 
 #[tokio::test]
-async fn answers_uploads_that_are_not_valid_forms_like_fastify() {
+async fn answers_uploads_that_are_not_valid_forms_like_the_node_api() {
     let ctx = TestApp::new().await;
     let board = upload_board(&ctx).await;
     let uri = format!("/api/file-boards/{board}/items");

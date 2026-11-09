@@ -1,6 +1,6 @@
+use crate::clock;
 use std::collections::HashSet;
 
-use chrono::Utc;
 use rusqlite::Connection;
 use rusqlite::types::Value;
 use serde::Serialize;
@@ -301,7 +301,7 @@ impl GoalsService {
                     )?;
                 }
                 tx.commit()?;
-                let summary = summarize_one(conn, goal, Utc::now())?;
+                let summary = summarize_one(conn, goal, clock::now())?;
                 Ok(summary.map(|goal| CreatedGoal { goal, milestones_created }).ok_or_else(not_found))
             })
             .await?
@@ -323,7 +323,7 @@ impl GoalsService {
     pub async fn update(&self, id: &str, input: UpdateGoalBody) -> ApiResult<GoalSummary> {
         let mut completed_at = input.completed_at;
         match input.status {
-            Some(GoalStatus::Completed) if completed_at.is_none() => completed_at = Some(Some(Utc::now())),
+            Some(GoalStatus::Completed) if completed_at.is_none() => completed_at = Some(Some(clock::now())),
             Some(status) if status != GoalStatus::Completed => completed_at = Some(None),
             _ => {}
         }
@@ -341,7 +341,7 @@ impl GoalsService {
             .maybe("status", input.status.map(enum_value))
             .maybe("completed_at", completed_at.map(time_opt))
             .maybe("progress", input.progress)
-            .set("updated_at", time_value(Utc::now()));
+            .set("updated_at", time_value(clock::now()));
         let set = set.into_fragment();
         let mut params = set.params;
         params.push(Value::Text(id.to_owned()));
@@ -354,7 +354,7 @@ impl GoalsService {
                     Goal::from_row,
                 )?;
                 let Some(row) = row else { return Ok(Err(not_found())) };
-                Ok(summarize_one(conn, row, Utc::now())?.ok_or_else(not_found))
+                Ok(summarize_one(conn, row, clock::now())?.ok_or_else(not_found))
             })
             .await?
     }
@@ -367,7 +367,7 @@ impl GoalsService {
                 let row = query_first(
                     conn,
                     "UPDATE goals SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL RETURNING id",
-                    &[time_value(Utc::now()), Value::Text(id.clone())],
+                    &[time_value(clock::now()), Value::Text(id.clone())],
                     |row| row.get::<_, String>(0),
                 )?;
                 if row.is_none() {
@@ -441,7 +441,7 @@ impl GoalsService {
                         ..Default::default()
                     },
                 )?;
-                summarize(conn, vec![goal], Utc::now())?;
+                summarize(conn, vec![goal], clock::now())?;
                 Ok(Ok(row))
             })
             .await?
@@ -457,7 +457,7 @@ impl GoalsService {
         set.maybe("title", input.title)
             .maybe("due_at", input.due_at.map(time_opt))
             .maybe("completed_at", input.completed_at.map(time_opt))
-            .set("updated_at", time_value(Utc::now()));
+            .set("updated_at", time_value(clock::now()));
         let set = set.into_fragment();
         let mut params = set.params;
         params.push(Value::Text(milestone_id.to_owned()));
@@ -473,7 +473,7 @@ impl GoalsService {
                 )?;
                 let Some(row) = row else { return Ok(Err(milestone_not_found())) };
                 let Some(goal) = find_goal(conn, &goal_id)? else { return Ok(Err(not_found())) };
-                summarize(conn, vec![goal], Utc::now())?;
+                summarize(conn, vec![goal], clock::now())?;
                 Ok(Ok(row))
             })
             .await?
@@ -481,7 +481,7 @@ impl GoalsService {
 
     pub async fn remove_milestone(&self, goal_id: &str, milestone_id: &str) -> ApiResult<()> {
         let params =
-            vec![time_value(Utc::now()), Value::Text(milestone_id.to_owned()), Value::Text(goal_id.to_owned())];
+            vec![time_value(clock::now()), Value::Text(milestone_id.to_owned()), Value::Text(goal_id.to_owned())];
         let goal_id = goal_id.to_owned();
         self.db
             .call(move |conn| {
@@ -495,7 +495,7 @@ impl GoalsService {
                     return Ok(Err(milestone_not_found()));
                 }
                 let Some(goal) = find_goal(conn, &goal_id)? else { return Ok(Err(not_found())) };
-                summarize(conn, vec![goal], Utc::now())?;
+                summarize(conn, vec![goal], clock::now())?;
                 Ok(Ok(()))
             })
             .await?
@@ -670,7 +670,7 @@ fn record_snapshots(conn: &Connection, summaries: &[GoalSummary], day: &str) -> 
         return Ok(());
     }
 
-    let now = time_value(Utc::now());
+    let now = time_value(clock::now());
     let mut params = Vec::with_capacity(changed.len() * 6 + 1);
     for summary in &changed {
         params.extend([

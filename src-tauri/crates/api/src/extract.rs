@@ -58,12 +58,16 @@ async fn read_body(request: Request) -> Result<Value, ApiError> {
             Some("FST_ERR_CTP_EMPTY_JSON_BODY"),
             "Body cannot be empty when content-type is set to 'application/json'",
         )),
-        Some("application/json") => serde_json::from_slice(&bytes).map_err(|error| {
-            ApiError::client(StatusCode::BAD_REQUEST, Some("FST_ERR_CTP_INVALID_JSON_BODY"), error.to_string())
+        Some("application/json") => serde_json::from_slice(&bytes).map_err(|_| {
+            ApiError::client(
+                StatusCode::BAD_REQUEST,
+                Some("FST_ERR_CTP_INVALID_JSON_BODY"),
+                "Body is not valid JSON but content-type is set to 'application/json'",
+            )
         }),
         // Fastify's other default parser: a string, which fails any object schema.
         Some("text/plain") => Ok(Value::String(String::from_utf8_lossy(&bytes).into_owned())),
-        // @fastify/multipart accepts the body but leaves `request.body` unset.
+        // A multipart body is accepted here and read by `UploadForm`.
         Some("multipart/form-data") => Ok(Value::Null),
         _ => Err(ApiError::client(
             StatusCode::UNSUPPORTED_MEDIA_TYPE,
@@ -129,11 +133,11 @@ pub struct UploadForm {
     pub fields: UploadItemFields,
 }
 
-/// `@fastify/busboy` limits that `@fastify/multipart` keeps by default.
+/// Limits of the multipart parser, unchanged since the Node API.
 const MAX_PARTS: usize = 1000;
 const MAX_FIELD_BYTES: usize = 1024 * 1024;
 
-/// Field names `@fastify/multipart` refuses (`name in Object.prototype`).
+/// Field names that were refused in the Node API (`name in Object.prototype`).
 const OBJECT_PROTOTYPE_KEYS: [&str; 12] = [
     "__proto__",
     "__defineGetter__",
@@ -180,11 +184,11 @@ fn part_type(part: &Field<'_>) -> String {
 
 /// busboy skips parts that don't say `Content-Disposition: form-data`.
 fn is_form_data(part: &Field<'_>) -> bool {
+    // Read as bytes: browsers send non-ASCII file names as raw UTF-8 in this header.
     part.headers()
         .get(CONTENT_DISPOSITION)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.split(';').next())
-        .is_some_and(|kind| kind.trim().eq_ignore_ascii_case("form-data"))
+        .and_then(|value| value.as_bytes().split(|byte| *byte == b';').next())
+        .is_some_and(|kind| kind.trim_ascii().eq_ignore_ascii_case(b"form-data"))
 }
 
 async fn read_file(part: &mut Field<'_>) -> Result<Vec<u8>, ApiError> {

@@ -1,14 +1,12 @@
 # Rust API contract
 
-The Rust API (`life-board-api`) replaces the Node API in `api/` without any
+The Rust API (`life-board-api`) replaced the Node API of 1.1.2 without any
 change to `web/` and without migrating anyone's data. This file is the
-reference for the issues that fill in the crate (#51, #52, #53). When the Rust
-and Node behavior differ, the Node behavior wins unless the PR explains why it
-is a bug.
+reference for what it must keep doing.
 
-The proof is in the tests: the ported suite (`tests/suite`), the route list
-(`tests/fixtures/node-routes.json`) and the golden responses recorded from Node
-(`tests/fixtures/node-1.1.2/`).
+The proof is in the tests: the suite ported from Node (`tests/suite`), the route
+list (`tests/fixtures/node-routes.json`) and the golden responses recorded from
+Node (`tests/fixtures/node-1.1.2/`), now frozen.
 
 ## Routes
 
@@ -93,13 +91,13 @@ router says `/goals/{id}/milestones/{milestoneId}` where Fastify says
 
 ## Requests
 
-The DTOs in `src/dto/` are the Zod schemas of `api/src/dto/`, translated rule by
-rule (see `tests/suite/dto.rs`):
+The DTOs in `src/dto/` keep the rules of the Zod schemas of 1.1.2, translated
+one by one (see `tests/suite/dto.rs`):
 
 - `T` is required, `Option<T>` is optional, `Option<Option<T>>` is optional and
   nullable (`Some(None)` is an explicit `null`). Unknown keys are ignored.
-- String lengths count UTF-16 code units, like `string.length`. `.trim()` trims
-  before the length checks and the value is stored trimmed.
+- String lengths count Unicode code points, like Zod 4. `.trim()` trims before
+  the length checks and the value is stored trimmed.
 - Numbers in bodies must be JSON numbers; `.int()` rejects fractions and
   integers past `Number.MAX_SAFE_INTEGER`.
 - Query and path values are strings: `limit` uses `Number(value)` and its
@@ -115,18 +113,18 @@ rule (see `tests/suite/dto.rs`):
 - `{ "error": <code>, "message": <text> }`.
 - Validation fails with `400 { "error": "validation_error", "message", "issues": [{ "path": "/field", "message" }] }`.
   Paths are JSON pointers like today (`/title`, `/items/1`, `/0/id` for a
-  root array, `""` for the root). Message text may differ (the web app doesn't
+  root array, `/` for the root). Message text may differ (the web app doesn't
   display it); codes and paths may not.
 - Domain errors keep their status and code: `404 not_found`, `400 invalid_range`,
   `focus_limit`, `invalid_order`, `future_day`, `project_not_done`,
   `missing_file`, `relative_dir`, `invalid_dir`, `not_connected`,
   `invalid_token`, `500 move_failed`, `502 sync_failed`, `github_unavailable`.
-- Body errors keep Fastify's codes: `400 FST_ERR_CTP_EMPTY_JSON_BODY`,
+- Body errors keep the codes of the Node API: `400 FST_ERR_CTP_EMPTY_JSON_BODY`,
   `400 FST_ERR_CTP_INVALID_JSON_BODY`, `415 FST_ERR_CTP_INVALID_MEDIA_TYPE`,
   `413 FST_ERR_CTP_BODY_TOO_LARGE` (JSON bodies up to 1 MiB). `text/plain` is
   read as a string and fails the object schemas. A request without a body and
   without `Content-Type` fails validation, like `undefined` in Zod.
-- Uploads follow `@fastify/multipart`: one file of up to 20 MiB, or
+- Uploads follow the multipart rules of 1.1.2: one file of up to 20 MiB, or
   `413 FST_REQ_FILE_TOO_LARGE`. The first file part counts whatever its field
   is named and later ones are ignored; a field name sent twice is dropped; more
   than 1000 parts before the file is `413 FST_PARTS_LIMIT`. Field errors
@@ -137,15 +135,14 @@ rule (see `tests/suite/dto.rs`):
 
 ## On disk
 
-The Rust API opens the same `life-board.db`: libSQL writes the standard SQLite
-format.
+The Rust API opens the same `life-board.db`, in the standard SQLite format.
 
 - Timestamps are integer milliseconds, booleans `0/1`, string arrays JSON text
   (`'[]'` when empty), ids ULID text.
 - `PRAGMA foreign_keys = ON` and `PRAGMA secure_delete = ON` when the database
   opens. The path is opened as is, never parsed as a `file:` URI.
-- Migrations come from `api/drizzle` (embedded at compile time until #53 moves
-  them) and are recorded the way Drizzle's libSQL migrator does:
+- Migrations come from `migrations/` (embedded at compile time) and are recorded
+  the way Drizzle's migrator did, so profiles from 1.1.2 and earlier keep working:
   - `CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (id SERIAL PRIMARY KEY, hash text NOT NULL, created_at numeric)`;
     `SERIAL` is not an integer primary key in SQLite, so `id` stays `NULL`.
   - The last applied migration is the row with the highest `created_at`; every
@@ -153,7 +150,7 @@ format.
     `--> statement-breakpoint`, followed by
     `INSERT INTO "__drizzle_migrations" ("hash", "created_at") VALUES (<sha256 hex of the file>, <when>)`.
   - All pending statements run in one deferred transaction with
-    `foreign_keys` off, like libSQL's `migrate()`.
+    `foreign_keys` off.
 - Uploads live in `<data dir>/uploads`, or in `<folder>/life-board-app/uploads`
   when Settings > Files picked a folder (`app_settings.uploads_base_dir`).
   `storage_path` is relative to that folder.
@@ -171,13 +168,22 @@ format.
   permission, or a read-only folder on Windows): Rust answers `400 invalid_dir`
   where Node passed the check and then failed with `500`.
 
+- Input the app never sends differs from Node on purpose:
+  - dates accept only milliseconds and ISO 8601, not what JavaScript's `new Date`
+    also guesses from other text (`?from=1`, `10/20/2026`);
+  - `GET /api/tasks/` (empty id) is `404`, not `400` on `/id`;
+  - an `OPTIONS` request with no `Origin` is `204`, not `400`;
+  - a token with characters outside Latin-1 reaches GitHub and fails there;
+  - a value that breaks two Zod rules reports one issue, not two.
+- JSON answers say `application/json` without `charset`, and `Vary` and
+  `Access-Control-Allow-Methods` are written differently, with the same meaning.
+
 ## JSON
 
 - Timestamps are serialized like `Date.toJSON()`: `YYYY-MM-DDTHH:mm:ss.sssZ`.
 - Nullable columns are `null`, never missing. The only optional field is
   `Backlink.meta`, which is missing when there is nothing to add.
-- Day keys (`YYYY-MM-DD`) use the local time zone of the process, like
-  `date.service.ts`.
+- Day keys (`YYYY-MM-DD`) use the local time zone of the process.
 
 ## CORS
 
@@ -189,12 +195,12 @@ allowed. Preflights answer `204`. Other origins get no
 ## Auth
 
 `/api/health` is public. Every other route goes through `plugins::auth`, which
-allows all requests (`AllowAll`), like `plugins/auth.ts`. Tests plug in a
+allows all requests (`AllowAll`). Tests plug in a
 rejecting `Authenticator` through `AppOptions::authenticator`.
 
 ## Startup
 
-The order matches `startServer` and `buildApp`:
+In order:
 
 1. create the data directory;
 2. open `life-board.db` and migrate;
@@ -205,14 +211,13 @@ The order matches `startServer` and `buildApp`:
 
 ## Sidecar binary `life-board-api`
 
-Implemented in #51, connected to Electron in #53.
+Started by Electron (`desktop/src/backend.ts`).
 
 - Environment: `LIFE_BOARD_DATA_DIR` (required), optional `LIFE_BOARD_HOST`
   and `LIFE_BOARD_PORT`.
 - The key arrives as **one JSON line on stdin**,
   `{"type":"secret-key","key":"<base64, 32 bytes>","resetSecrets":false}`,
-  never in the environment or arguments (the same rule as today's
-  `postMessage`).
+  never in the environment or arguments .
 - Once listening, it prints one line on stdout:
   `{"type":"ready","url":"http://127.0.0.1:<port>"}`. Logs go to stderr.
 - It exits with a non-zero code when startup fails, and exits when stdin

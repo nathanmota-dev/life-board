@@ -1,4 +1,4 @@
-//! Request DTOs (`dto/*.dto.ts`): field names, enum values, bounds, defaults,
+//! Request DTOs: field names, enum values, bounds, defaults,
 //! trimming and optional vs nullable, checked by [`common::Dto::parse`].
 //!
 //! Field shapes: `T` is required, `Option<T>` is optional (missing = `None`),

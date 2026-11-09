@@ -1,7 +1,7 @@
+use crate::clock;
 use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use chrono::Utc;
 
 use super::RouteTable;
 use crate::db::schema::habits::Habit;
@@ -26,7 +26,7 @@ pub fn routes(table: RouteTable) -> RouteTable {
 }
 
 async fn list(State(state): State<AppState>) -> ApiResult<Json<Items<HabitSummary>>> {
-    Ok(Json(Items { items: state.habits.list(Utc::now()).await? }))
+    Ok(Json(Items { items: state.habits.list(clock::now()).await? }))
 }
 
 async fn create(

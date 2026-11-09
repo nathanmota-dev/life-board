@@ -25,11 +25,11 @@ function macho(cpu: number, magic = 0xfeedfacf) {
   bytes.writeUInt32LE(cpu, 4)
   return bytes
 }
-const binaries = (arch: Arch) => [
+const binaries = [
   "Contents/MacOS/Life Board",
   "Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework",
   ...["", " (GPU)", " (Plugin)", " (Renderer)"].map(suffix => `Contents/Frameworks/Life Board Helper${suffix}.app/Contents/MacOS/Life Board Helper${suffix}`),
-  `Contents/Resources/app.asar.unpacked/node_modules/@libsql/darwin-${arch}/index.node`,
+  "Contents/Resources/bin/life-board-api",
 ]
 async function bundle(arch: Arch, omit?: string) {
   const dir = directory()
@@ -37,7 +37,6 @@ async function bundle(arch: Arch, omit?: string) {
   const files = {
     "package.json": JSON.stringify({ name: "life-board-app", main: "./out/main/index.js" }),
     "out/main/index.js": "main",
-    "out/main/chunks/backend-process.js": "backend",
     "out/preload/index.js": "preload",
     "out/renderer/index.html": "renderer",
   }
@@ -47,7 +46,7 @@ async function bundle(arch: Arch, omit?: string) {
     writeFileSync(join(source, path), contents)
   }
   const app = join(dir, "Life Board.app")
-  for (const path of binaries(arch)) {
+  for (const path of binaries) {
     if (path === omit) continue
     mkdirSync(dirname(join(app, path)), { recursive: true })
     writeFileSync(join(app, path), macho(CPU[arch]))
@@ -76,12 +75,12 @@ describe("macOS packaged bundle inspection", () => {
     writeFileSync(file, bytes)
     expect(() => checkMachO(file, "x64")).toThrow("thin macOS x64")
   })
-  it("rejects an Intel libSQL module inside an Apple Silicon bundle", async () => {
+  it("rejects an Intel API binary inside an Apple Silicon bundle", async () => {
     const app = await bundle("arm64")
-    writeFileSync(join(app, binaries("arm64").at(-1)!), macho(CPU.x64))
-    expect(() => checkMacPackage(app, "arm64")).toThrow(/@libsql[\\/]darwin-arm64/)
+    writeFileSync(join(app, binaries.at(-1)!), macho(CPU.x64))
+    expect(() => checkMacPackage(app, "arm64")).toThrow(/bin[\\/]life-board-api/)
   })
-  it.each([...binaries("x64"), "out/preload/index.js", "out/main/chunks/backend-process.js"])("rejects a bundle without %s", async (path) => {
+  it.each([...binaries, "out/preload/index.js"])("rejects a bundle without %s", async (path) => {
     const app = await bundle("x64", path)
     expect(() => checkMacPackage(app, "x64")).toThrow(/ENOENT|missing/)
   })

@@ -25,14 +25,11 @@ Cada comando compila o app antes, define formato e arquitetura e nunca publica
 também sem publicar.
 
 Cada build precisa rodar em uma máquina do mesmo sistema e arquitetura do alvo.
-O npm instala apenas o módulo nativo do libSQL da máquina que executa `npm ci`
-(`@libsql/linux-x64-gnu`, `@libsql/win32-x64-msvc`, `@libsql/darwin-x64` ou
-`@libsql/darwin-arm64`). Um build cruzado gera um pacote cujo backend não abre o
-banco. O hook `desktop/scripts/after-pack.cjs` impede isso: depois de montar o app,
-ele exige `resources/migrations/meta/_journal.json` e
-`resources/app.asar.unpacked/node_modules/@libsql/<alvo>/index.node`. Quando o alvo
-é a própria máquina, ele também carrega o módulo. Sem o módulo do alvo, o build falha
-com `Missing @libsql/<alvo> for <sistema>-<arquitetura>`.
+O Cargo compila o binário `life-board-api` só para a máquina que executa o build.
+Um build cruzado geraria um pacote cujo backend não inicia. O hook
+`desktop/scripts/after-pack.cjs` impede isso: depois de montar o app, ele exige
+`resources/bin/life-board-api` (`.exe` no Windows), executável e do formato do
+alvo. Sem isso, o build falha com `The API binary doesn't match <sistema>-<arquitetura>`.
 
 ## Arquivos e feeds
 
@@ -236,13 +233,10 @@ Por isso, `desktop/src/secret-key.ts` não depende do `Local State`:
   o token do GitHub precisa ser conectado de novo. Chaveiro indisponível continua
   fechando o app com a mensagem de erro, também registrada no log.
 
-O cliente libSQL lê `file:<caminho>` como URL: decodifica `%XX` e trata `?` e `#`
-como query e fragmento. Antes, um perfil com `#` ou `?` não abria o banco, e `%20`
-no caminho abria um banco em outra pasta. `sqliteFileUrl()` em `api/src/db/client.ts`
-codifica o caminho inteiro com `encodeURIComponent`. O libSQL recebe de volta o
-caminho original, inclusive letra de unidade e barras invertidas do Windows. Os testes
-de `api/` usam uma pasta temporária com espaços, acentos, `#` e `%20`. Os uploads usam
-`path.resolve`, que não depende de URL.
+A API abre o banco pelo caminho, sem interpretá-lo como URL `file:`, então um perfil
+com `#`, `?` ou `%20` na pasta funciona, inclusive com letra de unidade e barras
+invertidas do Windows. Os testes do backend usam uma pasta temporária com espaços,
+acentos, `#` e `%20`. Os uploads também usam caminhos, não URLs.
 
 ## Integração com o sistema
 

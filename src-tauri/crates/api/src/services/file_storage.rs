@@ -1,4 +1,4 @@
-//! Uploaded files on local disk (`file-storage.service.ts`). `storage_path`
+//! Uploaded files on local disk. `storage_path`
 //! values are relative to the root, and every path is checked to stay inside it.
 
 use std::io;

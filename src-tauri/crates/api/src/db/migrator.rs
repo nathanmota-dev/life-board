@@ -5,7 +5,7 @@
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use sha2::{Digest, Sha256};
 
-/// One `api/drizzle/<tag>.sql` file and its journal entry.
+/// One `migrations/<tag>.sql` file and its journal entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Migration {
     pub tag: &'static str,
@@ -14,7 +14,7 @@ pub struct Migration {
     pub sql: &'static str,
 }
 
-/// Every migration of `api/drizzle/meta/_journal.json`, in journal order.
+/// Every migration of `migrations/meta/_journal.json`, in journal order.
 pub static MIGRATIONS: &[Migration] = include!(concat!(env!("OUT_DIR"), "/migrations.rs"));
 
 /// Drizzle splits files on this marker and runs each part as one statement.

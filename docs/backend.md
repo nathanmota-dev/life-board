@@ -2,13 +2,15 @@
 
 [← Guia da documentação](guide.md)
 
-A API fica em `api/` (workspace npm) e segue uma MVC reduzida:
+A API fica em `src-tauri/crates/api`, em Rust (axum + rusqlite), e segue uma MVC
+reduzida. O contrato HTTP e o formato do banco estão em
+[`CONTRACT.md`](../src-tauri/crates/api/CONTRACT.md).
 
-- `src/dto/`: schemas Zod de body, query e params de cada módulo.
-- `src/controllers/`: rotas Fastify; validam a entrada com o DTO e chamam o service.
-- `src/services/`: regras de negócio e acesso ao banco com Drizzle.
-- `src/db/schema/`: tabelas SQLite; `api/drizzle/` guarda as migrations geradas.
-- `src/plugins/`: tratamento de erros e o hook de autenticação.
+- `src/dto/`: validação de body, query e params de cada módulo.
+- `src/controllers/`: rotas; validam a entrada com o DTO e chamam o service.
+- `src/services/`: regras de negócio e acesso ao banco.
+- `src/db/schema/`: tabelas SQLite; `migrations/` guarda as migrations.
+- `src/plugins/`: CORS e o hook de autenticação.
 
 Módulos: tasks, thoughts, links, goals (com milestones), calendar, mood,
 habits, stats, github e file-boards. Todas as rotas usam o prefixo `/api`.
@@ -27,45 +29,45 @@ e os arquivos do disco de vez.
 O token do GitHub é salvo cifrado com AES-256-GCM. A chave fica em
 `secret.key.enc`, protegida pelo chaveiro do sistema via `safeStorage` do
 Electron (libsecret/KWallet no Linux, Keychain no macOS, DPAPI no Windows). O
-processo principal abre a chave e a envia ao backend pelo `parentPort`. No
+processo principal abre a chave e a envia ao backend por uma linha no stdin, nunca
+por variável de ambiente ou argumento. No
 Linux, o app não inicia sem um chaveiro de verdade, para não cair no modo
 `basic_text`.
 
 Ainda não há login. Só `/api/health` é pública; as demais rotas passam pelo
-hook `authenticate` de `src/plugins/auth.ts`, que hoje libera tudo. Quando a
-autenticação chegar, basta implementar esse hook.
+`Authenticator` de `src/plugins/auth.rs`, que hoje libera tudo. Quando a
+autenticação chegar, basta implementar esse trait.
 
 O React recebe a URL da API com `window.desktop.getApiBaseUrl()`.
 
 ## Migrations
 
-Para alterar o banco, edite `api/src/db/schema/` e gere uma migration:
+As migrations ficam em `src-tauri/crates/api/migrations/` e são embutidas no
+binário em tempo de compilação, na ordem de `meta/_journal.json`. Não há
+`drizzle-kit`. Os snapshots de `meta/` antigos ficam só como histórico. O formato
+de registro em `__drizzle_migrations` continua igual ao das versões em Node, para
+os perfis existentes seguirem migrando.
 
-```bash
-npm run db:generate --workspace api
-```
+Para alterar o banco:
 
-## Port para Rust em andamento
+1. Crie `migrations/<índice>_<nome>.sql`, com `--> statement-breakpoint` entre os
+   comandos. Nunca edite uma migration já lançada: o hash do arquivo fica salvo no
+   perfil do usuário.
+2. Acrescente a entrada em `migrations/meta/_journal.json`, com o mesmo `tag`,
+   o próximo `idx` e um `when` maior que o de todas as anteriores, em milissegundos.
+   Só roda a migration cujo `when` é maior que o da última aplicada.
+3. Ajuste as tabelas em `src/db/schema/`.
+4. Adicione em `tests/suite/db/` um teste que abre um perfil existente, aplica a
+   migration e confere que os dados antigos continuam lá, como em
+   `goals_migration.rs`.
 
-A API está sendo reescrita em Rust (issues #50 a #53). O crate
-`life-board-api` fica em `src-tauri/crates/api` e mantém o mesmo contrato HTTP e
-o mesmo banco SQLite, descritos em
-[`src-tauri/crates/api/CONTRACT.md`](../src-tauri/crates/api/CONTRACT.md). Até o
-fim da série, o Electron continua usando a API Node de `api/`.
+## Testes
 
-- Todos os módulos e rotas da API Node já estão implementados no crate.
-- Os testes de `api/src/**/*.test.ts` foram traduzidos para
-  `src-tauri/crates/api/tests/suite`, no caminho espelhado
-  (`services/tasks.service.test.ts` → `tests/suite/services/tasks.rs`).
-- `npm run test:parity` falha quando um caso TS não tem teste Rust ou quando um
-  teste Rust não tem caso TS nem entrada justificada em
-  `tests/parity-allowlist.json`.
-- Os testes golden comparam as respostas do Rust com as da API Node gravadas
-  em `tests/fixtures/` (perfil `node-<versão>.db`, respostas dos GETs, segredos
-  selados com uma chave de teste e a lista das rotas). Para regenerar, rode
-  `node src-tauri/scripts/record-node-fixtures.mjs`; rodar de novo sem mudar a
-  API não gera diff. O script também confere que o `CryptoService` do Node abre
-  valores selados pelo Rust.
+`npm run test:rust` roda a suíte de `tests/suite`, traduzida dos testes da API Node.
+Os testes golden comparam as respostas com as gravadas da API Node 1.1.2 em
+`tests/fixtures/` (perfil `node-1.1.2.db`, respostas dos GETs, segredos selados
+com uma chave de teste e a lista das rotas). Esses arquivos estão congelados: a
+API Node não existe mais para regravá-los.
 
 Comandos: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`,
-`cargo test --workspace` (`npm run test:rust`) e `npm run test:parity`.
+`npm run test:rust` e `npm run test:coverage`.

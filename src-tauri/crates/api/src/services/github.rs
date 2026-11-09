@@ -1,7 +1,7 @@
+use crate::clock;
 use std::sync::Arc;
 
 use axum::http::StatusCode;
-use chrono::Utc;
 use rusqlite::OptionalExtension;
 use rusqlite::types::Value;
 use serde::Serialize;
@@ -319,7 +319,7 @@ impl GithubService {
         let stored_login = login.clone();
         self.db
             .call(move |conn| {
-                let now = to_millis(Utc::now());
+                let now = to_millis(clock::now());
                 conn.execute(
                     "INSERT INTO github_settings (id, login, org_filter, token_ciphertext, token_iv, token_tag, last_sync_error, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?7) ON CONFLICT(id) DO UPDATE SET login = excluded.login, org_filter = excluded.org_filter, token_ciphertext = excluded.token_ciphertext, token_iv = excluded.token_iv, token_tag = excluded.token_tag, last_sync_error = NULL, updated_at = excluded.updated_at",
                     rusqlite::params![
@@ -364,7 +364,7 @@ impl GithubService {
                     .call(move |conn| {
                         conn.execute(
                             "UPDATE github_settings SET last_sync_error = ?, updated_at = ? WHERE id = ?",
-                            rusqlite::params![recorded, to_millis(Utc::now()), SETTINGS_ID],
+                            rusqlite::params![recorded, to_millis(clock::now()), SETTINGS_ID],
                         )
                     })
                     .await?;
@@ -470,7 +470,7 @@ impl GithubService {
         let issues = self.sync_issues(&token, &settings.login, org_filter).await?;
         self.db
             .call(|conn| {
-                let now = to_millis(Utc::now());
+                let now = to_millis(clock::now());
                 conn.execute(
                     "UPDATE github_settings SET last_sync_at = ?1, last_sync_error = NULL, updated_at = ?1 WHERE id = ?2",
                     rusqlite::params![now, SETTINGS_ID],

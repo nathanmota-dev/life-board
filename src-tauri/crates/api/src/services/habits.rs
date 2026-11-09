@@ -1,6 +1,6 @@
+use crate::clock;
 use std::collections::HashSet;
 
-use chrono::Utc;
 use rusqlite::params;
 use rusqlite::types::Value;
 use serde::Serialize;
@@ -132,7 +132,7 @@ impl HabitsService {
     /// A new `target` also becomes today's recorded goal.
     pub async fn update(&self, id: &str, input: UpdateHabitBody) -> ApiResult<Habit> {
         let id = id.to_owned();
-        let today = to_day_key(Utc::now());
+        let today = to_day_key(clock::now());
         self.db
             .call(move |conn| {
                 let tx = conn.transaction()?;
@@ -142,7 +142,7 @@ impl HabitsService {
                     .maybe("target", input.target)
                     .maybe("step", input.step)
                     .maybe("emoji", input.emoji)
-                    .set("updated_at", time_value(Utc::now()));
+                    .set("updated_at", time_value(clock::now()));
                 let set = set.into_fragment();
                 let mut params = set.params;
                 params.push(Value::Text(id.clone()));
@@ -167,7 +167,7 @@ impl HabitsService {
 
     /// Soft delete.
     pub async fn remove(&self, id: &str) -> ApiResult<()> {
-        let params = vec![time_value(Utc::now()), Value::Text(id.to_owned())];
+        let params = vec![time_value(clock::now()), Value::Text(id.to_owned())];
         self.db
             .call(move |conn| {
                 query_first(
@@ -184,7 +184,7 @@ impl HabitsService {
 
     /// Adds `delta` to the day's count (never below zero); `400 future_day` after today.
     pub async fn log(&self, habit_id: &str, input: LogHabitBody) -> ApiResult<HabitDayCount> {
-        let day = input.day.unwrap_or_else(|| to_day_key(Utc::now()));
+        let day = input.day.unwrap_or_else(|| to_day_key(clock::now()));
         let count = SqlFragment::new("max(0, habit_logs.count + ?)", vec![Value::Integer(input.delta)]);
         self.upsert_log(habit_id, day, input.delta.max(0), count).await
     }
@@ -218,12 +218,12 @@ impl HabitsService {
             })
             .await?;
         let Some(target) = habit else { return Err(not_found()) };
-        let today = to_day_key(Utc::now());
+        let today = to_day_key(clock::now());
         if day > today {
             return Err(ApiError::bad_request("future_day", "Habits can't be logged for a future day."));
         }
 
-        let now = time_value(Utc::now());
+        let now = time_value(clock::now());
         // Past days keep the goal recorded at the time; only today follows the current goal.
         let target_update = if day == today {
             SqlFragment::new("?", vec![Value::Integer(target)])

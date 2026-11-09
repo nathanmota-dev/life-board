@@ -1,4 +1,4 @@
-use chrono::Utc;
+use crate::clock;
 use rusqlite::types::Value;
 use serde::Serialize;
 
@@ -104,7 +104,7 @@ impl ThoughtsService {
             .maybe("tags", input.tags.as_deref().map(list_value))
             .maybe("pinned", input.pinned.map(to_bool))
             .maybe("linked_task_ids", input.linked_task_ids.as_deref().map(list_value))
-            .set("updated_at", time_value(Utc::now()));
+            .set("updated_at", time_value(clock::now()));
         let set = set.into_fragment();
         let mut params = set.params;
         params.push(Value::Text(id.to_owned()));
@@ -114,7 +114,7 @@ impl ThoughtsService {
 
     /// Soft delete.
     pub async fn remove(&self, id: &str) -> ApiResult<()> {
-        let params = vec![time_value(Utc::now()), Value::Text(id.to_owned())];
+        let params = vec![time_value(clock::now()), Value::Text(id.to_owned())];
         self.db
             .call(move |conn| {
                 query_first(
