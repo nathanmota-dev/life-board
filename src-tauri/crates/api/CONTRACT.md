@@ -187,8 +187,9 @@ The Rust API opens the same `life-board.db`, in the standard SQLite format.
 
 ## CORS
 
-Origins `http://127.0.0.1:5180`, `http://localhost:5180` and `null` (the
-packaged renderer); methods `GET HEAD POST PUT PATCH DELETE`; credentials
+Origins `http://127.0.0.1:5180`, `http://localhost:5180`, `null` (the
+packaged Electron renderer) and `tauri://localhost` (the Tauri app in
+`src-tauri/app`); methods `GET HEAD POST PUT PATCH DELETE`; credentials
 allowed. Preflights answer `204`. Other origins get no
 `Access-Control-Allow-Origin`.
 
