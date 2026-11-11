@@ -85,8 +85,13 @@ export function createDesktopBridge(tauri: TauriGlobal, groups: readonly Desktop
   }
 }
 
-/** Defines `window.desktop` in Tauri. Under Electron the preload already did, and a plain browser has neither. */
+/**
+ * Defines `window.desktop` in Tauri and marks `<html>` with `tauri` (see
+ * `index.css`). Under Electron the preload already did, and a plain browser has neither.
+ */
 export function installTauriBridge() {
-  if (!window.__TAURI__ || window.desktop) return
+  if (!window.__TAURI__) return
+  document.documentElement.classList.add("tauri")
+  if (window.desktop) return
   window.desktop = Object.freeze(createDesktopBridge(window.__TAURI__))
 }

@@ -87,9 +87,36 @@ cargo llvm-cov --manifest-path src-tauri/app/Cargo.toml \
 ```
 
 `src/app.rs` and `src/main.rs` are the Tauri wiring, which needs a display;
-the logic they call lives in `src/backend.rs` and `src/webview.rs`.
+the logic they call lives in `src/backend.rs`, `src/graphics.rs` and
+`src/webview.rs`.
+
+## Graphics on Linux
+
+`src/graphics.rs` picks WebKitGTK flags before GTK starts, from the session
+(`GDK_BACKEND`, `WAYLAND_DISPLAY`, `XDG_SESSION_TYPE`) and the driver of the
+display GPU (`/sys/class/drm/card*/device`). Only one configuration gets
+flags: the NVIDIA proprietary driver under Wayland, where WebKitGTK 2.52
+otherwise turns hardware acceleration off and paints everything on the CPU.
+There the app relaunches itself with:
+
+```bash
+WEBKIT_FORCE_DMABUF_RENDERER=1      # composite on the GPU
+__NV_DISABLE_EXPLICIT_SYNC=1        # without it: Error 71 (Protocol error)
+WEBKIT_SKIA_ENABLE_CPU_RENDERING=1  # Skia GPU painting crashed in libnvidia-eglcore
+```
+
+A variable that is already set, to any value, is kept, so
+`WEBKIT_FORCE_DMABUF_RENDERER=0` turns the GPU path off again. Check the result
+with `nvidia-smi` (a `WebKitWebProcess` entry) or `webkit://gpu` in WebKit's
+`MiniBrowser`. Issue #66 has the measurements behind this choice.
+
+On GNOME Wayland, Electron tags its window as sRGB and the compositor converts
+it to the display's gamma, which lifts dark greys; the GTK 3 window of
+WebKitGTK is untagged. `web/src/index.css` therefore gives the `.tauri` root
+(set by `installTauriBridge`) pre-converted dark tokens, so both apps look the
+same.
 
 ## What comes later
 
-The WebKitGTK rendering check, the tray, pomodoro, notifications and capture
-window, and then packaging, come in later issues.
+The tray, pomodoro, notifications and capture window, and then packaging,
+come in later issues.

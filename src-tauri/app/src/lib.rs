@@ -4,4 +4,5 @@
 pub mod app;
 pub mod backend;
 pub mod commands;
+pub mod graphics;
 pub mod webview;

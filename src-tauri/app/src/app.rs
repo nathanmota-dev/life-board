@@ -1,7 +1,8 @@
-//! Tauri wiring: start the API, then open the main window, and close the API
-//! when the app exits. Needs a display, so the tests cover `backend`,
-//! `commands` and `webview` instead.
+//! Tauri wiring: apply the graphics flags, start the API, then open the main
+//! window, and close the API when the app exits. Needs a display, so the tests
+//! cover `backend`, `commands`, `graphics` and `webview` instead.
 
+use std::os::unix::process::CommandExt;
 use std::process::ExitCode;
 
 use tauri::webview::{NewWindowResponse, PageLoadEvent};
@@ -9,10 +10,12 @@ use tauri::{App, AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder}
 
 use crate::backend::{self, Backend};
 use crate::commands::{self, DesktopState};
+use crate::graphics;
 use crate::webview::{MAIN_WINDOW, is_app_url};
 
 pub fn run() -> ExitCode {
     let _ = tracing_subscriber::fmt().with_writer(std::io::stderr).with_ansi(false).try_init();
+    relaunch_with_graphics_flags();
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(commands::handler())
@@ -34,6 +37,26 @@ pub fn run() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// Replaces this process with one that has the graphics flags, when this
+/// machine needs some that aren't set. Only returns if there's nothing to do or
+/// the relaunch failed, in which case the app starts without them.
+fn relaunch_with_graphics_flags() {
+    let flags = graphics::missing_for_this_machine();
+    if flags.is_empty() {
+        return;
+    }
+    let exe = match std::env::current_exe() {
+        Ok(exe) => exe,
+        Err(error) => {
+            tracing::warn!(%error, "relaunching with the graphics flags failed");
+            return;
+        }
+    };
+    tracing::info!(?flags, "relaunching with the graphics flags");
+    let error = graphics::relaunch_command(&exe, std::env::args_os().skip(1), &flags).exec();
+    tracing::warn!(%error, "relaunching with the graphics flags failed");
 }
 
 fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
