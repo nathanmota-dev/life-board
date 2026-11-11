@@ -1,6 +1,6 @@
 //! Tauri wiring: start the API, then open the main window, and close the API
-//! when the app exits. Needs a display, so the tests cover `backend` and
-//! `webview` instead.
+//! when the app exits. Needs a display, so the tests cover `backend`,
+//! `commands` and `webview` instead.
 
 use std::process::ExitCode;
 
@@ -8,11 +8,14 @@ use tauri::webview::{NewWindowResponse, PageLoadEvent};
 use tauri::{App, AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 
 use crate::backend::{self, Backend};
-use crate::webview::{MAIN_WINDOW, desktop_bridge_script, is_app_url};
+use crate::commands::{self, DesktopState};
+use crate::webview::{MAIN_WINDOW, is_app_url};
 
 pub fn run() -> ExitCode {
     let _ = tracing_subscriber::fmt().with_writer(std::io::stderr).with_ansi(false).try_init();
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(commands::handler())
         .setup(|app| {
             if let Err(error) = setup(app) {
                 tracing::error!("startup failed: {error}");
@@ -41,10 +44,10 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     );
     let server = tauri::async_runtime::block_on(backend::start(data_dir.clone()))?;
     tracing::info!("API listening on {} with data in {}", server.url, data_dir.display());
-    let api_url = server.url.clone();
+    let version = app.package_info().version.to_string();
+    app.manage(DesktopState::new(version, server.url.clone()));
     app.manage(Backend::new(server));
 
-    let version = app.package_info().version.to_string();
     // Hidden until the page has loaded, as `ready-to-show` in Electron.
     WebviewWindowBuilder::new(app, MAIN_WINDOW, WebviewUrl::App("index.html".into()))
         .title("Life Board")
@@ -53,7 +56,6 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         .visible(false)
         // Otherwise Tauri intercepts HTML5 file drops.
         .disable_drag_drop_handler()
-        .initialization_script(desktop_bridge_script(&api_url, &version))
         .on_navigation(is_app_url)
         .on_new_window(|_, _| NewWindowResponse::Deny)
         .on_page_load(|window, payload| {

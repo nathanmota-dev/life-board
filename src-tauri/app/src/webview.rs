@@ -1,5 +1,6 @@
-//! The webview's lockdown and the temporary `window.desktop` bridge, kept as
-//! pure functions so they can be tested without a display.
+//! The webview's lockdown, kept as a pure function so it can be tested
+//! without a display. `window.desktop` is built by the frontend
+//! (`web/src/lib/tauri-bridge.ts`) over the commands in `commands`.
 
 use tauri::Url;
 
@@ -13,20 +14,6 @@ pub const APP_ORIGIN: &str = "tauri://localhost";
 /// Links to GitHub, the API on `127.0.0.1` and `file://` are refused.
 pub fn is_app_url(url: &Url) -> bool {
     url.scheme() == "tauri" && url.host_str() == Some("localhost") && url.port().is_none()
-}
-
-/// Defines `window.desktop` before the page's scripts run, with what the
-/// frontend calls unconditionally: the API URL, the version and `openExternal`
-/// (a no-op for now). Issue #65 replaces it with a bridge over Tauri commands.
-pub fn desktop_bridge_script(api_url: &str, version: &str) -> String {
-    let api_url = serde_json::Value::from(api_url);
-    let version = serde_json::Value::from(version);
-    format!(
-        "Object.defineProperty(window, \"desktop\", {{ configurable: true, value: Object.freeze({{ \
-         getApiBaseUrl: () => Promise.resolve({api_url}), \
-         getVersion: () => Promise.resolve({version}), \
-         openExternal: () => Promise.resolve() }}) }});"
-    )
 }
 
 #[cfg(test)]
@@ -58,22 +45,5 @@ mod tests {
         ] {
             assert!(!allowed(url), "{url}");
         }
-    }
-
-    #[test]
-    fn bridge_script_exposes_the_api_url_and_version() {
-        let script = desktop_bridge_script("http://127.0.0.1:4321", "1.1.2");
-
-        assert!(script.contains(r#"getApiBaseUrl: () => Promise.resolve("http://127.0.0.1:4321")"#), "{script}");
-        assert!(script.contains(r#"getVersion: () => Promise.resolve("1.1.2")"#), "{script}");
-        assert!(script.contains("openExternal: () => Promise.resolve()"), "{script}");
-    }
-
-    #[test]
-    fn bridge_script_escapes_its_values() {
-        let script = desktop_bridge_script("\");alert(1);(\"", "1\n2");
-
-        assert!(script.contains(r#"Promise.resolve("\");alert(1);(\"")"#), "{script}");
-        assert!(script.contains(r#"Promise.resolve("1\n2")"#), "{script}");
     }
 }
