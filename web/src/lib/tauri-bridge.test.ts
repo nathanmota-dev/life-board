@@ -201,6 +201,7 @@ describe("installTauriBridge", () => {
   afterEach(() => {
     window.desktop = original.desktop
     window.__TAURI__ = original.tauri
+    document.documentElement.classList.remove("tauri")
   })
 
   it("does nothing without __TAURI__", () => {
@@ -210,6 +211,18 @@ describe("installTauriBridge", () => {
     installTauriBridge()
 
     expect(window.desktop).toBeUndefined()
+    expect(document.documentElement.classList.contains("tauri")).toBe(false)
+  })
+
+  it("marks <html> for the Tauri-only color tokens and keeps the theme class", () => {
+    window.desktop = undefined
+    window.__TAURI__ = fakeTauri().tauri
+    document.documentElement.classList.add("dark")
+
+    installTauriBridge()
+
+    expect([...document.documentElement.classList]).toEqual(["dark", "tauri"])
+    document.documentElement.classList.remove("dark")
   })
 
   it("doesn't replace an existing window.desktop (Electron)", () => {

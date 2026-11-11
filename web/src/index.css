@@ -123,6 +123,40 @@
   --chart-5: color-mix(in oklab, var(--brand) 16%, var(--background));
 }
 
+/*
+ * Engine-specific on purpose: on GNOME Wayland, Electron tags its window as
+ * sRGB and the compositor converts it to the display's gamma 2.2, which
+ * lifts dark greys (#161616 shows as #1c1c1c). WebKitGTK's GTK 3 window is
+ * untagged and shown as written, so the Tauri app looked darker. These are the
+ * dark tokens after that conversion, so both apps look the same; lighter
+ * colors move by one level at most and are left alone.
+ */
+.tauri:not(.dark) {
+  --foreground: #121212;
+  --card-foreground: #121212;
+  --popover-foreground: #121212;
+  --secondary-foreground: #1d1d1d;
+  --accent-foreground: #1d1d1d;
+  --sidebar-foreground: #121212;
+  --sidebar-primary: #1d1d1d;
+  --sidebar-accent-foreground: #1d1d1d;
+}
+
+.tauri.dark {
+  --background: #1c1c1c;
+  --card: #222222;
+  --popover: #222222;
+  --secondary: #2a2a2a;
+  --muted: #2a2a2a;
+  --accent: #2a2a2a;
+  --border: #333333;
+  --input: #393939;
+  --sidebar: #1c1c1c;
+  --sidebar-primary-foreground: #1c1c1c;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-border: #333333;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
