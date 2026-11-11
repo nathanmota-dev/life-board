@@ -1,0 +1,43 @@
+[package]
+name = "life-board-desktop"
+version = "0.1.0"
+description = "Life Board desktop app (Tauri), not packaged yet"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+
+# Its own workspace, so the root `cargo test --workspace` and CI need no webkit2gtk.
+[workspace]
+
+[lib]
+name = "life_board_desktop"
+path = "src/lib.rs"
+
+[[bin]]
+name = "life-board-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
+
+[dependencies]
+getrandom = "0.4.3"
+life-board-api = { path = "../crates/api" }
+serde_json = "1.0.154"
+tauri = { version = "2.12.5", features = [] }
+thiserror = "2.0.21"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["fmt"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["io-util", "macros", "net", "rt-multi-thread"] }
+
+# Copied from the root `[workspace.lints]`.
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+expect_used = "deny"
+unwrap_used = "deny"
