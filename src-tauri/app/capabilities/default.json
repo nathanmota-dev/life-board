@@ -1,7 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window. The app defines no commands yet.",
+  "description": "The main window: the core group of window.desktop (web/src/lib/tauri-bridge.ts) and its app:navigate event.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-get-version",
+    "allow-get-api-base-url",
+    "allow-open-external",
+    "allow-set-language"
+  ]
 }
