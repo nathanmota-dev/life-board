@@ -15,7 +15,10 @@ function loginCommand() {
   const appImage = process.platform === "linux" ? process.env.APPIMAGE : undefined
   const path = appImage || process.execPath
   const args = app.isPackaged || appImage ? [] : [app.getAppPath()]
-  if (process.argv.includes("--no-sandbox")) args.push("--no-sandbox")
+  // Zygotes start before main.ts runs, so `--no-zygote` (which needs `--no-sandbox`) only works from here.
+  for (const flag of ["--no-sandbox", "--no-zygote"]) {
+    if (process.argv.includes(flag)) args.push(flag)
+  }
   args.push("--hidden")
   return { path, args }
 }

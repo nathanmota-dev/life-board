@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   registerLocale: vi.fn(), registerNotifications: vi.fn(), registerPomodoro: vi.fn(),
   registerStartupSettings: vi.fn(), registerCaptureShortcut: vi.fn(), unregisterCaptureShortcut: vi.fn(),
   registerUpdates: vi.fn(), registerDirectoryPicker: vi.fn(),
-  createTray: vi.fn(), loadWindowState: vi.fn(),
+  createTray: vi.fn(), loadWindowState: vi.fn(), applyChromiumSwitches: vi.fn(),
 }))
 
 class MockWindow extends EventEmitter {
@@ -44,6 +44,7 @@ vi.mock("electron", () => ({
   shell: { openExternal: vi.fn() },
 }))
 vi.mock("./backend", () => ({ startBackend: mocks.startBackend }))
+vi.mock("./chromium-switches", () => ({ applyChromiumSwitches: mocks.applyChromiumSwitches }))
 vi.mock("../resources/icon.png?asset", () => ({ default: "/icon.png" }))
 vi.mock("./capture-window", () => ({
   registerCaptureShortcut: mocks.registerCaptureShortcut,
@@ -98,6 +99,13 @@ async function ready() {
 }
 
 describe("single-instance startup", () => {
+  it("applies the Chromium switches before the app is ready", async () => {
+    await import("./main")
+    expect(mocks.applyChromiumSwitches).toHaveBeenCalledOnce()
+    expect(mocks.applyChromiumSwitches.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.whenReady.mock.invocationCallOrder[0])
+  })
+
   it("exits a secondary process before initializing any application resources", async () => {
     mocks.requestSingleInstanceLock.mockReturnValue(false)
     await import("./main")
