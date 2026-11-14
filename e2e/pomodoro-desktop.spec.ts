@@ -153,6 +153,22 @@ test("desktop: ten tray cycles keep one window and leave no renderer behind", as
   }
 })
 
+test("desktop: the tray keeps a software-composited GPU process and reopens normally", async ({ workspace }) => {
+  // Xvfb has no GPU, so compositing runs in software and there is no GPU memory to release.
+  // Ending the GPU process with real acceleration is covered by gpu-release.test.ts.
+  const gpuPid = () => workspace.app.evaluate(({ app }) => app.getAppMetrics().find((metric) => metric.type === "GPU")?.pid)
+  expect(await workspace.app.evaluate(({ app }) => app.getGPUFeatureStatus().gpu_compositing)).toBe("disabled_software")
+  await keepInBackground(workspace)
+  const before = await gpuPid()
+  await workspace.closeToTray()
+  // Past the 10 s release delay.
+  await new Promise((resolve) => setTimeout(resolve, 12_000))
+  expect(await gpuPid()).toBe(before)
+  await workspace.reopen(() => workspace.menu("Abrir Life Board"))
+  await workspace.ready("Painel")
+  expect(await workspace.windowCount()).toBe(1)
+})
+
 test("desktop: closing while the interface loads keeps the app in the tray", async ({ workspace }) => {
   await keepInBackground(workspace)
   await workspace.closeToTray()
