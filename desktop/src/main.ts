@@ -6,6 +6,7 @@ import type { Backend } from "./backend"
 import { applyChromiumSwitches } from "./chromium-switches"
 import { registerCaptureShortcut, unregisterCaptureShortcut } from "./capture-window"
 import { registerDirectoryPicker } from "./directory-picker"
+import { registerGpuRelease } from "./gpu-release"
 import { registerLocale } from "./locale"
 import { isHiddenStartup } from "./login-item"
 import { registerNotifications } from "./notifications"
@@ -116,6 +117,7 @@ if (!app.requestSingleInstanceLock()) {
     registerStartupSettings(app.getPath("userData"))
     registerDirectoryPicker()
     registerAppLifecycle()
+    registerGpuRelease()
     registerUpdates()
     registerCaptureShortcut(icon)
     createTray(icon, showMainWindow)

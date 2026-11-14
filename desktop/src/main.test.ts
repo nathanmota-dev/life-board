@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   isHiddenStartup: vi.fn(), keepInBackground: vi.fn(), isPomodoroActive: vi.fn(),
   registerLocale: vi.fn(), registerNotifications: vi.fn(), registerPomodoro: vi.fn(),
   registerStartupSettings: vi.fn(), registerCaptureShortcut: vi.fn(), unregisterCaptureShortcut: vi.fn(),
-  registerUpdates: vi.fn(), registerDirectoryPicker: vi.fn(),
+  registerUpdates: vi.fn(), registerDirectoryPicker: vi.fn(), registerGpuRelease: vi.fn(),
   createTray: vi.fn(), loadWindowState: vi.fn(), applyChromiumSwitches: vi.fn(),
 }))
 
@@ -51,6 +51,7 @@ vi.mock("./capture-window", () => ({
   unregisterCaptureShortcut: mocks.unregisterCaptureShortcut,
 }))
 vi.mock("./directory-picker", () => ({ registerDirectoryPicker: mocks.registerDirectoryPicker }))
+vi.mock("./gpu-release", () => ({ registerGpuRelease: mocks.registerGpuRelease }))
 vi.mock("./locale", () => ({ registerLocale: mocks.registerLocale }))
 vi.mock("./login-item", () => ({ isHiddenStartup: mocks.isHiddenStartup }))
 vi.mock("./notifications", () => ({ registerNotifications: mocks.registerNotifications }))
@@ -106,6 +107,13 @@ describe("single-instance startup", () => {
       .toBeLessThan(mocks.whenReady.mock.invocationCallOrder[0])
   })
 
+  it("releases the GPU process in the tray once the app is ready", async () => {
+    await import("./main")
+    expect(mocks.registerGpuRelease).not.toHaveBeenCalled()
+    await ready()
+    expect(mocks.registerGpuRelease).toHaveBeenCalledExactlyOnceWith()
+  })
+
   it("exits a secondary process before initializing any application resources", async () => {
     mocks.requestSingleInstanceLock.mockReturnValue(false)
     await import("./main")
@@ -116,7 +124,7 @@ describe("single-instance startup", () => {
       mocks.handle, mocks.openSecretKey, mocks.startBackend, createWindow, mocks.createTray,
       mocks.registerLocale, mocks.registerNotifications, mocks.registerPomodoro,
       mocks.registerStartupSettings, mocks.registerCaptureShortcut, mocks.registerUpdates,
-      mocks.registerDirectoryPicker,
+      mocks.registerDirectoryPicker, mocks.registerGpuRelease,
     ]) expect(initialize).not.toHaveBeenCalled()
     expect(app.listenerCount("second-instance")).toBe(0)
     expect(app.listenerCount("will-quit")).toBe(0)
