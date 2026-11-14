@@ -67,6 +67,13 @@ describe("Linux login item", () => {
     expect(readFileSync(entry, "utf8")).toContain('Exec="/home/user/Apps/Life Board.AppImage" "--no-sandbox" "--hidden"')
   })
 
+  it("preserves the zygote argument, which can't be set after launch", () => {
+    vi.stubEnv("APPIMAGE", "/home/user/Apps/Life Board.AppImage")
+    process.argv.push("--no-zygote", "--no-sandbox")
+    setStartOnLogin(true)
+    expect(readFileSync(entry, "utf8")).toContain('Exec="/home/user/Apps/Life Board.AppImage" "--no-sandbox" "--no-zygote" "--hidden"')
+  })
+
   it("includes the application path for development launches", () => {
     native.isPackaged = false
     setStartOnLogin(true)

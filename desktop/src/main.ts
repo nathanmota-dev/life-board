@@ -3,6 +3,7 @@ import icon from "../resources/icon.png?asset"
 import { isClosingToTray, registerAppLifecycle, trackMainWindowClose } from "./app-lifecycle"
 import { startBackend } from "./backend"
 import type { Backend } from "./backend"
+import { applyChromiumSwitches } from "./chromium-switches"
 import { registerCaptureShortcut, unregisterCaptureShortcut } from "./capture-window"
 import { registerDirectoryPicker } from "./directory-picker"
 import { registerLocale } from "./locale"
@@ -17,6 +18,8 @@ import { openSecretKey } from "./secret-key-recovery"
 import { registerStartupSettings } from "./startup-settings"
 import { createTray } from "./tray"
 import { defaultBounds, loadWindowState, trackWindowState } from "./window-state"
+
+applyChromiumSwitches()
 
 let backend: Backend | null = null
 let apiBaseUrl: Promise<string> | null = null

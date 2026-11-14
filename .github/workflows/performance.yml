@@ -119,7 +119,9 @@ jobs:
 
           base_tree="$RUNNER_TEMP/base-tree"
           git worktree add --detach "$base_tree" "$base_sha"
-          (cd "$base_tree" && npm ci --prefer-offline --no-audit && mkdir -p reports/benchmarks && npm run benchmark:ci)
+          # The base's runner reads Criterion results from its own target/, so
+          # the job-wide CARGO_TARGET_DIR must not send them to the workspace.
+          (cd "$base_tree" && npm ci --prefer-offline --no-audit && mkdir -p reports/benchmarks && CARGO_TARGET_DIR="$base_tree/target" npm run benchmark:ci)
           (cd "$base_tree" && BENCHMARK_COMMIT="${base_sha:0:12}" node scripts/benchmark-gate.js --bootstrap --projects api,web > /dev/null)
 
           baseline_path="$RUNNER_TEMP/benchmark-baseline.json"

@@ -56,8 +56,13 @@ guarde-o em um caminho fixo com permissão de escrita, por exemplo:
 
 ```bash
 install -Dm755 life-board-1.0.0-x86_64.AppImage "$HOME/.local/opt/life-board/life-board.AppImage"
-"$HOME/.local/opt/life-board/life-board.AppImage" --no-sandbox
+"$HOME/.local/opt/life-board/life-board.AppImage" --no-sandbox --no-zygote
 ```
+
+`--no-zygote` dispensa os dois processos *zygote* do Chromium e economiza memória.
+Ele só funciona junto com `--no-sandbox` e só pode ser passado na linha de comando,
+por isso não vale para o DEB, que mantém o sandbox. Ao ativar **Iniciar com o
+sistema**, o app repete as duas opções na entrada de início automático.
 
 O AppImage não cria atalho no menu. Para criar um, siga
 [Instalar a partir do código](#instalar-a-partir-do-código), usando o arquivo baixado.
@@ -171,7 +176,7 @@ Version=1.0
 Type=Application
 Name=Life Board
 Comment=Personal tasks, goals, calendar and habit tracking
-Exec="$HOME/.local/opt/life-board/life-board.AppImage" --no-sandbox %U
+Exec="$HOME/.local/opt/life-board/life-board.AppImage" --no-sandbox --no-zygote %U
 TryExec=$HOME/.local/opt/life-board/life-board.AppImage
 Icon=life-board-app
 Terminal=false
