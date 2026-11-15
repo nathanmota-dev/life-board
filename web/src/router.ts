@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router"
 import { CapturePage } from "@/routes/capture"
 import { Dashboard } from "@/routes/dashboard"
+import { FileBoardPage } from "@/routes/file-board"
+import { FileItemPage } from "@/routes/file-item"
 import { SettingsPage } from "@/routes/settings"
 import { workspacePages } from "@/routes/workspace-pages"
 import type { NavigationTitleKey } from "@/types/i18n"
@@ -64,20 +66,47 @@ export function createAppRouter(sidebarLayout: RouteComponent) {
     staticData: { titleKey: "navigation.settings" },
   })
 
+  // File Board has a child page per file, so it is built here instead of in the flat workspace list.
+  const fileBoardRoute = createRoute({
+    getParentRoute: () => sidebarRoute,
+    path: "file-board",
+    component: Outlet,
+    staticData: { titleKey: "navigation.file-board" },
+  })
+
+  const fileBoardIndexRoute = createRoute({
+    getParentRoute: () => fileBoardRoute,
+    path: "/",
+    component: FileBoardPage,
+    validateSearch: (search: Record<string, unknown>): { board?: string } => ({
+      board: typeof search.board === "string" || typeof search.board === "number" ? String(search.board) : undefined,
+    }),
+  })
+
+  const fileItemRoute = createRoute({
+    getParentRoute: () => fileBoardRoute,
+    path: "$boardId/$itemId",
+    component: FileItemPage,
+    staticData: { titleKey: "navigation.file-item" },
+  })
+
   const routeTree = rootRoute.addChildren([
     indexRoute,
     captureRoute,
     sidebarRoute.addChildren([
       dashboardRoute.addChildren([dashboardIndexRoute]),
       settingsRoute,
-      ...workspacePages.map((page) =>
-        createRoute({
-          getParentRoute: () => sidebarRoute,
-          path: page.path,
-          component: page.component,
-          staticData: { titleKey: page.titleKey },
-        }),
-      ),
+      fileBoardRoute.addChildren([fileBoardIndexRoute, fileItemRoute]),
+      ...workspacePages
+        .filter((page) => page.path !== "file-board")
+        .map((page) =>
+          createRoute({
+            getParentRoute: () => sidebarRoute,
+            path: page.path,
+            component: page.component,
+            staticData: { titleKey: page.titleKey },
+          }),
+        ),
     ]),
   ])
 

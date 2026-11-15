@@ -2,13 +2,16 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import type { PageProps, PageSectionProps, PanelProps, StatusProps } from "@/types/ui"
 
-export function Page({ title, description, actions, toolbar, children }: PageProps) {
+export function Page({ title, description, leading, actions, toolbar, children }: PageProps) {
   return (
     <section className="flex min-w-0 flex-1 flex-col">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
-          {description ? <p className="mt-0.5 text-sm text-muted-foreground">{description}</p> : null}
+        <div className="flex min-w-0 items-center gap-2">
+          {leading}
+          <div className="min-w-0">
+            <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
+            {description ? <p className="mt-0.5 text-sm text-muted-foreground">{description}</p> : null}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">{actions}</div>
       </header>

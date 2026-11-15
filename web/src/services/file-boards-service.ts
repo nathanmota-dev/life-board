@@ -1,4 +1,4 @@
-import { api, buildApiUrl } from "@/services/api-client"
+import { api, ApiError, buildApiUrl } from "@/services/api-client"
 import type { ListResponse, OkResponse } from "@/types/api"
 import type { FileBoard, FileBoardInput, FileItem, FileItemUpdate, FileUploadInput } from "@/types/file-board"
 
@@ -18,5 +18,12 @@ export const fileBoardsService = {
   },
   updateItem: (id: string, input: FileItemUpdate) => api.patch<FileItem>(`/file-items/${id}`, input),
   removeItem: (id: string) => api.delete<OkResponse>(`/file-items/${id}`),
-  fileUrl: (id: string) => buildApiUrl(`/file-items/${id}/file`),
+  /** `version` (the item's `updatedAt`) changes the URL after an edit, so a cached copy isn't reused. */
+  fileUrl: (id: string, version?: string) => buildApiUrl(`/file-items/${id}/file`, { v: version }),
+  fileText: async (id: string, version?: string) => {
+    const response = await fetch(await buildApiUrl(`/file-items/${id}/file`, { v: version }), { credentials: "include" })
+    if (!response.ok) throw new ApiError(response.status, "request_failed", response.statusText)
+    return response.text()
+  },
+  saveText: (id: string, content: string) => api.put<FileItem>(`/file-items/${id}/file`, { content }),
 }

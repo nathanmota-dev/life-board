@@ -8,6 +8,9 @@ use crate::error::Issue;
 /// The multipart upload limit: 20 MiB, one file.
 pub const MAX_UPLOAD_BYTES: usize = 20 * 1024 * 1024;
 
+/// The largest text file that can be edited in the app: 2 MiB, like the preview.
+pub const MAX_TEXT_CONTENT_BYTES: usize = 2 * 1024 * 1024;
+
 /// `createBoardBody`: `name` required.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct CreateBoardBody {
@@ -38,6 +41,12 @@ pub struct UpdateItemBody {
     pub taken_at: Option<Option<Timestamp>>,
     pub tags: Option<Vec<String>>,
     pub linked_task_ids: Option<Vec<String>>,
+}
+
+/// `PUT /file-items/:id/file`: the new text of a `.txt` or `.md` file, kept as typed (not trimmed).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ReplaceItemTextBody {
+    pub content: String,
 }
 
 /// `uploadItemFields`: multipart form fields, which arrive as strings next to `file`.
@@ -89,6 +98,15 @@ impl Dto for UpdateItemBody {
         let tags = fields.optional(&mut ctx, "tags", tag_list());
         let linked_task_ids = fields.optional(&mut ctx, "linkedTaskIds", id_list());
         ctx.finish(Self { kind, title, notes, amount_cents, currency, taken_at, tags, linked_task_ids })
+    }
+}
+
+impl Dto for ReplaceItemTextBody {
+    fn parse(input: &Value) -> Result<Self, Vec<Issue>> {
+        let mut ctx = Ctx::new();
+        let fields = object(&mut ctx, input, "");
+        let content = fields.required(&mut ctx, "content", text());
+        ctx.finish(Self { content: content.unwrap_or_default() })
     }
 }
 

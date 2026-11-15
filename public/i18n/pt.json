@@ -22,7 +22,8 @@
     "toggleSidebar": "Alternar barra lateral",
     "openSidebar": "Abrir barra lateral",
     "search": "Buscar na navegação",
-    "searchPlaceholder": "Buscar qualquer coisa..."
+    "searchPlaceholder": "Buscar qualquer coisa...",
+    "file-item": "Arquivo"
   },
   "search": {
     "title": "Buscar páginas",
@@ -187,7 +188,8 @@
     "itemActions": "Ações de {{title}}",
     "itemProgress": "Progresso de {{title}}",
     "ofTotal": "{{count}} de {{total}}",
-    "undo": "Desfazer"
+    "undo": "Desfazer",
+    "back": "Voltar"
   },
   "activity": {
     "description": "O que você tem feito ultimamente.",
@@ -316,7 +318,17 @@
     "uploading": "Enviando…",
     "upload": "Enviar",
     "fileLabel": "Arquivo: {{kind}}",
-    "updatedOn": "{{kind}} · atualizado {{date}}"
+    "updatedOn": "{{kind}} · atualizado {{date}}",
+    "openFile": "Abrir {{title}}",
+    "editFile": "Editar {{title}}",
+    "imagePreview": "Prévia ampliada da imagem",
+    "notFound": "Arquivo não encontrado",
+    "notFoundDescription": "Ele pode ter sido excluído ou movido para outro quadro.",
+    "tooLargeToPreview": "Grande demais para pré-visualizar",
+    "tooLargeDescription": "Arquivos de texto de até {{size}} podem ser pré-visualizados.",
+    "saved": "Arquivo salvo",
+    "alreadySaved": "Já estava salvo",
+    "fileContent": "Conteúdo de {{title}}"
   },
   "github": {
     "description": "Pull requests e issues para acompanhar, além das suas contribuições.",

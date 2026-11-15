@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { useState } from "react"
+import { useLocation, useRouter } from "@tanstack/react-router"
 import { FolderKanban, Layers, Plus } from "lucide-react"
 import { BoardFiles } from "@/components/file-board/board-files"
 import { BoardFormDialog } from "@/components/file-board/board-form-dialog"
@@ -13,7 +14,12 @@ import { useFileBoards } from "@/hooks/queries/use-file-boards"
 export function FileBoardPage() {
   const { t } = useTranslation()
   const boards = useFileBoards()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const location = useLocation()
+  const router = useRouter()
+  // The selected board lives in the URL, so returning from a file page reopens it.
+  const selectedId = location.search.board ?? null
+  const setSelectedId = (id: string | null) =>
+    router.history.replace(id ? `${location.pathname}?board=${encodeURIComponent(id)}` : location.pathname)
   const [creating, setCreating] = useState(false)
   const items = boards.data ?? []
   const selected = items.find((board) => board.id === selectedId) ?? items[0] ?? null

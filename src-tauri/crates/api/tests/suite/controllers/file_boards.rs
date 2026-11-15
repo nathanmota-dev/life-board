@@ -92,3 +92,26 @@ async fn rejects_uploads_without_a_file_with_bad_fields_or_over_the_size_limit()
         ctx.send(multipart_request("/api/file-boards/missing/items", &[], Some(("a.txt", "text/plain", b"a")))).await;
     assert_eq!(unknown_board.status(), 404);
 }
+
+#[tokio::test]
+async fn saves_the_new_text_of_a_text_file() {
+    let ctx = TestApp::new().await;
+    let board_id = create_board(&ctx).await;
+    let upload = ctx
+        .send(multipart_request(
+            &format!("/api/file-boards/{board_id}/items"),
+            &[],
+            Some(("todo.md", "text/markdown", b"# Old")),
+        ))
+        .await;
+    let item_id = text(&upload.json(), "id");
+    let url = format!("/api/file-items/{item_id}/file");
+
+    let saved = ctx.put(&url, json!({ "content": "# New\n- milk\n" })).await;
+    assert_eq!(saved.status(), 200);
+    assert_match(&saved.json(), &json!({ "id": item_id, "sizeBytes": 13, "mime": "text/markdown" }));
+    assert_eq!(ctx.get(&url).await.text(), "# New\n- milk\n");
+
+    assert_eq!(ctx.put(&url, json!({})).await.status(), 400);
+    assert_eq!(ctx.put("/api/file-items/missing/file", json!({ "content": "x" })).await.status(), 404);
+}

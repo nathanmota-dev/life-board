@@ -22,7 +22,8 @@
     "toggleSidebar": "Toggle sidebar",
     "openSidebar": "Open sidebar",
     "search": "Search navigation",
-    "searchPlaceholder": "Search anything..."
+    "searchPlaceholder": "Search anything...",
+    "file-item": "File"
   },
   "search": {
     "title": "Search pages",
@@ -187,7 +188,8 @@
     "itemActions": "{{title}} actions",
     "itemProgress": "{{title}} progress",
     "ofTotal": "{{count}} of {{total}}",
-    "undo": "Undo"
+    "undo": "Undo",
+    "back": "Back"
   },
   "activity": {
     "description": "What you've been up to lately.",
@@ -316,7 +318,17 @@
     "uploading": "Uploading…",
     "upload": "Upload",
     "fileLabel": "{{kind}} file",
-    "updatedOn": "{{kind}} · updated {{date}}"
+    "updatedOn": "{{kind}} · updated {{date}}",
+    "openFile": "Open {{title}}",
+    "editFile": "Edit {{title}}",
+    "imagePreview": "Enlarged image preview",
+    "notFound": "File not found",
+    "notFoundDescription": "It may have been deleted or moved to another board.",
+    "tooLargeToPreview": "Too large to preview",
+    "tooLargeDescription": "Text files up to {{size}} can be previewed.",
+    "saved": "File saved",
+    "alreadySaved": "Already saved",
+    "fileContent": "Contents of {{title}}"
   },
   "github": {
     "description": "Pull requests and issues to follow up on, and your contributions.",
