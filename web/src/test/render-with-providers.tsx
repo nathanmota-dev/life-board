@@ -29,6 +29,7 @@ export function renderWithProviders(ui: ReactElement) {
 
   return {
     queryClient,
+    router,
     ...render(
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>

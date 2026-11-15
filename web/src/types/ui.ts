@@ -13,6 +13,8 @@ export type CommandPaletteContextValue = {
 export type PageProps = {
   title: string
   description?: string
+  /** Shown before the title, such as a back button. */
+  leading?: ReactNode
   actions?: ReactNode
   toolbar?: ReactNode
   children: ReactNode
@@ -147,3 +149,5 @@ export type PeriodState = {
 }
 
 export type PeriodFilterProps = { state: PeriodState }
+
+export type BackButtonProps = { onClick: () => void }

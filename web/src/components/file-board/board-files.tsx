@@ -3,6 +3,7 @@ import { useState } from "react"
 import { FolderOpen, Trash2 } from "lucide-react"
 import { FileItemDialog } from "@/components/file-board/file-item-dialog"
 import { FileItemGrid } from "@/components/file-board/file-item-grid"
+import { ImageLightbox } from "@/components/file-board/image-lightbox"
 import { UploadButton } from "@/components/file-board/upload-button"
 import { DataState } from "@/components/shared/data-state"
 import { EmptyState } from "@/components/shared/empty-state"
@@ -16,6 +17,7 @@ export function BoardFiles({ board, onDeleted }: BoardFilesProps) {
   const items = useFileItems(board.id)
   const removeBoard = useRemoveBoard()
   const [openItem, setOpenItem] = useState<FileItem | null>(null)
+  const [previewItem, setPreviewItem] = useState<FileItem | null>(null)
   const files = items.data ?? []
 
   return (
@@ -42,9 +44,10 @@ export function BoardFiles({ board, onDeleted }: BoardFilesProps) {
         isEmpty={files.length === 0}
         empty={<EmptyState icon={FolderOpen} title={t("fileBoard.empty")} description={t("fileBoard.uploadDescription")} />}
       >
-        <FileItemGrid items={files} onOpen={setOpenItem} />
+        <FileItemGrid items={files} onOpen={setOpenItem} onPreviewImage={setPreviewItem} />
       </DataState>
       <FileItemDialog item={openItem} onClose={() => setOpenItem(null)} />
+      <ImageLightbox item={previewItem} onClose={() => setPreviewItem(null)} />
     </Panel>
   )
 }

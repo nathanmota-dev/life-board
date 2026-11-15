@@ -7,6 +7,8 @@ export const secureWebPreferences: WebPreferences = {
   contextIsolation: true,
   nodeIntegration: false,
   sandbox: true,
+  // Enables Chromium's built-in PDF viewer, used to preview File Board PDFs in an iframe.
+  plugins: true,
 }
 
 /** Loads the React app into `window`, optionally at a hash route such as "/capture". */
