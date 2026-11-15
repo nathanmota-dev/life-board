@@ -1,4 +1,5 @@
-//! Rust-only: the router registers exactly the routes of the Node API.
+//! Rust-only: the router still registers every route of the Node API. Routes added
+//! after the migration are allowed; removing or renaming a Node route is not.
 
 use std::collections::BTreeSet;
 
@@ -23,7 +24,7 @@ fn normalize(path: &str) -> String {
 }
 
 #[test]
-fn registers_every_node_route_and_nothing_else() {
+fn registers_every_node_route() {
     let recorded: Vec<NodeRoute> =
         serde_json::from_str(&std::fs::read_to_string(fixture("node-routes.json")).unwrap()).unwrap();
     let node: BTreeSet<(String, String)> =
@@ -32,12 +33,22 @@ fn registers_every_node_route_and_nothing_else() {
     let rust: BTreeSet<(String, String)> =
         routes.iter().map(|route| (route.method.to_owned(), normalize(&route.path))).collect();
 
-    assert_eq!(recorded.len(), 68, "node-routes.json should hold the 68 Node routes");
     assert_eq!(node.len(), recorded.len(), "duplicate Node routes");
     assert_eq!(rust.len(), routes.len(), "duplicate Rust routes");
     let missing: Vec<_> = node.difference(&rust).collect();
-    let extra: Vec<_> = rust.difference(&node).collect();
-    assert!(missing.is_empty() && extra.is_empty(), "missing in Rust: {missing:?}\nnot in Node: {extra:?}");
+    assert!(missing.is_empty(), "Node routes missing in Rust: {missing:?}");
+}
+
+#[test]
+fn registers_the_routes_added_after_the_node_api() {
+    let routes = all_routes();
+    let added = [("PUT", "/api/file-items/:param/file")];
+    for (method, path) in added {
+        assert!(
+            routes.iter().any(|route| route.method == method && normalize(&route.path) == path),
+            "{method} {path} is not registered"
+        );
+    }
 }
 
 #[test]

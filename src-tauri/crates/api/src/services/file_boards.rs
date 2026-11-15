@@ -1,3 +1,5 @@
+use axum::http::StatusCode;
+
 use crate::clock;
 use rusqlite::Connection;
 use rusqlite::types::Value;
@@ -7,9 +9,12 @@ use crate::db::columns::new_id;
 use crate::db::schema::file_boards::{
     FileBoard, FileItem, FileKind, NewFileBoard, NewFileItem, insert_board, insert_item,
 };
-use crate::dto::file_boards::{CreateBoardBody, UpdateBoardBody, UpdateItemBody, UploadItemFields};
+use crate::dto::file_boards::{
+    CreateBoardBody, MAX_TEXT_CONTENT_BYTES, ReplaceItemTextBody, UpdateBoardBody, UpdateItemBody, UploadItemFields,
+};
 use crate::error::{ApiError, ApiResult};
 use crate::services::file_storage::FileStorageService;
+use crate::services::file_text::{is_text_item, original_name};
 use crate::services::query::{Assignments, enum_value, list_value, query_all, query_first, time_opt, time_value};
 
 /// `UploadedFile`.
@@ -215,6 +220,47 @@ impl FileBoardsService {
             .ok_or_else(file_not_found)
     }
 
+    /// Replaces the contents of a text file: the new text goes to a new blob, the row
+    /// points at it, and the old blob is removed once the row is updated.
+    pub async fn replace_item_text(&self, id: &str, input: ReplaceItemTextBody) -> ApiResult<FileItem> {
+        if input.content.len() > MAX_TEXT_CONTENT_BYTES {
+            return Err(ApiError::client(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                Some("content_too_large"),
+                "Text files can be edited up to 2 MB.",
+            ));
+        }
+        let item = self.find_item(id).await?;
+        if !is_text_item(&item.mime, &item.storage_path) {
+            return Err(ApiError::client(
+                StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                Some("not_a_text_file"),
+                "Only .txt and .md files can be edited.",
+            ));
+        }
+        let blob = self.storage.save(input.content.as_bytes(), original_name(&item.storage_path)).await?;
+        let (id, new_path, size) = (id.to_owned(), blob.storage_path.clone(), blob.size_bytes);
+        let updated = self
+            .db
+            .call(move |conn| {
+                query_first(
+                    conn,
+                    "UPDATE file_items SET storage_path = ?, size_bytes = ?, updated_at = ? \
+                     WHERE id = ? AND deleted_at IS NULL RETURNING *",
+                    &[Value::Text(new_path), Value::Integer(size), time_value(clock::now()), Value::Text(id)],
+                    FileItem::from_row,
+                )
+            })
+            .await?;
+        let Some(updated) = updated else {
+            // Deleted while the text was being written: drop the new blob too.
+            self.remove_files(vec![blob.storage_path]).await;
+            return Err(file_not_found());
+        };
+        self.remove_files(vec![item.storage_path]).await;
+        Ok(updated)
+    }
+
     /// Deletes the row and its file (best effort) and clears it as a board cover.
     pub async fn remove_item(&self, id: &str) -> ApiResult<()> {
         let id = id.to_owned();
@@ -239,19 +285,7 @@ impl FileBoardsService {
     }
 
     pub async fn open_item_file(&self, id: &str) -> ApiResult<OpenedItemFile> {
-        let id = id.to_owned();
-        let item = self
-            .db
-            .call(move |conn| {
-                query_first(
-                    conn,
-                    "SELECT * FROM file_items WHERE id = ? AND deleted_at IS NULL",
-                    &[Value::Text(id)],
-                    FileItem::from_row,
-                )
-            })
-            .await?
-            .ok_or_else(file_not_found)?;
+        let item = self.find_item(id).await?;
         let size = match self.storage.size(&item.storage_path).await {
             Ok(size) => size,
             Err(_) => u64::try_from(item.size_bytes).unwrap_or(0),
@@ -265,6 +299,21 @@ impl FileBoardsService {
         for path in paths {
             let _ = self.storage.remove(&path).await;
         }
+    }
+
+    async fn find_item(&self, id: &str) -> ApiResult<FileItem> {
+        let id = id.to_owned();
+        self.db
+            .call(move |conn| {
+                query_first(
+                    conn,
+                    "SELECT * FROM file_items WHERE id = ? AND deleted_at IS NULL",
+                    &[Value::Text(id)],
+                    FileItem::from_row,
+                )
+            })
+            .await?
+            .ok_or_else(file_not_found)
     }
 
     async fn find_board(&self, id: &str) -> ApiResult<()> {

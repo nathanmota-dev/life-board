@@ -8,7 +8,7 @@ use tokio_util::io::ReaderStream;
 
 use super::RouteTable;
 use crate::db::schema::file_boards::{FileBoard, FileItem};
-use crate::dto::file_boards::{CreateBoardBody, UpdateBoardBody, UpdateItemBody};
+use crate::dto::file_boards::{CreateBoardBody, ReplaceItemTextBody, UpdateBoardBody, UpdateItemBody};
 use crate::dto::{IdParams, Items, OK_RESPONSE, OkResponse};
 use crate::error::ApiResult;
 use crate::extract::{UploadForm, ValidatedJson, ValidatedPath};
@@ -25,6 +25,7 @@ pub fn routes(table: RouteTable) -> RouteTable {
         .patch("/file-items/{id}", update_item)
         .delete("/file-items/{id}", remove_item)
         .get("/file-items/{id}/file", download_item)
+        .put("/file-items/{id}/file", replace_item_text)
 }
 
 async fn list_boards(State(state): State<AppState>) -> ApiResult<Json<Items<FileBoard>>> {
@@ -85,6 +86,15 @@ async fn remove_item(
 ) -> ApiResult<Json<OkResponse>> {
     state.file_boards.remove_item(&params.id).await?;
     Ok(Json(OK_RESPONSE))
+}
+
+/// Saves the new text of a `.txt` or `.md` file.
+async fn replace_item_text(
+    State(state): State<AppState>,
+    ValidatedPath(params): ValidatedPath<IdParams>,
+    ValidatedJson(body): ValidatedJson<ReplaceItemTextBody>,
+) -> ApiResult<Json<FileItem>> {
+    Ok(Json(state.file_boards.replace_item_text(&params.id, body).await?))
 }
 
 async fn download_item(

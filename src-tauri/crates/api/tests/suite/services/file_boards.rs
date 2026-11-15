@@ -4,7 +4,9 @@ use std::sync::Arc;
 use life_board_api::db::Db;
 use life_board_api::db::columns::to_millis;
 use life_board_api::db::schema::file_boards::{BoardKind, FileKind};
-use life_board_api::dto::file_boards::{CreateBoardBody, UpdateBoardBody, UpdateItemBody, UploadItemFields};
+use life_board_api::dto::file_boards::{
+    CreateBoardBody, MAX_TEXT_CONTENT_BYTES, ReplaceItemTextBody, UpdateBoardBody, UpdateItemBody, UploadItemFields,
+};
 use life_board_api::services::file_boards::{FileBoardsService, UploadedFile};
 use life_board_api::services::file_storage::FileStorageService;
 use serde_json::json;
@@ -28,6 +30,14 @@ async fn setup() -> Ctx {
 
 fn png() -> UploadedFile {
     UploadedFile { bytes: b"png-bytes".to_vec(), filename: "photo.png".into(), mime: "image/png".into() }
+}
+
+fn upload(name: &str, mime: &str, text: &str) -> UploadedFile {
+    UploadedFile { bytes: text.as_bytes().to_vec(), filename: name.into(), mime: mime.into() }
+}
+
+fn content(text: &str) -> ReplaceItemTextBody {
+    ReplaceItemTextBody { content: text.into() }
 }
 
 fn board(name: &str) -> CreateBoardBody {
@@ -204,4 +214,107 @@ async fn purges_rows_soft_deleted_by_earlier_versions() {
     assert!(ctx.storage.size(&orphan.storage_path).await.is_err());
     assert!(ctx.storage.size(&trashed.storage_path).await.is_err());
     assert_eq!(ctx.storage.size(&kept.storage_path).await.unwrap(), 9);
+}
+
+#[tokio::test]
+async fn replaces_the_text_of_a_file_and_keeps_its_metadata() {
+    let ctx = setup().await;
+    let service = &ctx.service;
+    let created = service.create_board(board("Notes")).await.unwrap();
+    let fields = UploadItemFields { title: Some("todo.txt".into()), notes: Some("kept".into()), ..Default::default() };
+    let item = service.add_item(&created.id, upload("todo.txt", "text/plain", "old"), fields).await.unwrap();
+
+    let edited = service.replace_item_text(&item.id, content("  new line\n\tindented\n")).await.unwrap();
+
+    assert_eq!(edited.id, item.id);
+    assert_eq!((edited.title.as_deref(), edited.notes.as_deref()), (Some("todo.txt"), Some("kept")));
+    assert_eq!(edited.size_bytes, 21);
+    assert_ne!(edited.storage_path, item.storage_path);
+    assert!(edited.storage_path.ends_with("-todo.txt"), "{}", edited.storage_path);
+    assert!(to_millis(edited.updated_at) >= to_millis(item.updated_at));
+    assert!(ctx.storage.size(&item.storage_path).await.is_err(), "the old blob is removed");
+    let opened = service.open_item_file(&item.id).await.unwrap();
+    assert_eq!(read_all(opened.file).await, "  new line\n\tindented\n");
+}
+
+#[tokio::test]
+async fn edits_markdown_with_an_unknown_mime_by_its_uploaded_name() {
+    let ctx = setup().await;
+    let service = &ctx.service;
+    let created = service.create_board(board("Notes")).await.unwrap();
+    for (name, mime) in [("readme.md", "application/octet-stream"), ("notes.MARKDOWN", ""), ("doc.md", "text/markdown")]
+    {
+        let item = service.add_item(&created.id, upload(name, mime, "# a"), UploadItemFields::default()).await.unwrap();
+        let edited = service.replace_item_text(&item.id, content("# b")).await.unwrap();
+        assert_eq!(edited.size_bytes, 3, "{name}");
+    }
+}
+
+#[tokio::test]
+async fn refuses_to_edit_files_that_are_not_text() {
+    let ctx = setup().await;
+    let service = &ctx.service;
+    let created = service.create_board(board("Mixed")).await.unwrap();
+    for (name, mime) in
+        [("photo.png", "image/png"), ("bill.pdf", "application/pdf"), ("data.bin", "application/octet-stream")]
+    {
+        let item = service.add_item(&created.id, upload(name, mime, "x"), UploadItemFields::default()).await.unwrap();
+        let error = service.replace_item_text(&item.id, content("y")).await.unwrap_err();
+        assert_eq!((error.status().as_u16(), error.code()), (415, "not_a_text_file"), "{name}");
+        let opened = service.open_item_file(&item.id).await.unwrap();
+        assert_eq!(read_all(opened.file).await, "x", "{name} is unchanged");
+    }
+}
+
+#[tokio::test]
+async fn refuses_text_over_the_edit_limit_and_unknown_files() {
+    let ctx = setup().await;
+    let service = &ctx.service;
+    let created = service.create_board(board("Notes")).await.unwrap();
+    let item =
+        service.add_item(&created.id, upload("a.txt", "text/plain", "a"), UploadItemFields::default()).await.unwrap();
+
+    let error =
+        service.replace_item_text(&item.id, content(&"x".repeat(MAX_TEXT_CONTENT_BYTES + 1))).await.unwrap_err();
+    assert_eq!((error.status().as_u16(), error.code()), (413, "content_too_large"));
+    assert_not_found(service.replace_item_text("missing", content("y")).await);
+}
+
+#[tokio::test]
+async fn keeps_the_old_text_when_the_new_one_can_t_be_written() {
+    let ctx = setup().await;
+    let service = &ctx.service;
+    let created = service.create_board(board("Notes")).await.unwrap();
+    let item =
+        service.add_item(&created.id, upload("a.txt", "text/plain", "old"), UploadItemFields::default()).await.unwrap();
+
+    ctx.disk.fail_once(DiskOp::Write, ErrorKind::Other);
+    assert!(service.replace_item_text(&item.id, content("new")).await.is_err());
+
+    let opened = service.open_item_file(&item.id).await.unwrap();
+    assert_eq!(opened.item.storage_path, item.storage_path);
+    assert_eq!(read_all(opened.file).await, "old");
+}
+
+#[tokio::test]
+async fn drops_the_new_text_when_the_file_is_deleted_meanwhile() {
+    let ctx = setup().await;
+    let service = &ctx.service;
+    let created = service.create_board(board("Notes")).await.unwrap();
+    let item =
+        service.add_item(&created.id, upload("a.txt", "text/plain", "old"), UploadItemFields::default()).await.unwrap();
+    let (file, id) = (ctx.db.file(), item.id.clone());
+    ctx.disk.fail_when(DiskOp::Write, move |_| {
+        let conn = rusqlite::Connection::open(&file).expect("second connection");
+        conn.execute("DELETE FROM file_items WHERE id = ?", [&id]).expect("delete row");
+        None
+    });
+
+    assert_not_found(service.replace_item_text(&item.id, content("new")).await);
+    let leftovers: Vec<_> = std::fs::read_dir(ctx.db.path().join("uploads"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+        .filter(|name| name != &item.storage_path)
+        .collect();
+    assert!(leftovers.is_empty(), "the new blob is removed: {leftovers:?}");
 }

@@ -5,6 +5,7 @@ pub mod crypto;
 pub mod date;
 pub mod file_boards;
 pub mod file_storage;
+pub mod file_text;
 pub mod files_settings;
 pub mod github;
 pub mod github_client;
