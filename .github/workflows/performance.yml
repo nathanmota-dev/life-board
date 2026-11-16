@@ -21,7 +21,7 @@ jobs:
   evaluate:
     name: Microbenchmarks
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout pull request
         uses: actions/checkout@v5
@@ -110,9 +110,11 @@ jobs:
         run: |
           base_sha=$(git rev-parse HEAD^1)
           if ! git cat-file -e "${base_sha}:scripts/benchmark-gate.js"; then
-            echo "BENCHMARK_BASELINE_PATH=$GITHUB_WORKSPACE/scripts/benchmark-baseline.json" >> "$GITHUB_ENV"
-            echo "BENCHMARK_BASELINE_LABEL=bootstrap:scripts/benchmark-baseline.json" >> "$GITHUB_ENV"
-            echo "BENCHMARK_BASELINE_TRUSTED=false" >> "$GITHUB_ENV"
+            {
+              echo "BENCHMARK_BASELINE_PATH=$GITHUB_WORKSPACE/scripts/benchmark-baseline.json"
+              echo "BENCHMARK_BASELINE_LABEL=bootstrap:scripts/benchmark-baseline.json"
+              echo "BENCHMARK_BASELINE_TRUSTED=false"
+            } >> "$GITHUB_ENV"
             echo "::notice::The base branch has no benchmark gate yet; capturing a non-blocking reference."
             exit 0
           fi
@@ -130,6 +132,8 @@ jobs:
             echo "BENCHMARK_BASELINE_PATH=$baseline_path"
             echo "BENCHMARK_BASELINE_LABEL=base@${base_sha:0:12} measured on this runner"
             echo "BENCHMARK_BASELINE_TRUSTED=true"
+            echo "BENCHMARK_BASE_TREE=$base_tree"
+            echo "BENCHMARK_BASE_SHA=$base_sha"
           } >> "$GITHUB_ENV"
 
       - name: Install dependencies
@@ -174,6 +178,66 @@ jobs:
           fi
           node scripts/benchmark-gate.js "${args[@]}"
 
+      # One round can't tell a result near the limit from a noisy runner. The gate lists
+      # every regression and near miss; they're measured twice more, alternating base and
+      # pull request so a slow moment of the runner hits both, and the medians of the
+      # three rounds decide with the same limit.
+      - name: Measure suspect benchmarks again
+        id: benchmark_retry
+        if: >-
+          always()
+          && (steps.benchmark_gate.outcome == 'success' || steps.benchmark_gate.outcome == 'failure')
+          && env.BENCHMARK_BASELINE_TRUSTED == 'true'
+        continue-on-error: true
+        env:
+          SELECTED_PROJECTS: ${{ steps.changes.outputs.projects }}
+        shell: bash
+        run: |
+          # The gate writes no plan when it couldn't compare at all.
+          projects=""
+          if [[ -f reports/benchmark-retry.json ]]; then
+            projects=$(node -p 'require("./reports/benchmark-retry.json").projects.join(" ")')
+          fi
+          if [[ -z "$projects" ]]; then
+            echo "retried=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "retried=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Measuring again: $(node -p 'require("./reports/benchmark-retry.json").benchmarks.join(", ")')"
+
+          rounds="$RUNNER_TEMP/benchmark-rounds"
+          mkdir -p "$rounds"
+          cp "$BENCHMARK_BASELINE_PATH" "$rounds/base-1.json"
+          cp scripts/benchmark-current.json "$rounds/head-1.json"
+          for round in 2 3; do
+            for project in $projects; do
+              (cd "$BENCHMARK_BASE_TREE" && CARGO_TARGET_DIR="$BENCHMARK_BASE_TREE/target" npm run "benchmark:$project")
+            done
+            (cd "$BENCHMARK_BASE_TREE" && BENCHMARK_COMMIT="${BENCHMARK_BASE_SHA:0:12}" node scripts/benchmark-gate.js --bootstrap --projects api,web > /dev/null)
+            cp "$BENCHMARK_BASE_TREE/reports/benchmark-candidate-baseline.json" "$rounds/base-$round.json"
+
+            for project in $projects; do
+              npm run "benchmark:$project"
+            done
+            node scripts/benchmark-gate.js --bootstrap --projects "$SELECTED_PROJECTS" > /dev/null
+            cp reports/benchmark-candidate-baseline.json "$rounds/head-$round.json"
+          done
+
+      - name: Compare the medians of all rounds
+        id: benchmark_final
+        if: always() && steps.benchmark_retry.outputs.retried == 'true'
+        continue-on-error: true
+        env:
+          SELECTED_PROJECTS: ${{ steps.changes.outputs.projects }}
+        shell: bash
+        run: |
+          rounds="$RUNNER_TEMP/benchmark-rounds"
+          args=(--projects "$SELECTED_PROJECTS")
+          for round in 1 2 3; do
+            args+=(--baseline "$rounds/base-$round.json" --current "$rounds/head-$round.json")
+          done
+          node scripts/benchmark-gate.js "${args[@]}"
+
       - name: Compose performance report
         if: always()
         env:
@@ -185,12 +249,21 @@ jobs:
           BASE_BENCHMARKS: ${{ steps.base_benchmarks.outcome }}
           TEST_BENCHMARK_GATE: ${{ steps.test_benchmark_gate.outcome }}
           BENCHMARK_GATE: ${{ steps.benchmark_gate.outcome }}
+          BENCHMARK_RETRY: ${{ steps.benchmark_retry.outcome }}
+          BENCHMARK_RETRIED: ${{ steps.benchmark_retry.outputs.retried }}
+          BENCHMARK_FINAL: ${{ steps.benchmark_final.outcome }}
         shell: bash
         run: |
           failures=()
           [[ "$TEST_BENCHMARK_GATE" == "success" ]] || failures+=("benchmark-gate tests")
           [[ "$BASE_BENCHMARKS" == "success" ]] || failures+=("base benchmarks")
-          [[ "$BENCHMARK_GATE" == "success" ]] || failures+=("benchmark comparison")
+          # After a re-measurement, the medians of all rounds are the verdict.
+          comparison="$BENCHMARK_GATE"
+          if [[ "$BENCHMARK_RETRIED" == "true" ]]; then
+            comparison="$BENCHMARK_FINAL"
+          fi
+          [[ "$BENCHMARK_RETRY" == "success" || "$BENCHMARK_RETRY" == "skipped" ]] || failures+=("benchmark re-measurement")
+          [[ "$comparison" == "success" ]] || failures+=("benchmark comparison")
           if [[ "$API_CHANGED" == "true" ]]; then
             [[ "$INSTALL" == "success" ]] || failures+=("npm ci")
             [[ "$BENCHMARK_API" == "success" ]] || failures+=("API microbenchmarks")
@@ -219,7 +292,8 @@ jobs:
             echo "| Web microbenchmarks | \`$BENCHMARK_WEB\` | $WEB_CHANGED |"
             echo "| Base benchmarks (this runner) | \`$BASE_BENCHMARKS\` | Always |"
             echo "| Benchmark-gate tests | \`$TEST_BENCHMARK_GATE\` | Always |"
-            echo "| Baseline comparison | \`$BENCHMARK_GATE\` | Always |"
+            echo "| Re-measured suspects | \`$BENCHMARK_RETRY\` | ${BENCHMARK_RETRIED:-false} |"
+            echo "| Baseline comparison | \`$comparison\` | Always |"
             echo
             echo "---"
             echo
@@ -244,7 +318,9 @@ jobs:
             reports/performance.md
             reports/performance.json
             reports/benchmark-candidate-baseline.json
+            reports/benchmark-retry.json
             scripts/benchmark-current.json
+            ${{ runner.temp }}/benchmark-rounds/
 
       - name: Enforce blocking performance checks
         if: always()

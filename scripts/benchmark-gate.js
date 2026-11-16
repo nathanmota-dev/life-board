@@ -12,6 +12,9 @@ const RAW_REPORTS_DIRECTORY = path.join(REPORTS_DIRECTORY, "benchmarks");
 const MARKDOWN_PATH = path.join(REPORTS_DIRECTORY, "performance.md");
 const JSON_PATH = path.join(REPORTS_DIRECTORY, "performance.json");
 const CANDIDATE_BASELINE_PATH = path.join(REPORTS_DIRECTORY, "benchmark-candidate-baseline.json");
+// Benchmarks the CI measures again, alternating base and pull request, before deciding.
+const RETRY_PATH = path.join(REPORTS_DIRECTORY, "benchmark-retry.json");
+const METRIC_NAMES = ["hz", "mean", "median", "rme", "sampleCount"];
 
 class BenchmarkGateInputError extends Error {
     constructor(message) {
@@ -173,6 +176,47 @@ function validateBaseline(value) {
     return value;
 }
 
+/** The snapshot of one measurement round: the selected projects must be present and valid. */
+function validateSnapshot(value, projects, label) {
+    if (!value || value.schemaVersion !== 1 || !value.projects || typeof value.projects !== "object") {
+        throw new BenchmarkGateInputError(`${label} must be a schemaVersion 1 benchmark snapshot.`);
+    }
+    for (const project of projects) {
+        if (!value.projects[project]) {
+            throw new BenchmarkGateInputError(`${label} must contain the ${project} project.`);
+        }
+        validateProjectMetrics(project, value.projects[project]);
+    }
+    return value;
+}
+
+function median(values) {
+    const sorted = [...values].sort((left, right) => left - right);
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+/**
+ * Several measurement rounds of the same commit folded into one snapshot: each metric is
+ * the median of the rounds that measured that benchmark, so one noisy round can't decide.
+ */
+function aggregateRounds(snapshots) {
+    if (snapshots.length === 1) return { ...snapshots[0], rounds: 1 };
+    const projects = {};
+    for (const project of PROJECT_NAMES) {
+        const measured = snapshots.map((snapshot) => snapshot.projects[project]?.benchmarks).filter(Boolean);
+        if (measured.length === 0) continue;
+        const keys = [...new Set(measured.flatMap((benchmarks) => Object.keys(benchmarks)))].sort((left, right) => left.localeCompare(right));
+        projects[project] = {
+            benchmarks: Object.fromEntries(keys.map((key) => {
+                const rounds = measured.map((benchmarks) => benchmarks[key]).filter(Boolean);
+                return [key, Object.fromEntries(METRIC_NAMES.map((name) => [name, median(rounds.map((metric) => metric[name]))]))];
+            })),
+        };
+    }
+    return { ...snapshots[0], projects, rounds: snapshots.length };
+}
+
 function benchmarkLanguages(repositoryRoot = REPOSITORY_ROOT) {
     return { api: fs.existsSync(path.join(repositoryRoot, "Cargo.toml")) ? "rust" : "typescript", web: "typescript" };
 }
@@ -221,7 +265,10 @@ function compareBenchmarks(baseline, current, selectedProjects) {
             if (status === "regression") {
                 failures.push(`${project}/${key} regressed by ${Math.abs(changePercent).toFixed(2)}%.`);
             }
-            results.push({ project, key, baseline: baselineMetric, current: currentMetric, changePercent, status });
+            // Within the two measurements' margin of error from the limit, one round can't tell
+            // a regression from noise: every regression and every near miss is measured again.
+            const suspect = changePercent < -limit + baselineMetric.rme + currentMetric.rme;
+            results.push({ project, key, baseline: baselineMetric, current: currentMetric, changePercent, status, suspect });
         }
 
         for (const [key, currentMetric] of Object.entries(currentBenchmarks)) {
@@ -232,6 +279,15 @@ function compareBenchmarks(baseline, current, selectedProjects) {
     }
 
     return { passed: failures.length === 0, results, failures, warnings };
+}
+
+/** The projects and benchmarks a single-round comparison could not settle. */
+function retryPlan(comparison) {
+    const suspects = comparison.results.filter((result) => result.suspect);
+    return {
+        projects: PROJECT_NAMES.filter((project) => suspects.some((result) => result.project === project)),
+        benchmarks: suspects.map((result) => `${result.project}/${result.key}`),
+    };
 }
 
 function markdownEscape(value) {
@@ -249,7 +305,7 @@ function formatHz(value) {
     return value == null ? "—" : value.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
-function renderMarkdown({ baseline, comparison, selectedProjects, skippedProjects, baselineLabel }) {
+function renderMarkdown({ baseline, comparison, selectedProjects, skippedProjects, baselineLabel, rounds = 1 }) {
     const lines = [
         "# Performance",
         "",
@@ -261,6 +317,9 @@ function renderMarkdown({ baseline, comparison, selectedProjects, skippedProject
         "",
         `Baseline: \`${markdownEscape(baselineLabel)}\` · limit: \`${baseline.policy.maxRegressionPercent}%\` throughput loss.`,
         "",
+        ...(rounds > 1
+            ? [`Medians of ${rounds} measurement rounds; after the first, base and pull request were measured alternately.`, ""]
+            : []),
         "| Project | Benchmark | Baseline ops/s | Current ops/s | Change | RME | Result |",
         "|---|---|---:|---:|---:|---:|---|",
     ];
@@ -300,7 +359,8 @@ function parseArguments(args) {
         bootstrap: false,
         updateBaseline: false,
         projects: [...PROJECT_NAMES],
-        baselinePath: process.env.BENCHMARK_BASELINE_PATH || DEFAULT_BASELINE_PATH,
+        baselinePaths: [],
+        currentPaths: [],
     };
 
     for (let index = 0; index < args.length; index += 1) {
@@ -313,10 +373,10 @@ function parseArguments(args) {
             const value = args[++index];
             if (value === undefined) throw new BenchmarkGateInputError("--projects requires a comma-separated value.");
             options.projects = value ? [...new Set(value.split(",").filter(Boolean))] : [];
-        } else if (argument === "--baseline") {
+        } else if (argument === "--baseline" || argument === "--current") {
             const value = args[++index];
-            if (!value) throw new BenchmarkGateInputError("--baseline requires a path.");
-            options.baselinePath = path.resolve(REPOSITORY_ROOT, value);
+            if (!value) throw new BenchmarkGateInputError(`${argument} requires a path.`);
+            options[argument === "--baseline" ? "baselinePaths" : "currentPaths"].push(path.resolve(REPOSITORY_ROOT, value));
         } else {
             throw new BenchmarkGateInputError(`Unknown argument: ${argument}`);
         }
@@ -324,6 +384,12 @@ function parseArguments(args) {
 
     const invalidProject = options.projects.find((project) => !PROJECT_NAMES.includes(project));
     if (invalidProject) throw new BenchmarkGateInputError(`Unknown benchmark project: ${invalidProject}.`);
+    if (options.baselinePaths.length === 0) {
+        options.baselinePaths.push(process.env.BENCHMARK_BASELINE_PATH || DEFAULT_BASELINE_PATH);
+    }
+    if (options.currentPaths.length && (options.bootstrap || options.updateBaseline)) {
+        throw new BenchmarkGateInputError("--current only applies to a comparison.");
+    }
     return options;
 }
 
@@ -366,12 +432,16 @@ function runCli(args = process.argv.slice(2)) {
             throw new BenchmarkGateInputError("Updating the benchmark baseline requires both api and web.");
         }
 
-        const collectedProjects = collectCurrentProjects(options.projects);
-        const existingBaseline = fs.existsSync(options.baselinePath)
-            ? validateBaseline(readJson(options.baselinePath, "benchmark baseline"))
+        fs.rmSync(RETRY_PATH, { force: true });
+        const [baselinePath] = options.baselinePaths;
+        const existingBaseline = fs.existsSync(baselinePath)
+            ? aggregateRounds(options.baselinePaths.map((roundPath) => validateBaseline(readJson(roundPath, "benchmark baseline"))))
             : null;
         const policy = existingBaseline?.policy ?? DEFAULT_POLICY;
-        const current = buildSnapshot(collectedProjects, policy);
+        const current = options.currentPaths.length
+            ? aggregateRounds(options.currentPaths.map((roundPath) =>
+                validateSnapshot(readJson(roundPath, "benchmark round"), options.projects, roundPath)))
+            : buildSnapshot(collectCurrentProjects(options.projects), policy);
         writeJson(CURRENT_PATH, current);
 
         if (options.bootstrap) {
@@ -383,7 +453,7 @@ function runCli(args = process.argv.slice(2)) {
                 selectedProjects: options.projects,
                 skippedProjects: PROJECT_NAMES.filter((project) => !options.projects.includes(project)),
                 baselineLabel: process.env.BENCHMARK_BASELINE_LABEL
-                    || path.relative(REPOSITORY_ROOT, options.baselinePath),
+                    || path.relative(REPOSITORY_ROOT, baselinePath),
             });
             writeJson(CANDIDATE_BASELINE_PATH, current);
             ensureDirectory(REPORTS_DIRECTORY);
@@ -400,19 +470,19 @@ function runCli(args = process.argv.slice(2)) {
         }
 
         if (options.updateBaseline) {
-            writeJson(options.baselinePath, current);
+            writeJson(baselinePath, current);
             const comparison = compareBenchmarks(current, current, options.projects);
             const markdown = renderMarkdown({
                 baseline: current,
                 comparison,
                 selectedProjects: options.projects,
                 skippedProjects: [],
-                baselineLabel: path.relative(REPOSITORY_ROOT, options.baselinePath),
+                baselineLabel: path.relative(REPOSITORY_ROOT, baselinePath),
             });
             ensureDirectory(REPORTS_DIRECTORY);
             fs.writeFileSync(MARKDOWN_PATH, markdown, "utf8");
-            writeJson(JSON_PATH, { schemaVersion: 1, status: "pass", baselineUpdated: options.baselinePath, current, comparison });
-            process.stdout.write(`Benchmark baseline updated: ${path.relative(REPOSITORY_ROOT, options.baselinePath)}\n`);
+            writeJson(JSON_PATH, { schemaVersion: 1, status: "pass", baselineUpdated: baselinePath, current, comparison });
+            process.stdout.write(`Benchmark baseline updated: ${path.relative(REPOSITORY_ROOT, baselinePath)}\n`);
             return 0;
         }
         if (!existingBaseline) {
@@ -420,22 +490,32 @@ function runCli(args = process.argv.slice(2)) {
         }
 
         const comparison = compareBenchmarks(existingBaseline, current, options.projects);
+        const rounds = Math.min(existingBaseline.rounds, current.rounds ?? 1);
+        // One round leaves suspects for the CI to measure again; several rounds are the final say.
+        const retry = rounds === 1 ? retryPlan(comparison) : { projects: [], benchmarks: [] };
+        if (retry.benchmarks.length) {
+            comparison.warnings.push(...retry.benchmarks.map((benchmark) =>
+                `${benchmark} is within the margin of error of the limit; the CI measures it again before deciding.`));
+        }
         const skippedProjects = PROJECT_NAMES.filter((project) => !options.projects.includes(project));
         const candidate = mergeCandidateBaseline(existingBaseline, current, options.projects);
         const baselineLabel = process.env.BENCHMARK_BASELINE_LABEL
-            || path.relative(REPOSITORY_ROOT, options.baselinePath);
+            || path.relative(REPOSITORY_ROOT, baselinePath);
         const markdown = renderMarkdown({
             baseline: existingBaseline,
             comparison,
             selectedProjects: options.projects,
             skippedProjects,
             baselineLabel,
+            rounds,
         });
+        writeJson(RETRY_PATH, retry);
         writeJson(CANDIDATE_BASELINE_PATH, candidate);
         fs.writeFileSync(MARKDOWN_PATH, markdown, "utf8");
         writeJson(JSON_PATH, {
             schemaVersion: 1,
             status: comparison.passed ? "pass" : "fail",
+            rounds,
             baseline: { label: baselineLabel, generatedFromCommit: existingBaseline.generatedFromCommit },
             current,
             comparison,
@@ -452,6 +532,7 @@ function runCli(args = process.argv.slice(2)) {
 
 module.exports = {
     BenchmarkGateInputError,
+    aggregateRounds,
     DEFAULT_POLICY,
     PROJECT_NAMES,
     benchmarkKey,
@@ -462,7 +543,9 @@ module.exports = {
     markdownEscape,
     parseArguments,
     renderMarkdown,
+    retryPlan,
     validateBaseline,
+    validateSnapshot,
 };
 
 if (require.main === module) {
