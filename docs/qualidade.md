@@ -81,6 +81,17 @@ O workflow executa somente os benchmarks das áreas alteradas e compara a vazão
 base. Perda acima de 20%, resultado inválido ou remoção de um benchmark existente
 bloqueiam o PR. Um benchmark novo só gera aviso.
 
+Uma rodada só não separa uma regressão de um runner lento. Por isso, o gate marca
+como suspeito todo benchmark cuja perda passe de `20%` menos a soma das margens de
+erro (RME) da base e do PR: as regressões e os resultados que passaram raspando. O
+workflow mede os suspeitos mais duas vezes, alternando base e PR para que uma lentidão
+momentânea atinja os dois lados, e decide pela mediana das três rodadas, com o mesmo
+limite de 20%. Uma regressão estável continua bloqueando; um pico isolado, não.
+
+Localmente, `node scripts/benchmark-gate.js` compara uma rodada só e avisa quais
+benchmarks o CI mediria de novo. Para comparar várias rodadas, repita `--baseline` e
+`--current` com os snapshots de cada uma.
+
 ## Política protegida
 
 Os arquivos de `scripts/protected-paths.json` definem as regras acima e estão listados
