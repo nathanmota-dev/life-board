@@ -7,16 +7,17 @@ describe("previewKind", () => {
     ["image/png", "photo.png", "image"],
     ["application/pdf", "bill.pdf", "pdf"],
     ["text/plain", "notes.txt", "text"],
-    ["text/markdown", "readme.md", "text"],
-    ["TEXT/X-MARKDOWN", "readme", "text"],
+    ["text/markdown", "readme.md", "markdown"],
+    ["TEXT/X-MARKDOWN", "readme", "markdown"],
     ["application/zip", "archive.pdf", "other"],
+    ["constructor", "notes.md", "other"],
   ] as const)("classifies %s (%s) as %s", (mime, title, kind) => {
     expect(previewKind(fileItemFixture({ mime, title }))).toBe(kind)
   })
 
   it.each([
-    ["application/octet-stream", "readme.md", "text"],
-    ["", "notes.markdown", "text"],
+    ["application/octet-stream", "readme.md", "markdown"],
+    ["", "notes.markdown", "markdown"],
     ["application/octet-stream", "SCAN.PDF", "pdf"],
     ["application/octet-stream", "data.bin", "other"],
     ["application/octet-stream", "no-extension", "other"],
@@ -38,8 +39,9 @@ describe("fileExtension", () => {
 })
 
 describe("hasPreviewPage", () => {
-  it("is true only for text and PDF files", () => {
+  it("is true only for text, markdown and PDF files", () => {
     expect(hasPreviewPage(fileItemFixture({ mime: "text/plain" }))).toBe(true)
+    expect(hasPreviewPage(fileItemFixture({ mime: "application/octet-stream", title: "readme.md" }))).toBe(true)
     expect(hasPreviewPage(fileItemFixture({ mime: "application/pdf", title: "a.pdf" }))).toBe(true)
     expect(hasPreviewPage(fileItemFixture({ mime: "image/jpeg", title: "a.jpg" }))).toBe(false)
     expect(hasPreviewPage(fileItemFixture({ mime: "application/zip", title: "a.zip" }))).toBe(false)
