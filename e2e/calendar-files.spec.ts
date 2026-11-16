@@ -30,7 +30,7 @@ test("calendar: create, edit, delete and validate intervals", async ({ workspace
 
 test("file board: failed uploads and size limit preserve the board and allow retry", async ({ workspace, page }) => {
   const board = await workspace.create("file-boards", { name: "Recoverable uploads" })
-  await workspace.go("Quadro de arquivos")
+  await workspace.go("Arquivos")
   const restore = await workspace.fault(`file-boards/${board.id}/items`, "POST")
   const file = { name: "retry.txt", mimeType: "text/plain", buffer: Buffer.from("Retry contents") }
   await page.getByLabel("Arquivos para enviar").setInputFiles(file)
@@ -50,7 +50,7 @@ test("file board: failed uploads and size limit preserve the board and allow ret
 test("file board: preview and edit text, open PDF pages, expand images and go back to the board", async ({ workspace, page }) => {
   await workspace.create("file-boards", { name: "Other board" })
   const board = await workspace.create<{ id: string }>("file-boards", { name: "Previews" })
-  await workspace.go("Quadro de arquivos")
+  await workspace.go("Arquivos")
   await page.getByRole("button", { name: /^Previews/ }).click()
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z4wAAAABJRU5ErkJggg==", "base64")
   const pdf = Buffer.from("%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n")
@@ -107,7 +107,7 @@ test("file board: preview and edit text, open PDF pages, expand images and go ba
 
 test("file board: format markdown as it is typed, show its source and keep files the editor would rewrite", async ({ workspace, page }) => {
   const board = await workspace.create<{ id: string }>("file-boards", { name: "Notes" })
-  await workspace.go("Quadro de arquivos")
+  await workspace.go("Arquivos")
   await page.getByRole("button", { name: /^Notes/ }).click()
   const table = "| item | qty |\n|---|---|\n| milk | 1 |\n"
   await page.getByLabel("Arquivos para enviar").setInputFiles([
@@ -188,12 +188,12 @@ test("calendar: grid creation, overlapping events, week navigation and dashboard
 })
 
 test("file board: create and switch boards, multiple uploads, bytes, metadata and cleanup", async ({ workspace, page }) => {
-  await workspace.go("Quadro de arquivos")
-  await page.getByRole("button", { name: "Novo quadro", exact: true }).click()
+  await workspace.go("Arquivos")
+  await page.getByRole("button", { name: "Nova pasta", exact: true }).click()
   await page.getByLabel("Nome", { exact: true }).fill("Receipts")
   await page.getByLabel("Descrição", { exact: true }).fill("Synthetic receipts")
   await choose(page, "Tipo", "Recibos")
-  await page.getByRole("button", { name: "Criar quadro", exact: true }).click()
+  await page.getByRole("button", { name: "Criar pasta", exact: true }).click()
   await expect(page.getByRole("heading", { name: "Receipts", exact: true })).toBeVisible()
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z4wAAAABJRU5ErkJggg==", "base64")
   const note = Buffer.from("Synthetic file contents")
@@ -216,10 +216,10 @@ test("file board: create and switch boards, multiple uploads, bytes, metadata an
   await expect(page.getByLabel("Anotações", { exact: true })).toHaveValue("Stored metadata")
   await page.getByRole("button", { name: "Excluir", exact: true }).click()
   await expect(page.getByRole("button", { name: "Editar Renamed note", exact: true })).toHaveCount(0)
-  await page.getByRole("button", { name: "Novo quadro", exact: true }).click()
+  await page.getByRole("button", { name: "Nova pasta", exact: true }).click()
   await page.getByLabel("Nome", { exact: true }).fill("Second board")
-  await page.getByRole("button", { name: "Criar quadro", exact: true }).click()
-  await expect(page.getByText("Este quadro está vazio", { exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Criar pasta", exact: true }).click()
+  await expect(page.getByText("Esta pasta está vazia", { exact: true })).toBeVisible()
   await page.getByRole("button", { name: /Receipts/ }).click()
   await expect(page.getByRole("img", { name: "photo.png", exact: true })).toBeVisible()
   await page.getByRole("button", { name: "Editar photo.png", exact: true }).click()

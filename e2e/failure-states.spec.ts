@@ -4,7 +4,7 @@ import type { Habit } from "../web/src/types/habit"
 const reads = [
   ["Painel", "habits"], ["Caixa de entrada", "tasks"], ["Atividade", "thoughts"], ["Etiquetas", "tasks"],
   ["Ideias", "thoughts"], ["Tarefas", "tasks"], ["Calendário", "calendar/events"], ["Metas", "goals"],
-  ["Projetos", "projects"], ["Hábitos", "habits"], ["GitHub", "github/status"], ["Quadro de arquivos", "file-boards"], ["Humor", "mood/today"],
+  ["Projetos", "projects"], ["Hábitos", "habits"], ["GitHub", "github/status"], ["Arquivos", "file-boards"], ["Humor", "mood/today"],
 ] as const
 
 for (const [title, endpoint] of reads) {

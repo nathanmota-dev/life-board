@@ -4,7 +4,7 @@ export const routes = [
   ["Painel", "dashboard"], ["Caixa de entrada", "inbox"], ["Atividade", "activity"], ["Etiquetas", "tags"],
   ["Ideias", "thoughts"], ["Tarefas", "tasks"], ["Calendário", "calendar"], ["Metas", "goals"],
   ["Projetos", "projects"], ["Hábitos", "habits"], ["Pomodoro", "pomodoro"], ["GitHub", "github"],
-  ["Quadro de arquivos", "file-board"], ["Humor", "mood"], ["Configurações", "settings"],
+  ["Arquivos", "file-board"], ["Humor", "mood"], ["Configurações", "settings"],
 ] as const
 
 const content: Record<string, [string, string]> = {
@@ -14,7 +14,7 @@ const content: Record<string, [string, string]> = {
   calendar: ["Novo evento", "Seed event"], goals: ["Nenhuma meta por aqui", "Seed goal"],
   projects: ["Nenhum projeto ainda", "Seed project"], habits: ["Nenhum hábito ainda", "Seed water"],
   github: ["Conecte sua conta do GitHub", "Synthetic pull request"],
-  "file-board": ["Nenhum quadro ainda", "Seed board"], mood: ["Nenhum registro ainda", "Seed mood"],
+  "file-board": ["Nenhuma pasta ainda", "Seed board"], mood: ["Nenhum registro ainda", "Seed mood"],
   settings: ["Aparência", "Aparência"],
 }
 
