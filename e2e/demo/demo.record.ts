@@ -206,10 +206,10 @@ async function tour(workspace: Workspace, director: Director) {
   await director.click(page.getByRole("tab", { name: "Issues", exact: true }))
   await director.wait(800)
 
-  await director.go(workspace, "Quadro de arquivos", "Quadro de arquivos: documentos e imagens")
-  await director.click(page.getByRole("button", { name: "Novo quadro", exact: true }))
+  await director.go(workspace, "Arquivos", "Arquivos: documentos e imagens")
+  await director.click(page.getByRole("button", { name: "Nova pasta", exact: true }))
   await director.type(page.getByLabel("Nome", { exact: true }), "Documentos da casa")
-  await director.click(page.getByRole("button", { name: "Criar quadro", exact: true }))
+  await director.click(page.getByRole("button", { name: "Criar pasta", exact: true }))
   await page.getByLabel("Arquivos para enviar").setInputFiles([
     { name: "life-board.png", mimeType: "image/png", buffer: readFileSync("desktop/resources/icon.png") },
     { name: "contrato-aluguel.txt", mimeType: "text/plain", buffer: Buffer.from("Contrato de aluguel 2026") },

@@ -40,6 +40,19 @@ export function hasPreviewPage(item: FileItem) {
   return kind === "pdf" || kind === "text" || kind === "markdown"
 }
 
+/** `<base>.md`, or `<base> 2.md`, `<base> 3.md`… when the board already has a file with that name. */
+export function newDocumentTitle(base: string, items: FileItem[]) {
+  const taken = new Set(items.map((item) => item.title?.toLowerCase()))
+  let title = `${base}.md`
+  for (let count = 2; taken.has(title.toLowerCase()); count += 1) title = `${base} ${count}.md`
+  return title
+}
+
+/** An empty markdown file, ready to upload as a new document. */
+export function newMarkdownFile(title: string) {
+  return new File([], title, { type: "text/markdown" })
+}
+
 export function fileLabel(item: FileItem) {
   return item.title || i18n.t("fileBoard.fileLabel", { kind: i18n.t(`fileKinds.${item.kind}`) })
 }
