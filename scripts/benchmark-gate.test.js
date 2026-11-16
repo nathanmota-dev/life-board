@@ -1,23 +1,29 @@
 const assert = require("node:assert/strict");
+const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 const {
     BenchmarkGateInputError,
+    aggregateRounds,
     buildSnapshot,
     compareBenchmarks,
     extractProjectMetrics,
     markdownEscape,
     parseArguments,
     renderMarkdown,
+    retryPlan,
     validateBaseline,
+    validateSnapshot,
 } = require("./benchmark-gate.js");
 
-function metric(hz) {
-    return { hz, mean: 1 / hz, median: 1 / hz, rme: 1.25, sampleCount: 100 };
+function metric(hz, rme = 1.25) {
+    return { hz, mean: 1 / hz, median: 1 / hz, rme, sampleCount: 100 };
 }
 
-function project(hz = 100) {
-    return { benchmarks: { "suite > benchmark": metric(hz) } };
+function project(hz = 100, rme = 1.25) {
+    return { benchmarks: { "suite > benchmark": metric(hz, rme) } };
 }
 
 function baseline(hz = 100) {
@@ -140,12 +146,19 @@ test("argument parsing validates projects and baseline paths", () => {
         bootstrap: false,
         updateBaseline: false,
         projects: ["api"],
-        baselinePath: parseArguments([]).baselinePath,
+        baselinePaths: parseArguments([]).baselinePaths,
+        currentPaths: [],
     });
+    assert.equal(parseArguments([]).baselinePaths.length, 1);
     assert.equal(parseArguments(["--bootstrap"]).bootstrap, true);
     assert.deepEqual(parseArguments(["--projects", ""]).projects, []);
+    const rounds = parseArguments(["--baseline", "a.json", "--baseline", "b.json", "--current", "c.json"]);
+    assert.deepEqual(rounds.baselinePaths.map((file) => path.basename(file)), ["a.json", "b.json"]);
+    assert.deepEqual(rounds.currentPaths.map((file) => path.basename(file)), ["c.json"]);
     assert.throws(() => parseArguments(["--projects", "desktop"]), /Unknown benchmark project/);
-    assert.throws(() => parseArguments(["--baseline"]), /requires a path/);
+    assert.throws(() => parseArguments(["--baseline"]), /--baseline requires a path/);
+    assert.throws(() => parseArguments(["--current"]), /--current requires a path/);
+    assert.throws(() => parseArguments(["--bootstrap", "--current", "c.json"]), /only applies to a comparison/);
     assert.throws(() => parseArguments(["--unknown"]), /Unknown argument/);
 });
 
@@ -179,4 +192,114 @@ test("extractProjectMetrics reads Vitest 5 JSON benchmark results", () => {
         "benchmarks/date.bench.ts > date helpers > convert": { hz: 2000, mean: 0.5, median: 0.4, rme: 0.2, sampleCount: 10 },
     });
     assert.throws(() => extractProjectMetrics("api", { ...report, success: false }), /did not pass/);
+});
+
+test("compareBenchmarks marks regressions and near misses within the margin of error as suspects", () => {
+    const trusted = buildSnapshot({ api: project(100, 1), web: project(100, 1) }, { maxRegressionPercent: 20 }, "abc");
+    const current = buildSnapshot({ api: project(70, 1), web: project(81, 6) }, trusted.policy, "def");
+    const comparison = compareBenchmarks(trusted, current, ["api", "web"]);
+
+    assert.deepEqual(comparison.results.map(({ status, suspect }) => [status, suspect]), [["regression", true], ["pass", true]]);
+    assert.deepEqual(retryPlan(comparison), {
+        projects: ["api", "web"],
+        benchmarks: ["api/suite > benchmark", "web/suite > benchmark"],
+    });
+});
+
+test("compareBenchmarks doesn't measure again a result clear of the limit", () => {
+    const trusted = buildSnapshot({ api: project(100, 1), web: project(100, 1) }, { maxRegressionPercent: 20 }, "abc");
+    const comparison = compareBenchmarks(trusted, buildSnapshot({ api: project(85, 1) }, trusted.policy, "def"), ["api"]);
+
+    assert.equal(comparison.results[0].suspect, false);
+    assert.deepEqual(retryPlan(comparison), { projects: [], benchmarks: [] });
+});
+
+test("aggregateRounds takes the median of every metric across rounds", () => {
+    const rounds = [70, 98, 101].map((hz, index) =>
+        buildSnapshot({ web: { benchmarks: { "suite > benchmark": metric(hz, index + 1), ...(index ? {} : { "suite > once": metric(5) }) } } }, { maxRegressionPercent: 20 }, "abc"));
+    const aggregated = aggregateRounds(rounds);
+
+    assert.equal(aggregated.rounds, 3);
+    assert.equal(aggregated.projects.web.benchmarks["suite > benchmark"].hz, 98);
+    assert.equal(aggregated.projects.web.benchmarks["suite > benchmark"].rme, 2);
+    assert.equal(aggregated.projects.web.benchmarks["suite > once"].hz, 5);
+    assert.equal(aggregated.projects.api, undefined);
+    assert.equal(aggregateRounds([rounds[0]]).rounds, 1);
+    assert.equal(aggregateRounds(rounds.slice(0, 2)).projects.web.benchmarks["suite > benchmark"].hz, 84);
+});
+
+test("validateSnapshot requires the selected projects", () => {
+    const round = buildSnapshot({ web: project() }, { maxRegressionPercent: 20 }, "abc");
+    assert.doesNotThrow(() => validateSnapshot(round, ["web"], "round"));
+    assert.throws(() => validateSnapshot(round, ["api"], "round"), /round must contain the api project/);
+    assert.throws(() => validateSnapshot({ ...round, schemaVersion: 2 }, ["web"], "round"), /schemaVersion 1/);
+});
+
+test("renderMarkdown says when medians of several rounds were compared", () => {
+    const trusted = baseline();
+    const comparison = compareBenchmarks(trusted, trusted, ["api"]);
+    const options = { baseline: trusted, comparison, selectedProjects: ["api"], skippedProjects: ["web"], baselineLabel: "base" };
+
+    assert.match(renderMarkdown({ ...options, rounds: 3 }), /Medians of 3 measurement rounds/);
+    assert.doesNotMatch(renderMarkdown(options), /Medians of/);
+});
+
+/** Runs a copy of the gate in a temporary repository, so its reports don't touch this checkout. */
+function runGate(files, args) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "benchmark-gate-"));
+    fs.mkdirSync(path.join(root, "scripts"));
+    fs.copyFileSync(path.join(__dirname, "benchmark-gate.js"), path.join(root, "scripts", "benchmark-gate.js"));
+    for (const [file, value] of Object.entries(files)) {
+        fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+        fs.writeFileSync(path.join(root, file), JSON.stringify(value));
+    }
+    const result = spawnSync(process.execPath, [path.join(root, "scripts", "benchmark-gate.js"), ...args], {
+        cwd: root,
+        encoding: "utf8",
+        env: { ...process.env, BENCHMARK_COMMIT: "abc", BENCHMARK_BASELINE_PATH: "", BENCHMARK_BASELINE_LABEL: "" },
+    });
+    const reports = Object.fromEntries(["benchmark-retry.json", "performance.json"].map((file) => [
+        `reports/${file}`,
+        JSON.parse(fs.readFileSync(path.join(root, "reports", file), "utf8")),
+    ]));
+    const report = fs.readFileSync(path.join(root, "reports", "performance.md"), "utf8");
+    fs.rmSync(root, { recursive: true, force: true });
+    return { status: result.status, read: (file) => reports[file], report, stderr: result.stderr };
+}
+
+function rawReport(hz, rme = 1) {
+    return { files: [{ groups: [{ fullName: "suite", benchmarks: [{ name: "benchmark", ...metric(hz, rme) }] }] }] };
+}
+
+test("the CLI asks to measure a single-round regression again and lets the medians decide", () => {
+    const base = baseline();
+    for (const name of ["api", "web"]) base.projects[name].benchmarks["suite > benchmark"].rme = 1;
+    const noisy = runGate({
+        "base.json": base,
+        "reports/benchmarks/web.json": rawReport(78, 6),
+    }, ["--projects", "web", "--baseline", "base.json"]);
+    assert.equal(noisy.status, 1);
+    assert.match(noisy.report, /measures it again before deciding/);
+
+    const roundsOf = (hzs) => Object.fromEntries(hzs.map((hz, index) => [`head-${index}.json`, buildSnapshot({ web: { benchmarks: { "suite > benchmark": metric(hz, 1) } } }, base.policy, "abc")]));
+    const currentArgs = (count) => Array.from({ length: count }, (_, index) => ["--current", `head-${index}.json`]).flat();
+    const baseArgs = ["--baseline", "base.json", "--baseline", "base.json", "--baseline", "base.json"];
+
+    const settled = runGate({ "base.json": base, ...roundsOf([78, 97, 99]) }, ["--projects", "web", ...baseArgs, ...currentArgs(3)]);
+    assert.equal(settled.status, 0);
+    assert.deepEqual(settled.read("reports/benchmark-retry.json"), { projects: [], benchmarks: [] });
+    assert.equal(settled.read("reports/performance.json").rounds, 3);
+    assert.match(settled.report, /Medians of 3 measurement rounds/);
+
+    const stable = runGate({ "base.json": base, ...roundsOf([75, 74, 99]) }, ["--projects", "web", ...baseArgs, ...currentArgs(3)]);
+    assert.equal(stable.status, 1);
+    assert.match(stable.report, /regressed by 25\.00%/);
+});
+
+test("the CLI writes the retry plan only for a single-round comparison", () => {
+    const base = baseline();
+    const result = runGate({ "base.json": base, "reports/benchmarks/web.json": rawReport(70) }, ["--projects", "web", "--baseline", "base.json"]);
+
+    assert.equal(result.status, 1);
+    assert.deepEqual(result.read("reports/benchmark-retry.json"), { projects: ["web"], benchmarks: ["web/suite > benchmark"] });
 });
