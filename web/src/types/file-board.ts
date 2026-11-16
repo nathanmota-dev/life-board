@@ -91,3 +91,5 @@ export type FileItemDialogProps = { item: FileItem | null; onClose: () => void }
 export type FileItemFormProps = { item: FileItem; onClose: () => void }
 
 export type UploadButtonProps = { boardId: string }
+
+export type NewDocumentButtonProps = { boardId: string; items: FileItem[] }

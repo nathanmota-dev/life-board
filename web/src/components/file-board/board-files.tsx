@@ -4,6 +4,7 @@ import { FolderOpen, Trash2 } from "lucide-react"
 import { FileItemDialog } from "@/components/file-board/file-item-dialog"
 import { FileItemGrid } from "@/components/file-board/file-item-grid"
 import { ImageLightbox } from "@/components/file-board/image-lightbox"
+import { NewDocumentButton } from "@/components/file-board/new-document-button"
 import { UploadButton } from "@/components/file-board/upload-button"
 import { DataState } from "@/components/shared/data-state"
 import { EmptyState } from "@/components/shared/empty-state"
@@ -33,6 +34,7 @@ export function BoardFiles({ board, onDeleted }: BoardFilesProps) {
           >
             <Trash2 />
           </Button>
+          <NewDocumentButton boardId={board.id} items={files} />
           <UploadButton boardId={board.id} />
         </div>
       }

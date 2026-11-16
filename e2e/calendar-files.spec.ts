@@ -160,6 +160,35 @@ test("file board: format markdown as it is typed, show its source and keep files
   expect(await workspace.api.get(`file-items/${tableFile.id}/file`).then(response => response.text())).toBe(table)
 })
 
+test("file board: create a markdown document, write it and number the next one", async ({ workspace, page }) => {
+  const board = await workspace.create<{ id: string }>("file-boards", { name: "Journal" })
+  await workspace.go("Arquivos")
+  await page.getByRole("button", { name: /^Journal/ }).click()
+
+  await page.getByRole("button", { name: "Novo documento", exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`#/file-board/${board.id}/[^/?]+$`))
+  const editor = page.getByRole("textbox", { name: "Conteúdo de Sem título.md", exact: true })
+  await expect(editor).toHaveAttribute("contenteditable", "true")
+  await expect(page.getByRole("tab", { name: "Formatado", exact: true })).toHaveAttribute("aria-selected", "true")
+
+  await editor.click()
+  await editor.pressSequentially("# Ideas")
+  await editor.press("Enter")
+  await editor.pressSequentially("Plant basil")
+  await expect(editor.getByRole("heading", { name: "Ideas", level: 1 })).toBeVisible()
+  const [created] = await workspace.list<{ id: string; title: string; kind: string }>(`file-boards/${board.id}/items`)
+  expect(created).toMatchObject({ title: "Sem título.md", kind: "note" })
+  // Autosave writes the text after a pause in typing, without pressing save.
+  await expect.poll(() => workspace.api.get(`file-items/${created.id}/file`).then(response => response.text()))
+    .toBe("# Ideas\n\nPlant basil")
+
+  await page.getByRole("button", { name: "Voltar", exact: true }).click()
+  await expect(page.getByRole("button", { name: "Abrir Sem título.md", exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Novo documento", exact: true }).click()
+  await expect(page.getByRole("textbox", { name: "Conteúdo de Sem título 2.md", exact: true })).toBeVisible()
+  expect(await workspace.list(`file-boards/${board.id}/items`)).toHaveLength(2)
+})
+
 test("calendar: grid creation, overlapping events, week navigation and dashboard editing", async ({ workspace, page }) => {
   await workspace.create("calendar/events", { title: "Overlapping A", startAt: `${DAY}T10:00:00Z`, endAt: `${DAY}T12:00:00Z` })
   await workspace.create("calendar/events", { title: "Overlapping B", startAt: `${DAY}T11:00:00Z`, endAt: `${DAY}T13:00:00Z` })
