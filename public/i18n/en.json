@@ -328,7 +328,13 @@
     "tooLargeDescription": "Text files up to {{size}} can be previewed.",
     "saved": "File saved",
     "alreadySaved": "Already saved",
-    "fileContent": "Contents of {{title}}"
+    "fileContent": "Contents of {{title}}",
+    "markdownMode": "Editing mode",
+    "markdownRich": "Formatted",
+    "markdownSource": "Markdown",
+    "markdownPlaceholder": "Start writing… use # for headings, - for lists and [ ] for tasks",
+    "markdownSourceNotice": "This file has formatting the visual editor would change when saving, so it opened as markdown.",
+    "editFormattedAnyway": "Edit formatted anyway"
   },
   "github": {
     "description": "Pull requests and issues to follow up on, and your contributions.",

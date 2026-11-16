@@ -6,14 +6,14 @@ import { mockApi, resetApiMock, type MockRequest } from "@/test/mock-api"
 import { renderWithProviders } from "@/test/render-with-providers"
 import type { FileItem } from "@/types/file-board"
 
-const note = fileItemFixture({ title: "notes.md", mime: "application/octet-stream" })
+const note = fileItemFixture({ title: "notes.txt", mime: "application/octet-stream" })
 const pdf = fileItemFixture({ id: "f2", title: "bill.pdf", mime: "application/pdf", sizeBytes: 4096 })
 const AFTER_AUTOSAVE = { timeout: 4000 }
 
 function routes(items: FileItem[], save: (request: MockRequest) => unknown = savedItem) {
   return mockApi({
     "GET /file-boards/b1/items": () => ({ items }),
-    "GET /file-items/f1/file": () => new Response("# Groceries\n- milk", { headers: { "Content-Type": "text/markdown" } }),
+    "GET /file-items/f1/file": () => new Response("# Groceries\n- milk", { headers: { "Content-Type": "text/plain" } }),
     "PUT /file-items/f1/file": save,
   })
 }
@@ -27,19 +27,20 @@ const puts = (calls: MockRequest[]) => calls.filter((call) => call.method === "P
 
 async function openEditor() {
   renderWithProviders(<FileItemContent boardId="b1" itemId="f1" />)
-  return (await screen.findByRole("textbox", { name: "Contents of notes.md" })) as HTMLTextAreaElement
+  return (await screen.findByRole("textbox", { name: "Contents of notes.txt" })) as HTMLTextAreaElement
 }
 
 afterEach(resetApiMock)
 
 describe("FileItemContent", () => {
-  it("opens the raw text of a text or markdown file in an editor", async () => {
+  it("opens the raw text of a text file in a plain editor", async () => {
     routes([note])
     const editor = await openEditor()
 
-    expect(screen.getByRole("heading", { name: "notes.md", level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "notes.txt", level: 1 })).toBeInTheDocument()
     expect(editor.value).toBe("# Groceries\n- milk")
     expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("tab", { name: "Formatted" })).not.toBeInTheDocument()
   })
 
   it("shows Save once the text changes and confirms the save", async () => {
@@ -88,7 +89,7 @@ describe("FileItemContent", () => {
   it("saves unsaved changes when leaving the page", async () => {
     const { calls } = routes([note])
     renderWithProviders(<FileItemContent boardId="b1" itemId="f1" />)
-    const editor = await screen.findByRole("textbox", { name: "Contents of notes.md" })
+    const editor = await screen.findByRole("textbox", { name: "Contents of notes.txt" })
     fireEvent.change(editor, { target: { value: "typed then left" } })
     fireEvent.click(screen.getByRole("button", { name: "Back" }))
 
