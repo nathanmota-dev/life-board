@@ -43,7 +43,10 @@ export type BoardFormDialogProps = { open: boolean; onOpenChange: (open: boolean
 
 export type BoardFilesProps = { board: FileBoard; onDeleted: () => void }
 
-export type FilePreviewKind = "image" | "pdf" | "text" | "other"
+export type FilePreviewKind = "image" | "pdf" | "text" | "markdown" | "other"
+
+/** How a `.md` file is edited: formatted as it's typed, or as its markdown source. */
+export type MarkdownMode = "rich" | "source"
 
 export type FileItemGridProps = { items: FileItem[]; onOpen: (item: FileItem) => void; onPreviewImage: (item: FileItem) => void }
 
@@ -61,6 +64,23 @@ export type FileItemHeader = { title: string; description?: string; leading: Rea
 export type FileItemViewProps = { item: FileItem; header: FileItemHeader }
 
 export type TextFileEditorProps = { item: FileItem; text: string; header: FileItemHeader }
+
+export type PlainTextAreaProps = {
+  value: string
+  label: string
+  onChange: (value: string) => void
+  onSaveShortcut: () => void
+  /** Overrides the editor box's size, such as when it shares the page with a notice. */
+  className?: string
+}
+
+export type RichMarkdownEditorProps = PlainTextAreaProps
+
+export type MarkdownModeToggleProps = { mode: MarkdownMode; onChange: (mode: MarkdownMode) => void }
+
+export type MarkdownSourceNoticeProps = { onEditFormatted: () => void }
+
+export type MarkdownEditorBodyProps = PlainTextAreaProps & { mode: MarkdownMode; lossy: boolean; onEditFormatted: () => void }
 
 export type SaveTextButtonProps = { onSave: () => void }
 

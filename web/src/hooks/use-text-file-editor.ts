@@ -3,9 +3,10 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { applySavedText } from "@/hooks/queries/use-file-boards"
+import { fileLabel } from "@/lib/file-board"
 import { errorMessage } from "@/lib/format"
 import { fileBoardsService } from "@/services/file-boards-service"
-import type { FileItem } from "@/types/file-board"
+import type { FileItem, PlainTextAreaProps } from "@/types/file-board"
 
 /** Saves this long after the last keystroke. */
 export const AUTOSAVE_DELAY_MS = 1500
@@ -73,5 +74,13 @@ export function useTextFileEditor(item: FileItem, text: string) {
     }
   }, [dirty, persist, t, value])
 
-  return { value, setValue: setDraft, dirty, saveNow }
+  // What every editor of the file (plain or formatted) needs.
+  const field: PlainTextAreaProps = {
+    value,
+    label: t("fileBoard.fileContent", { title: fileLabel(item) }),
+    onChange: setDraft,
+    onSaveShortcut: () => void saveNow(),
+  }
+
+  return { value, setValue: setDraft, dirty, saveNow, field }
 }

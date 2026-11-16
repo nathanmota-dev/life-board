@@ -10,6 +10,7 @@ const text = fileItemFixture()
 const pdf = fileItemFixture({ id: "f2", title: "bill.pdf", mime: "application/pdf" })
 const image = fileItemFixture({ id: "f3", title: "photo.png", mime: "image/png", kind: "image" })
 const archive = fileItemFixture({ id: "f4", title: "backup.zip", mime: "application/zip" })
+const markdown = fileItemFixture({ id: "f5", title: "readme.md", mime: "application/octet-stream" })
 
 function renderCard(item: FileItem) {
   mockApi({})
@@ -22,7 +23,7 @@ function renderCard(item: FileItem) {
 afterEach(resetApiMock)
 
 describe("FileItemCard", () => {
-  it.each([text, pdf])("opens $title on its own page", async (item) => {
+  it.each([text, pdf, markdown])("opens $title on its own page", async (item) => {
     const { router, onOpen } = renderCard(item)
     fireEvent.click(await screen.findByRole("button", { name: `Open ${item.title}` }))
 
@@ -84,5 +85,11 @@ describe("FileItemCard", () => {
     expect(textIcon).toContain("lucide-file-text")
     expect(pdfIcon).toContain("lucide-file-type")
     expect(pdfIcon).not.toContain("lucide-file-text")
+  })
+
+  it("shows markdown files with the text icon and an md badge", async () => {
+    const { container } = renderCard(markdown)
+    expect(await screen.findByText("md")).toBeInTheDocument()
+    expect(container.querySelector("[data-preview-kind='markdown'] svg")?.getAttribute("class")).toContain("lucide-file-text")
   })
 })

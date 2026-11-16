@@ -1,9 +1,9 @@
 import { i18n } from "@/lib/i18n"
 import { BOARD_KINDS, FILE_KINDS, type FileItem, type FilePreviewKind } from "@/types/file-board"
 
-const TEXT_MIMES = new Set(["text/plain", "text/markdown", "text/x-markdown"])
+const MIME_KINDS: Record<string, FilePreviewKind> = { "text/plain": "text", "text/markdown": "markdown", "text/x-markdown": "markdown" }
 const UNKNOWN_MIMES = new Set(["", "application/octet-stream"])
-const EXTENSION_KINDS: Record<string, FilePreviewKind> = { pdf: "pdf", txt: "text", md: "text", markdown: "text" }
+const EXTENSION_KINDS: Record<string, FilePreviewKind> = { pdf: "pdf", txt: "text", md: "markdown", markdown: "markdown" }
 
 /** Text files above this size are not loaded into the preview. */
 export const TEXT_PREVIEW_LIMIT_BYTES = 2 * 1024 * 1024
@@ -31,13 +31,13 @@ export function previewKind(item: FileItem): FilePreviewKind {
   const mime = item.mime.toLowerCase()
   if (mime.startsWith("image/")) return "image"
   if (mime === "application/pdf") return "pdf"
-  if (TEXT_MIMES.has(mime)) return "text"
+  if (Object.hasOwn(MIME_KINDS, mime)) return MIME_KINDS[mime]
   return UNKNOWN_MIMES.has(mime) ? (EXTENSION_KINDS[fileExtension(item)] ?? "other") : "other"
 }
 
 export function hasPreviewPage(item: FileItem) {
   const kind = previewKind(item)
-  return kind === "pdf" || kind === "text"
+  return kind === "pdf" || kind === "text" || kind === "markdown"
 }
 
 export function fileLabel(item: FileItem) {

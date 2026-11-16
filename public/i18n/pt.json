@@ -328,7 +328,13 @@
     "tooLargeDescription": "Arquivos de texto de até {{size}} podem ser pré-visualizados.",
     "saved": "Arquivo salvo",
     "alreadySaved": "Já estava salvo",
-    "fileContent": "Conteúdo de {{title}}"
+    "fileContent": "Conteúdo de {{title}}",
+    "markdownMode": "Modo de edição",
+    "markdownRich": "Formatado",
+    "markdownSource": "Markdown",
+    "markdownPlaceholder": "Comece a escrever… use # para títulos, - para listas e [ ] para tarefas",
+    "markdownSourceNotice": "Este arquivo tem formatação que o editor visual alteraria ao salvar, então ele abriu como markdown.",
+    "editFormattedAnyway": "Editar formatado mesmo assim"
   },
   "github": {
     "description": "Pull requests e issues para acompanhar, além das suas contribuições.",

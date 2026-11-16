@@ -7,6 +7,7 @@ import type { FileThumbnailProps } from "@/types/file-board"
 const ICONS = {
   image: { icon: File, className: "text-muted-foreground" },
   text: { icon: FileText, className: "text-muted-foreground" },
+  markdown: { icon: FileText, className: "text-muted-foreground" },
   pdf: { icon: FileType, className: "text-chart-1" },
   other: { icon: File, className: "text-muted-foreground" },
 }
