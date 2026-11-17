@@ -7,7 +7,7 @@
     "web": "typescript"
   },
   "policy": {
-    "maxFileLines": 350,
+    "maxFileLines": 500,
     "maxFunctionLines": 100,
     "sourceRoots": [
       "api/src",

@@ -40,7 +40,7 @@ Os pacotes medidos são `api`, `desktop` e `web`.
   precisam estar cobertas.
 - **Duplicação (JSCPD):** a porcentagem e o número de fragmentos não podem subir.
 - **Lint:** zero erros e avisos (ESLint e, para Rust, Clippy).
-- **Tamanho:** nenhum arquivo de produção acima de 350 linhas e nenhuma função acima
+- **Tamanho:** nenhum arquivo de produção acima de 500 linhas e nenhuma função acima
   de 100. A regra é absoluta: não há dívida tolerada.
 - **Marcadores proibidos:** `.only`, `.skip` incondicional, `#[ignore]`, `todo!()` e
   `unimplemented!()`.

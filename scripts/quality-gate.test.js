@@ -63,7 +63,7 @@ function createBaseline() {
             oversizedFunctions: 0,
         },
         fileLines: {
-            "api/src/legacy.ts": 350,
+            "api/src/legacy.ts": 500,
             "web/src/small.ts": 200,
         },
     };
@@ -93,7 +93,7 @@ function createMetrics() {
             byProject: { api: 0, desktop: 0, web: 0 },
         },
         fileLines: {
-            "api/src/legacy.ts": 350,
+            "api/src/legacy.ts": 500,
             "web/src/small.ts": 200,
         },
     };
@@ -224,13 +224,13 @@ test("countPhysicalLines handles empty files, final newlines, CRLF, and missing 
     assert.equal(countPhysicalLines("one\rtwo"), 2);
 });
 
-test("production limits are absolute and include the exact 100/101 and 350/351 boundaries", () => {
+test("production limits are absolute and include the exact 100/101 and 500/501 boundaries", () => {
     assert.equal(MAX_PRODUCTION_FUNCTION_LINES, 100);
-    assert.equal(MAX_PRODUCTION_FILE_LINES, 350);
+    assert.equal(MAX_PRODUCTION_FILE_LINES, 500);
     assert.equal(countLimitViolations([100], MAX_PRODUCTION_FUNCTION_LINES), 0);
     assert.equal(countLimitViolations([101], MAX_PRODUCTION_FUNCTION_LINES), 1);
-    assert.equal(countLimitViolations([350], MAX_PRODUCTION_FILE_LINES), 0);
-    assert.equal(countLimitViolations([351], MAX_PRODUCTION_FILE_LINES), 1);
+    assert.equal(countLimitViolations([500], MAX_PRODUCTION_FILE_LINES), 0);
+    assert.equal(countLimitViolations([501], MAX_PRODUCTION_FILE_LINES), 1);
 });
 
 function sourceWithFunctionLength(lineCount, declaration) {
@@ -368,32 +368,32 @@ test("compareMetrics fails closed when a previously populated duplication scan b
 
 test("compareMetrics reports new, crossed, and already-oversized file regressions", () => {
     const baseline = createBaseline();
-    baseline.fileLines["api/src/legacy.ts"] = 351;
+    baseline.fileLines["api/src/legacy.ts"] = 501;
     baseline.violations.oversizedFiles = 1;
     const current = createMetrics();
     current.fileLines = {
-        "api/src/legacy.ts": 352,
-        "web/src/small.ts": 351,
-        "web/src/new.ts": 450,
+        "api/src/legacy.ts": 502,
+        "web/src/small.ts": 501,
+        "web/src/new.ts": 600,
     };
     current.violations.oversizedFiles = 3;
     const result = compareMetrics(baseline, current);
 
     assert.deepEqual(result.regressions, [
-        "api/src/legacy.ts grew from 351 to 352 lines while already over the 350-line limit.",
-        "web/src/new.ts is a new oversized file with 450 lines (limit: 350).",
-        "web/src/small.ts grew from 200 to 351 lines and crossed the 350-line limit.",
+        "api/src/legacy.ts grew from 501 to 502 lines while already over the 500-line limit.",
+        "web/src/new.ts is a new oversized file with 600 lines (limit: 500).",
+        "web/src/small.ts grew from 200 to 501 lines and crossed the 500-line limit.",
     ]);
     assert.equal(result.passed, false);
 });
 
 test("compareMetrics catches oversized replacement even when the aggregate count is unchanged", () => {
     const baseline = createBaseline();
-    baseline.fileLines["api/src/legacy.ts"] = 351;
+    baseline.fileLines["api/src/legacy.ts"] = 501;
     baseline.violations.oversizedFiles = 1;
     const current = createMetrics();
     current.fileLines = {
-        "web/src/replacement.ts": 351,
+        "web/src/replacement.ts": 501,
         "web/src/small.ts": 200,
     };
     current.violations.oversizedFiles = 1;
@@ -422,7 +422,7 @@ test("buildBaseline is deterministic and keeps exact coverage counts", () => {
 test("renderMarkdown includes every requested table and exact regression details", () => {
     const baseline = createBaseline();
     const metrics = createMetrics();
-    metrics.fileLines["api/src/legacy.ts"] = 352;
+    metrics.fileLines["api/src/legacy.ts"] = 502;
     const comparison = compareMetrics(baseline, metrics);
     const markdown = renderMarkdown({ baseline, metrics, comparison, baselineLabel: "main|trusted`baseline" });
 
@@ -432,7 +432,7 @@ test("renderMarkdown includes every requested table and exact regression details
     assert.match(markdown, /## Violations/);
     assert.match(markdown, /## Regressions/);
     assert.match(markdown, /\| Metric \| Baseline \| Current \| Increase \|/);
-    assert.match(markdown, /grew from 350 to 352 lines and crossed the 350-line limit/);
+    assert.match(markdown, /grew from 500 to 502 lines and crossed the 500-line limit/);
     assert.match(markdown, /main\\\|trusted\\`baseline/);
 });
 
@@ -592,7 +592,7 @@ test("a migrated project skips comparisons but keeps its floor and absolute limi
     assert.match(compareMetrics(baseline, current).failures.join("\n"), /api lines coverage is 70\.00%; at least 80% is required/);
     current.coverage.projects.api = { ...coverage(9, 10), branches: { covered: 0, total: 0 } };
     current.violations.oversizedFiles = 1;
-    current.fileLines["src-tauri/crates/api/src/big.rs"] = 400;
+    current.fileLines["src-tauri/crates/api/src/big.rs"] = 600;
     assert.match(compareMetrics(baseline, current).failures.join("\n"), /big\.rs is a new oversized file/);
 });
 

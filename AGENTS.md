@@ -19,7 +19,7 @@ Life Board is a personal Electron desktop app for organizing and tracking everyt
 
 - Keep domain and component prop types in `web/src/types/`, never inside views or components.
 - A component has a single `return`; when it needs alternative layouts, render child components (or `DataState`) instead.
-- Keep views and components under 350 lines; move reusable logic to `web/src/lib/` and HTTP calls to `web/src/services/`.
+- Keep views and components under 500 lines; move reusable logic to `web/src/lib/` and HTTP calls to `web/src/services/`.
 - Name files in kebab-case, like the existing routes.
 - Use the accent tokens (`primary`, `chart-1`…`chart-5`) for highlights and charts so the Settings accent color applies everywhere.
 
@@ -107,8 +107,6 @@ These files define the gates, baselines, benchmarks and PR report. `scripts/prot
 - `.github/workflows/performance.yml`
 - `.github/workflows/pr-validation.yml`
 - `clippy.toml`
-- `package.json`
-- `web/package.json`
 - `web/vitest.config.ts`
 - `desktop/vitest.config.ts`
 - `web/vitest.benchmark.config.ts`

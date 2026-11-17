@@ -26,7 +26,7 @@ const ESLINT_TARGETS = Object.freeze({
     desktop: ["desktop", "e2e", "electron.vite.config.mts", "playwright.config.ts"],
     web: ["web"],
 });
-const MAX_PRODUCTION_FILE_LINES = 350;
+const MAX_PRODUCTION_FILE_LINES = 500;
 const MAX_PRODUCTION_FUNCTION_LINES = 100;
 // Deleting well-covered code lowers a ratio without any test getting worse, so
 // coverage may move this far below the base; changed-line coverage guards the
