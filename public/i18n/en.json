@@ -190,6 +190,7 @@
   "common": {
     "all": "All",
     "today": "Today",
+    "pickDate": "Pick a date",
     "save": "Save",
     "delete": "Delete",
     "edit": "Edit",

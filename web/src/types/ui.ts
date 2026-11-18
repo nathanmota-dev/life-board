@@ -151,3 +151,8 @@ export type PeriodState = {
 export type PeriodFilterProps = { state: PeriodState }
 
 export type BackButtonProps = { onClick: () => void }
+
+/** A day as `YYYY-MM-DD`, or `""` for none. */
+export type DayCalendarProps = { value: string; onChange: (day: string) => void; clearLabel: string }
+
+export type DatePickerProps = { id: string; value: string; onChange: (day: string) => void; clearLabel: string }

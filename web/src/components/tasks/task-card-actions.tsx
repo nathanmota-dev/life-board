@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Archive, ArchiveRestore, CalendarClock, CircleCheck, Palette, Pencil, Pin, PinOff, RotateCcw, Trash2 } from "lucide-react"
 import { RowActions } from "@/components/shared/row-actions"
@@ -18,6 +19,7 @@ export function TaskCardActions({ task, onEdit }: TaskCardActionsProps) {
   const pinLabel = task.pinned ? t("tasks.unpin") : t("tasks.pin")
   const archiveLabel = task.archivedAt ? t("tasks.unarchive") : t("tasks.archive")
   const done = task.status === "done"
+  const [dueOpen, setDueOpen] = useState(false)
 
   return (
     <>
@@ -39,14 +41,20 @@ export function TaskCardActions({ task, onEdit }: TaskCardActionsProps) {
           <TaskColorPicker value={task.color} clearLabel={t("tasks.noColor")} onChange={(color) => patch({ color })} />
         </PopoverContent>
       </Popover>
-      <Popover>
+      <Popover open={dueOpen} onOpenChange={setDueOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="icon-sm" aria-label={t("tasks.dueDate")} title={t("tasks.dueDate")}>
             <CalendarClock />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-56 p-2">
-          <TaskDuePicker value={task.dueAt} onChange={(dueAt) => patch({ dueAt })} />
+        <PopoverContent align="start" className="w-auto p-2">
+          <TaskDuePicker
+            value={task.dueAt}
+            onChange={(dueAt) => {
+              patch({ dueAt })
+              setDueOpen(false)
+            }}
+          />
         </PopoverContent>
       </Popover>
       <Button

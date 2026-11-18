@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 import { TasksPage } from "@/routes/tasks"
 import { TASK_LAYOUT_STORAGE_KEY } from "@/lib/tasks"
+import { fromDateInput, toDayKey } from "@/lib/dates"
 import { mockApi, resetApiMock, type MockRequest } from "@/test/mock-api"
 import { renderWithProviders } from "@/test/render-with-providers"
 import type { BoardTask, Task } from "@/types/task"
@@ -240,6 +241,44 @@ describe("TasksPage", () => {
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Complete Pay rent" }))
     await waitFor(() => expect(lastCall(calls, "PATCH", "/tasks/t1")?.body).toEqual({ status: "done" }))
+  })
+
+  it("sets and clears the due date from the card's calendar", async () => {
+    let saved = base
+    const { calls } = mockApi({
+      "GET /tasks": () => ({ items: [saved, ...tasks.slice(1)] }),
+      "PATCH /tasks/t1": ({ body }) => (saved = { ...saved, ...(body as object) }),
+    })
+    renderWithProviders(<TasksPage />)
+
+    const card = await screen.findByRole("article", { name: "Pay rent" })
+    fireEvent.click(within(card).getByRole("button", { name: "Due date" }))
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Today" }))
+    await waitFor(() => expect(lastCall(calls, "PATCH", "/tasks/t1")?.body).toEqual({ dueAt: fromDateInput(toDayKey()) }))
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+
+    fireEvent.click(within(card).getByRole("button", { name: "Due date" }))
+    const clear = within(screen.getByRole("dialog")).getByRole("button", { name: "Clear date" })
+    await waitFor(() => expect(clear).toBeEnabled())
+    fireEvent.click(clear)
+    await waitFor(() => expect(lastCall(calls, "PATCH", "/tasks/t1")?.body).toEqual({ dueAt: null }))
+  })
+
+  it("creates a task with a due date picked in the dialog", async () => {
+    const { calls } = mockApi({
+      "GET /tasks": () => ({ items: [] }),
+      "POST /tasks": ({ body }) => ({ ...base, ...(body as object), id: "t3" }),
+    })
+    renderWithProviders(<TasksPage />)
+
+    fireEvent.click(await screen.findByRole("button", { name: "New task" }))
+    fireEvent.change(screen.getByLabelText("Title", { selector: "#task-title" }), { target: { value: "Renew passport" } })
+    fireEvent.click(screen.getByRole("button", { name: "Due date" }))
+    const picker = screen.getAllByRole("dialog").at(-1) as HTMLElement
+    fireEvent.click(within(picker).getByRole("button", { name: "Today" }))
+    fireEvent.click(screen.getByRole("button", { name: "Create task" }))
+
+    await waitFor(() => expect(calls.find((call) => call.method === "POST")?.body).toMatchObject({ title: "Renew passport", dueAt: fromDateInput(toDayKey()) }))
   })
 
   it("creates a task with tags from the dialog", async () => {

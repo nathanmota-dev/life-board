@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next"
+import { DatePicker } from "@/components/shared/date-picker"
 import { FormField } from "@/components/shared/form-field"
 import { SelectField } from "@/components/shared/select-field"
 import { Input } from "@/components/ui/input"
@@ -26,7 +27,7 @@ export function TaskFormFields({ values, onChange }: TaskFormFieldsProps) {
           <SelectField id="task-priority" value={values.priority} options={getTaskPriorityOptions()} onChange={(value) => set("priority", value)} />
         </FormField>
         <FormField label={t("tasks.dueDate")} htmlFor="task-due">
-          <Input id="task-due" type="date" value={values.dueAt} onChange={(event) => set("dueAt", event.target.value)} />
+          <DatePicker id="task-due" value={values.dueAt} clearLabel={t("tasks.clearDueDate")} onChange={(day) => set("dueAt", day)} />
         </FormField>
       </div>
       <FormField label={t("navigation.tags")} htmlFor="task-tags" hint={t("common.commaSeparated")}>
