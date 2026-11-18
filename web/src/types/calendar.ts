@@ -9,6 +9,14 @@ export type CalendarEvent = {
   allDay: boolean
   location: string | null
   color: string
+  /** Where the event was born; it never changes. */
+  source: "local" | "google"
+  /** Google's `htmlLink`, for "Open in Google Calendar". */
+  externalUrl: string | null
+  /** The recurring event this one is an occurrence of. */
+  recurringEventId: string | null
+  /** The change still waiting to be sent to Google. */
+  syncState: "pending_create" | "pending_update" | "pending_delete" | null
   createdAt: string
   updatedAt: string
 }

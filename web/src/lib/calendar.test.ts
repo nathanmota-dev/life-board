@@ -25,6 +25,10 @@ function event(id: string, start: Date, end: Date, allDay = false): CalendarEven
     allDay,
     location: null,
     color: "#FF892B",
+    source: "local",
+    externalUrl: null,
+    recurringEventId: null,
+    syncState: null,
     createdAt: "",
     updatedAt: "",
   }

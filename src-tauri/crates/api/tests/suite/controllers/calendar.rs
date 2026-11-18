@@ -35,3 +35,30 @@ async fn returns_400_when_the_event_ends_before_it_starts() {
     assert_eq!(response.status(), 400);
     assert_eq!(response.json()["error"], "invalid_range");
 }
+
+#[tokio::test]
+async fn exposes_the_link_fields_and_hides_the_internal_ones() {
+    let ctx = TestApp::new().await;
+    let created = ctx
+        .post(
+            "/api/calendar/events",
+            json!({
+                "title": "Dentist", "startAt": "2026-10-20T14:00:00Z", "endAt": "2026-10-20T15:00:00Z",
+                "source": "google", "externalId": "x", "syncState": "pending_delete"
+            }),
+        )
+        .await;
+    assert_eq!(created.status(), 201);
+    let id = text(&created.json(), "id");
+    ctx.patch(&format!("/api/calendar/events/{id}"), json!({ "source": "google", "externalUrl": "https://x" })).await;
+
+    let list = ctx.get("/api/calendar/events").await.json();
+    let event = list["items"][0].as_object().unwrap();
+    assert_eq!(event["source"], "local");
+    assert_eq!(event["externalUrl"], serde_json::Value::Null);
+    assert_eq!(event["recurringEventId"], serde_json::Value::Null);
+    assert_eq!(event["syncState"], serde_json::Value::Null);
+    for hidden in ["externalId", "externalCalendarId", "externalEtag", "externalUpdatedAt"] {
+        assert!(!event.contains_key(hidden), "{hidden} must stay internal");
+    }
+}

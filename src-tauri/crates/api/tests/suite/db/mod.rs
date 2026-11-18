@@ -1,3 +1,4 @@
+mod calendar_source_migration;
 mod client;
 mod columns;
 mod focus_day_migration;

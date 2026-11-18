@@ -76,6 +76,19 @@ fn comparable(status: u16, mut body: Value) -> Value {
     body
 }
 
+/// Calendar events gained these public fields after the Node API 1.1.2, whose recorded
+/// fixtures are frozen, so they are dropped from the response before comparing.
+const CALENDAR_FIELDS_ADDED_AFTER_NODE: [&str; 4] = ["source", "externalUrl", "recurringEventId", "syncState"];
+
+fn strip_calendar_fields_added_after_node(body: &mut Value) {
+    let Some(Value::Array(items)) = body.get_mut("items") else { return };
+    for item in items.iter_mut().filter_map(Value::as_object_mut) {
+        for field in CALENDAR_FIELDS_ADDED_AFTER_NODE {
+            item.remove(field);
+        }
+    }
+}
+
 /// Replays, in order, the recorded requests of `module` on a copy of the Node profile.
 async fn answers_like_node(module: &str) {
     let ctx = TestApp::on_copy_of(NODE_PROFILE, node_crypto()).await;
@@ -86,12 +99,11 @@ async fn answers_like_node(module: &str) {
         let expected: Recorded = read(fixture(&format!("{NODE_PROFILE}/{}.json", entry.name)));
         let response = ctx.get(&entry.path).await;
         assert_eq!(response.status(), expected.status, "{}", entry.path);
-        assert_eq!(
-            comparable(response.status(), response.json()),
-            comparable(expected.status, expected.body),
-            "{}",
-            entry.path
-        );
+        let mut actual = response.json();
+        if module == "calendar" {
+            strip_calendar_fields_added_after_node(&mut actual);
+        }
+        assert_eq!(comparable(response.status(), actual), comparable(expected.status, expected.body), "{}", entry.path);
     }
 }
 
