@@ -10,6 +10,8 @@ repositório, salvo indicação em contrário.
 - [Frontend](frontend.md): organização das views e componentes, temas, idiomas e
   componentes do shadcn/ui.
 - [Backend](backend.md): API em Rust, módulos, banco de dados, migrations e credenciais.
+- [Google Agenda](google-agenda.md): criar as credenciais no Google Cloud e conectar
+  uma conta em Configurações.
 - [Qualidade](qualidade.md): quality gate, performance e relatório único dos PRs.
 - [Desenvolvimento](desenvolvimento.md): ambiente local, comandos, build,
   empacotamento e testes.

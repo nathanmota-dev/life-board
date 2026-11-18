@@ -74,22 +74,33 @@ impl RunningServer {
     }
 }
 
-/// Opens the DB, migrates, drops `github_settings` when `reset_secrets`, builds
+/// Opens the DB, migrates, drops `github_settings` and `google_settings` when `reset_secrets`, builds
 /// the app (`filesSettings.load()`, `fileBoards.purgeDeleted()`) and listens.
 pub async fn start_server(options: ServerOptions) -> Result<RunningServer, StartError> {
     let ServerOptions { data_dir, secret_key, reset_secrets, host, port } = options;
     tokio::fs::create_dir_all(&data_dir).await?;
     let db = Db::open(&data_dir.join(DATABASE_FILE)).await?;
-    // The GitHub token is the only encrypted secret; its row holds nothing else worth keeping.
+    // The GitHub token and the Google client and refresh token are the only encrypted
+    // secrets; their rows hold nothing else worth keeping.
     if reset_secrets {
-        db.call(|conn| conn.execute("DELETE FROM github_settings", [])).await?;
+        db.call(|conn| {
+            let tx = conn.transaction()?;
+            tx.execute("DELETE FROM github_settings", [])?;
+            tx.execute("DELETE FROM google_settings", [])?;
+            tx.commit()
+        })
+        .await?;
     }
     let crypto = CryptoService::new(&secret_key)?;
-    let state = AppState::new(AppOptions::new(db.clone(), &data_dir, crypto)).await?;
-    let app = build_app(state);
-
+    // Listen first: the Google OAuth redirect goes back to this address.
     let listener = tokio::net::TcpListener::bind((host.as_str(), port)).await?;
     let addr = listener.local_addr()?;
+    let url = format!("http://{host}:{}", addr.port());
+    let mut app_options = AppOptions::new(db.clone(), &data_dir, crypto);
+    app_options.server_url = Some(url.clone());
+    let state = AppState::new(app_options).await?;
+    let app = build_app(state);
+
     let (shutdown, signal) = tokio::sync::oneshot::channel::<()>();
     let task = tokio::spawn(async move {
         let serve = axum::serve(listener, app).with_graceful_shutdown(async move {
@@ -99,14 +110,7 @@ pub async fn start_server(options: ServerOptions) -> Result<RunningServer, Start
             tracing::error!(%error, "server stopped");
         }
     });
-    Ok(RunningServer {
-        addr,
-        port: addr.port(),
-        url: format!("http://{host}:{}", addr.port()),
-        shutdown: Some(shutdown),
-        task: Some(task),
-        db: Some(db),
-    })
+    Ok(RunningServer { addr, port: addr.port(), url, shutdown: Some(shutdown), task: Some(task), db: Some(db) })
 }
 
 /// The profile database inside the data directory.

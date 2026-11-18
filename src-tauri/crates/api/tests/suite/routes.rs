@@ -42,7 +42,16 @@ fn registers_every_node_route() {
 #[test]
 fn registers_the_routes_added_after_the_node_api() {
     let routes = all_routes();
-    let added = [("PUT", "/api/file-items/:param/file")];
+    let added = [
+        ("PUT", "/api/file-items/:param/file"),
+        ("GET", "/api/google/status"),
+        ("PUT", "/api/google/credentials"),
+        ("DELETE", "/api/google/credentials"),
+        ("POST", "/api/google/connect"),
+        ("DELETE", "/api/google/connect"),
+        ("GET", "/api/google/oauth/callback"),
+        ("DELETE", "/api/google/disconnect"),
+    ];
     for (method, path) in added {
         assert!(
             routes.iter().any(|route| route.method == method && normalize(&route.path) == path),
@@ -52,9 +61,11 @@ fn registers_the_routes_added_after_the_node_api() {
 }
 
 #[test]
-fn keeps_health_outside_the_auth_layer() {
+fn keeps_health_and_the_google_callback_outside_the_auth_layer() {
     let public = life_board_api::controllers::public();
     let paths: Vec<&str> = public.routes().iter().map(|route| route.path.as_str()).collect();
-    assert_eq!(paths, ["/api/health"]);
-    assert!(life_board_api::controllers::protected().routes().iter().all(|route| route.path != "/api/health"));
+    assert_eq!(paths, ["/api/health", "/api/google/oauth/callback"]);
+    assert!(
+        life_board_api::controllers::protected().routes().iter().all(|route| !paths.contains(&route.path.as_str()))
+    );
 }

@@ -7,6 +7,7 @@ pub mod calendar;
 pub mod file_boards;
 pub mod github;
 pub mod goals;
+pub mod google;
 pub mod habits;
 pub mod mood;
 pub mod projects;

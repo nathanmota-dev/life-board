@@ -1,6 +1,6 @@
 //! There is no auth yet, so every request is allowed. When login arrives, this
 //! is where the session gets validated; routes behind [`require_auth`] pick it
-//! up without changes. `/api/health` stays public.
+//! up without changes. `/api/health` and `/api/google/oauth/callback` stay public.
 
 use async_trait::async_trait;
 use axum::extract::{Request, State};

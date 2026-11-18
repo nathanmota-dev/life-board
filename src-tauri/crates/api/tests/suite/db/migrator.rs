@@ -5,7 +5,12 @@ use life_board_api::db::{Db, MIGRATIONS};
 use rusqlite::{Connection, OpenFlags};
 use serde::Deserialize;
 
-use crate::common::{NODE_PROFILE, fixture, temp_dir};
+use crate::common::{NODE_PROFILE, fixture, migrations_before, temp_dir};
+
+/// The first migration written after the Node API, which the Node profile lacks.
+const FIRST_RUST_MIGRATION: &str = "0009";
+/// Tables those migrations created.
+const RUST_TABLES: [&str; 1] = ["google_settings"];
 
 #[derive(Deserialize)]
 struct Journal {
@@ -29,9 +34,27 @@ fn recorded(path: &std::path::Path) -> Vec<(String, i64)> {
 }
 
 fn schema(path: &std::path::Path) -> Vec<(String, Option<String>)> {
+    schema_where(path, |_| true)
+}
+
+/// The schema without the tables of the migrations written after the Node API.
+fn node_era_schema(path: &std::path::Path) -> Vec<(String, Option<String>)> {
+    schema_where(path, |table| !RUST_TABLES.contains(&table))
+}
+
+fn schema_where(path: &std::path::Path, keep: fn(&str) -> bool) -> Vec<(String, Option<String>)> {
     let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
-    let mut statement = conn.prepare("SELECT name, sql FROM sqlite_master ORDER BY type, name").unwrap();
-    statement.query_map([], |row| Ok((row.get(0)?, row.get(1)?))).unwrap().collect::<Result<_, _>>().unwrap()
+    let mut statement = conn.prepare("SELECT name, sql, tbl_name FROM sqlite_master ORDER BY type, name").unwrap();
+    let rows: Vec<(String, Option<String>, String)> = statement
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    rows.into_iter().filter(|(_, _, table)| keep(table)).map(|(name, sql, _)| (name, sql)).collect()
+}
+
+fn embedded_records() -> Vec<(String, i64)> {
+    MIGRATIONS.iter().map(|migration| (migration.hash(), migration.when)).collect()
 }
 
 #[test]
@@ -50,12 +73,12 @@ fn embeds_every_migration_of_the_drizzle_journal() {
 
 #[test]
 fn hashes_migrations_like_drizzle_did_in_the_node_profile() {
-    let embedded: Vec<(String, i64)> = MIGRATIONS.iter().map(|migration| (migration.hash(), migration.when)).collect();
-    assert_eq!(recorded(&fixture(&format!("{NODE_PROFILE}.db"))), embedded);
+    let node_era = migrations_before(FIRST_RUST_MIGRATION).len();
+    assert_eq!(recorded(&fixture(&format!("{NODE_PROFILE}.db"))), embedded_records()[..node_era]);
 }
 
 #[tokio::test]
-async fn leaves_a_profile_migrated_by_node_unchanged() {
+async fn upgrades_a_profile_migrated_by_node_with_only_the_newer_migrations() {
     let dir = temp_dir("node-profile-");
     let path = dir.path().join("life-board.db");
     std::fs::copy(fixture(&format!("{NODE_PROFILE}.db")), &path).unwrap();
@@ -63,7 +86,11 @@ async fn leaves_a_profile_migrated_by_node_unchanged() {
 
     Db::open(&path).await.unwrap().close().await.unwrap();
 
-    assert_eq!((recorded(&path), schema(&path)), before);
+    let after = recorded(&path);
+    assert_eq!(after[..before.0.len()], before.0[..]);
+    assert_eq!(after, embedded_records());
+    assert_eq!(node_era_schema(&path), before.1);
+    assert!(schema(&path).iter().any(|(name, _)| name == "google_settings"));
 }
 
 #[tokio::test]
@@ -74,8 +101,10 @@ async fn migrates_a_new_profile_to_the_schema_and_records_node_writes() {
     Db::open(&path).await.unwrap().close().await.unwrap();
 
     let node = fixture(&format!("{NODE_PROFILE}.db"));
-    assert_eq!(recorded(&path), recorded(&node));
-    assert_eq!(schema(&path), schema(&node));
+    let node_records = recorded(&node);
+    assert_eq!(recorded(&path)[..node_records.len()], node_records[..]);
+    assert_eq!(recorded(&path), embedded_records());
+    assert_eq!(node_era_schema(&path), schema(&node));
 }
 
 #[tokio::test]
@@ -101,11 +130,12 @@ async fn applies_only_the_missing_migrations_to_a_partially_migrated_profile() {
     upgraded.close().await.unwrap();
 
     let after = recorded(&path);
-    let embedded: Vec<(String, i64)> = MIGRATIONS.iter().map(|migration| (migration.hash(), migration.when)).collect();
-    assert_eq!(after, embedded);
+    assert_eq!(after, embedded_records());
     assert_eq!(after[..5], before[..]);
     assert_eq!(title, "Kept");
-    assert_eq!(schema(&path), schema(&fixture(&format!("{NODE_PROFILE}.db"))));
+    let fresh = dir.path().join("fresh.db");
+    Db::open(&fresh).await.unwrap().close().await.unwrap();
+    assert_eq!(schema(&path), schema(&fresh));
 }
 
 #[tokio::test]

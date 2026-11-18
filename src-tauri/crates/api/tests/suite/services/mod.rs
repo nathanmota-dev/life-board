@@ -7,6 +7,8 @@ mod files_settings;
 mod github;
 mod github_client;
 mod goals;
+mod google;
+mod google_auth_client;
 mod habits;
 mod links;
 mod mood;

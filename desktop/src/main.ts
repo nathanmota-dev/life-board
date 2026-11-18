@@ -6,6 +6,7 @@ import type { Backend } from "./backend"
 import { applyChromiumSwitches } from "./chromium-switches"
 import { registerCaptureShortcut, unregisterCaptureShortcut } from "./capture-window"
 import { registerDirectoryPicker } from "./directory-picker"
+import { isAllowedExternalLink } from "./external-links"
 import { registerGpuRelease } from "./gpu-release"
 import { registerLocale } from "./locale"
 import { isHiddenStartup } from "./login-item"
@@ -96,9 +97,9 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.handle("app:get-version", () => app.getVersion())
 
     ipcMain.handle("api:get-base-url", () => apiBaseUrl)
-    // Only GitHub links leave the app (PRs, profiles); everything else is refused.
-    ipcMain.handle("app:open-external", (_event, url: string) => {
-      if (typeof url === "string" && url.startsWith("https://github.com/")) return shell.openExternal(url)
+    // Only allow-listed links leave the app (see `external-links.ts`); everything else is refused.
+    ipcMain.handle("app:open-external", (_event, url: unknown) => {
+      if (isAllowedExternalLink(url)) return shell.openExternal(url)
     })
     const secretKey = openSecretKey(app.getPath("userData"))
     if (!secretKey) {

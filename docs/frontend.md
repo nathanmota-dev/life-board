@@ -17,6 +17,9 @@ A cor de destaque (Settings → General) muda `--brand` no `:root`; botões, an�
 de foco e gráficos (`--chart-1…5`) derivam dela. O padrão é `#FF892B`.
 O token do GitHub é configurado em Settings → GitHub e alimenta o gráfico de
 contribuições do Dashboard pela rota `/api/github/contributions`.
+A conta do Google é conectada em Settings → Google Agenda (`components/settings/google-*.tsx`);
+enquanto o login está aberto no navegador, o status é consultado a cada 2 segundos.
+Veja [Google Agenda](google-agenda.md).
 
 ## Idiomas
 

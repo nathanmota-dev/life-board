@@ -66,8 +66,12 @@ Os adaptadores em `e2e/support/` são carregados antes do entrypoint compilado e
 não entram no pacote de produção:
 
 - O backend real é compilado com a feature `e2e` em `target/e2e`, que nunca entra
-  no pacote: ela faz a API seguir o relógio dos testes e falar com um servidor
-  local (`e2e/support/github-server.cjs`) no lugar de `api.github.com`.
+  no pacote: ela faz a API seguir o relógio dos testes e falar com servidores
+  locais (`e2e/support/github-server.cjs` no lugar de `api.github.com` e
+  `e2e/support/google-server.cjs`, via `LIFE_BOARD_E2E_GOOGLE_URL`, no lugar de
+  `oauth2.googleapis.com` e `www.googleapis.com`). A página de consentimento
+  continua em `accounts.google.com`: o teste lê essa URL de `globalThis.e2e.external`
+  e faz o papel do navegador, chamando o callback com um código fictício.
 - Esse servidor responde REST/GraphQL sintético na fronteira HTTP do GitHub. Token de teste, conta, PRs, issues, contribuições e repositórios são
   fictícios. Cenários incluem conta vazia, credenciais inválidas e falhas externas.
 - Geolocalização e Open-Meteo são interceptados no renderer. Requisições externas
@@ -102,6 +106,7 @@ uma página exige atualizar esse inventário e seus testes funcionais.
 | `thoughts-tags-activity` | Ideias, fixação, busca, edição/exclusão, paginação; vínculos/backlinks, etiquetas e atividade entre módulos |
 | `calendar-files` | Criação pelo botão e pela grade, detalhes (título, local, cor, dia inteiro), exclusão e desfazer, arraste, sobreposição, semana/mês/agenda, edição pelo painel; quadros, uploads múltiplos, miniaturas, bytes, metadados e exclusão |
 | `github` | Token inválido/válido, sincronização, categorias de PRs, issues, contribuições/repositórios, links, persistência e desconexão; vazio e recuperação de falha |
+| `google-calendar` | Credenciais, conexão pelo navegador (callback com o mesmo `state`), conta exibida, segredos fora do banco em texto puro, reinício, desconexão com revogação; consentimento negado, cancelamento e callback atrasado |
 | `pomodoro-desktop` | Controles, presets/durações, fases, pausas, som, auto start, conclusão/estatísticas, bandeja/notificação, janela oculta e som com pomodoro ativo, janela destruída e recriada pela bandeja, notificação e segunda instância, ciclos repetidos, tamanho da janela, encerramento; clima/fallback/erro |
 | `updates` | Descoberta, atualizado/disponível, notas/link, progresso entre páginas, cancelamento, falhas de rede/integridade/permissão e reinício controlado preservando dados/timer |
 | `failure-states` | Falhas de leitura nas páginas com API, recuperação por recarga, carregamento pendente e gravações malsucedidas preservando rascunho/progresso |

@@ -13,7 +13,7 @@ reduzida. O contrato HTTP e o formato do banco estão em
 - `src/plugins/`: CORS e o hook de autenticação.
 
 Módulos: tasks, thoughts, links, goals (com milestones), calendar, mood,
-habits, stats, github e file-boards. Todas as rotas usam o prefixo `/api`.
+habits, stats, github, google e file-boards. Todas as rotas usam o prefixo `/api`.
 
 O banco `life-board.db` e os uploads ficam na pasta de dados do Electron
 (`~/.config/life-board-app/` no Linux). As migrations rodam sempre que a API
@@ -26,15 +26,26 @@ os arquivos para a nova, salva a escolha e só então apaga os antigos. Se algum
 cópia falhar, nada muda. Apagar um board ou um arquivo remove as linhas do banco
 e os arquivos do disco de vez.
 
-O token do GitHub é salvo cifrado com AES-256-GCM. A chave fica em
+O token do GitHub e, do Google Agenda, o ID e a chave secreta do cliente OAuth
+e o refresh token são salvos cifrados com AES-256-GCM. A chave fica em
 `secret.key.enc`, protegida pelo chaveiro do sistema via `safeStorage` do
 Electron (libsecret/KWallet no Linux, Keychain no macOS, DPAPI no Windows). O
 processo principal abre a chave e a envia ao backend por uma linha no stdin, nunca
 por variável de ambiente ou argumento. No
 Linux, o app não inicia sem um chaveiro de verdade, para não cair no modo
-`basic_text`.
+`basic_text`. Quando a chave é trocada (`resetSecrets`), a API apaga
+`github_settings` e `google_settings`, que só guardam esses segredos e o que
+depende deles; o resto do perfil fica.
 
-Ainda não há login. Só `/api/health` é pública; as demais rotas passam pelo
+A conexão com o Google usa OAuth 2.0 com PKCE (`S256`), com o crate `oauth2` sobre
+o `reqwest` do workspace. O login abre no navegador padrão, e o Google devolve o
+navegador para a própria API em `http://127.0.0.1:<porta>/api/google/oauth/callback`,
+a porta em que ela está escutando. O fluxo pendente (`state`, verificador PKCE,
+validade de 10 minutos) e o access token ficam só na memória. Veja
+[Google Agenda](google-agenda.md).
+
+Ainda não há login. Só `/api/health` e o retorno do OAuth do Google
+(`/api/google/oauth/callback`, chamado pelo navegador) são públicas; as demais rotas passam pelo
 `Authenticator` de `src/plugins/auth.rs`, que hoje libera tudo. Quando a
 autenticação chegar, basta implementar esse trait.
 
