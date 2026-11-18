@@ -9,6 +9,18 @@ export async function choose(page: Page, label: string, option: string) {
     await expect(listbox).toHaveCount(0, { timeout: 500 })
   }).toPass()
 }
+/** Opens the date picker `trigger` and picks `day` (`YYYY-MM-DD`), moving the calendar to its month. */
+export async function pickDay(page: Page, trigger: Locator, day: string) {
+  await trigger.click()
+  const calendar = page.locator('[data-slot="popover-content"]').last()
+  for (let step = 0; step < 24; step++) {
+    const shown = await calendar.locator(".rdp-day:not(.rdp-outside)").first().getAttribute("data-day")
+    if (!shown || shown.slice(0, 7) === day.slice(0, 7)) break
+    await calendar.locator(day < shown ? ".rdp-button_previous" : ".rdp-button_next").click()
+  }
+  await calendar.locator(`.rdp-day:not(.rdp-outside)[data-day="${day}"] button`).click()
+  await expect(page.locator('[data-slot="popover-content"] .rdp-month')).toHaveCount(0)
+}
 export function panel(page: Page, title: string) {
   return page.getByRole("heading", { name: title, exact: true }).locator("../..")
 }

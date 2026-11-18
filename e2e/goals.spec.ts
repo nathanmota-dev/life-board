@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures"
-import { choose, closeDialog } from "./ui"
+import { choose, closeDialog, pickDay } from "./ui"
 import type { Goal } from "../web/src/types/goal"
 
 test("goals: creation, links, milestones, editing and deletion", async ({ workspace, page }) => {
@@ -10,8 +10,8 @@ test("goals: creation, links, milestones, editing and deletion", async ({ worksp
   await page.getByLabel("Meta", { exact: true }).fill("Learn TypeScript")
   await page.getByLabel("Por que isso importa", { exact: true }).fill("Build better apps")
   await choose(page, "Área", "Aprendizado")
-  await page.getByLabel("Data de início", { exact: true }).fill("2026-10-01")
-  await page.getByLabel("Data prevista", { exact: true }).fill("2026-11-01")
+  await pickDay(page, page.getByRole("button", { name: "Data de início", exact: true }), "2026-10-01")
+  await pickDay(page, page.getByRole("button", { name: "Data prevista", exact: true }), "2026-11-01")
   await page.getByLabel("Etapas", { exact: true }).fill("Read docs\nBuild app")
   await page.getByRole("button", { name: "Vincular tarefas", exact: true }).click()
   await page.getByRole("checkbox", { name: "Goal task", exact: true }).click()
@@ -25,7 +25,7 @@ test("goals: creation, links, milestones, editing and deletion", async ({ worksp
   await expect(sheet).toContainText("Goal task")
   await expect(sheet).toContainText("Goal habit")
   await sheet.getByRole("checkbox", { name: "Concluir Read docs" }).click()
-  await sheet.getByLabel("Prazo de Build app", { exact: true }).fill("2026-10-30")
+  await pickDay(page, sheet.getByRole("button", { name: "Prazo de Build app", exact: true }), "2026-10-30")
   await sheet.getByRole("textbox", { name: "Nova etapa", exact: true }).fill("Ship app")
   await sheet.getByRole("button", { name: "Adicionar", exact: true }).click()
   await sheet.getByRole("button", { name: "Remover Ship app" }).click()

@@ -2,7 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { PeriodFilter } from "@/components/shared/period-filter"
 import { usePeriod } from "@/hooks/use-period"
-import { lastDays } from "@/lib/dates"
+import { addDays, lastDays, toDayKey } from "@/lib/dates"
+import { calendarDay, openDatePicker, pickDay } from "@/test/pick-day"
 
 function Harness() {
   const period = usePeriod()
@@ -15,7 +16,7 @@ function Harness() {
 }
 
 describe("PeriodFilter", () => {
-  it("switches between 7 days, 30 days and a custom range", () => {
+  it("switches between 7 days, 30 days and a custom range", async () => {
     render(<Harness />)
     const week = lastDays(7)
     expect(screen.getByRole("status")).toHaveTextContent(`${week[0]}..${week[6]} (7)`)
@@ -25,11 +26,18 @@ describe("PeriodFilter", () => {
     expect(screen.getByRole("status")).toHaveTextContent("(30)")
 
     fireEvent.click(screen.getByRole("tab", { name: "Custom" }))
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-10-01" } })
-    fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-10-07" } })
-    expect(screen.getByRole("status")).toHaveTextContent("2026-10-01..2026-10-07 (7)")
+    const from = toDayKey(addDays(new Date(), -10))
+    const to = toDayKey(addDays(new Date(), -4))
+    await pickDay("From", from)
+    await pickDay("To", to)
+    expect(screen.getByRole("status")).toHaveTextContent(`${from}..${to} (7)`)
 
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-10-09" } })
-    expect(screen.getByRole("status")).toHaveTextContent("invalid")
+    // The start can't pass the end, nor the end pass today.
+    openDatePicker("From")
+    expect(calendarDay(toDayKey(addDays(new Date(), -3)))).toBeDisabled()
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" })
+    openDatePicker("To")
+    expect(calendarDay(toDayKey(addDays(new Date(), 1)))).toBeDisabled()
+    expect(calendarDay(toDayKey(addDays(new Date(), -11)))).toBeDisabled()
   })
 })

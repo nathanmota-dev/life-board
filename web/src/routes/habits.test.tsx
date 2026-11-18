@@ -5,6 +5,7 @@ import { mockApi, resetApiMock } from "@/test/mock-api"
 import { renderWithProviders } from "@/test/render-with-providers"
 import { addDays, formatDate, startOfWeek, toDayKey } from "@/lib/dates"
 import type { Habit } from "@/types/habit"
+import { pickDay } from "@/test/pick-day"
 
 const water: Habit = {
   id: "h1",
@@ -111,8 +112,8 @@ describe("fractional daily goals", () => {
     await waitFor(() => expect(calls.filter((call) => call.path === "/habits/logs").length).toBeGreaterThan(1))
     expect(await screen.findByText(/in these 30 days/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole("tab", { name: "Custom" }))
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-10-01" } })
-    fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-10-07" } })
+    await pickDay("From", "2026-10-01")
+    await pickDay("To", "2026-10-07")
     await waitFor(() => expect(calls.some((call) => call.query.get("from") === "2026-10-01" && call.query.get("to") === "2026-10-07")).toBe(true))
     fireEvent.change(screen.getByRole("combobox", { name: "Filter by habit" }), { target: { value: water.id } })
     expect(screen.getByRole("combobox", { name: "Filter by habit" })).toHaveValue(water.id)

@@ -27,7 +27,7 @@ export function TaskFormFields({ values, onChange }: TaskFormFieldsProps) {
           <SelectField id="task-priority" value={values.priority} options={getTaskPriorityOptions()} onChange={(value) => set("priority", value)} />
         </FormField>
         <FormField label={t("tasks.dueDate")} htmlFor="task-due">
-          <DatePicker id="task-due" value={values.dueAt} clearLabel={t("tasks.clearDueDate")} onChange={(day) => set("dueAt", day)} />
+          <DatePicker id="task-due" value={values.dueAt} clearable onChange={(day) => set("dueAt", day)} />
         </FormField>
       </div>
       <FormField label={t("navigation.tags")} htmlFor="task-tags" hint={t("common.commaSeparated")}>

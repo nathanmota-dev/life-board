@@ -1,4 +1,5 @@
 import { test, expect, DAY } from "./fixtures"
+import { pickDay } from "./ui"
 import type { Habit } from "../web/src/types/habit"
 
 test("habits: personalized goal, check-ins, undo, filters, editing and deletion", async ({ workspace, page }) => {
@@ -45,13 +46,15 @@ test("habits: weekly, monthly and custom history with habit filter and invalid r
   await page.getByRole("tab", { name: "30 dias", exact: true }).click()
   await expect(page.getByRole("heading", { name: "Histórico dia a dia", exact: true })).toBeVisible()
   await page.getByRole("tab", { name: "Personalizado", exact: true }).click()
-  await page.getByLabel("De", { exact: true }).fill("2026-10-20")
-  await page.getByLabel("Até", { exact: true }).fill(DAY)
+  await pickDay(page, page.getByRole("button", { name: "De", exact: true }), "2026-10-20")
+  await pickDay(page, page.getByRole("button", { name: "Até", exact: true }), DAY)
   const history = page.getByRole("table", { name: /^Compare a quantidade/ })
   await expect(history).toContainText("History water")
   await expect(history).not.toContainText("History reading")
-  await page.getByLabel("De", { exact: true }).fill("2026-10-22")
-  await expect(page.getByRole("alert")).toContainText("Escolha um intervalo válido")
+  // The start can't pass the end.
+  await page.getByRole("button", { name: "De", exact: true }).click()
+  await expect(page.locator('[data-slot="popover-content"] [data-day="2026-10-22"] button')).toBeDisabled()
+  await page.keyboard.press("Escape")
 })
 
 test("habits: edit forgotten past days from the card and the weekly tracker", async ({ workspace, page }) => {

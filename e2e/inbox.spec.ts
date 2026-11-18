@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures"
-import { closeWindowWithKey } from "./ui"
+import { closeWindowWithKey, pickDay } from "./ui"
 import type { Task } from "../web/src/types/task"
 
 test("capture: task tokens, ignored tokens and thoughts reach their pages", async ({ workspace, page }) => {
@@ -37,7 +37,7 @@ test("inbox: triage statuses, date, skip, edit and undo", async ({ workspace, pa
   await page.getByLabel("Título", { exact: true }).fill("Edited triage item")
   await page.getByRole("button", { name: "Salvar", exact: true }).click()
   await page.getByRole("button", { name: "Próximas", exact: false }).click()
-  await page.getByLabel("Prazo", { exact: true }).fill("2026-10-25")
+  await pickDay(page, page.getByRole("button", { name: "Prazo", exact: true }), "2026-10-25")
   await page.getByRole("button", { name: "Definir data", exact: true }).click()
   await page.getByRole("button", { name: "Hoje", exact: false }).click()
   await expect(page.getByText("Caixa de entrada vazia", { exact: true })).toBeVisible()

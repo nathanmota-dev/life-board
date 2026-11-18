@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next"
 import { X } from "lucide-react"
+import { DatePicker } from "@/components/shared/date-picker"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
 import { useRemoveMilestone, useUpdateMilestone } from "@/hooks/queries/use-goals"
 import { fromDateInput, toDateInput } from "@/lib/dates"
 import { cn } from "@/lib/utils"
@@ -24,12 +24,12 @@ export function GoalMilestoneRow({ goal, milestone }: GoalMilestoneRowProps) {
       <span className={cn("min-w-0 flex-1 truncate text-sm", milestone.completedAt && "text-muted-foreground line-through")}>
         {milestone.title}
       </span>
-      <Input
-        type="date"
-        aria-label={t("goals.milestoneDue", { title: milestone.title })}
+      <DatePicker
+        label={t("goals.milestoneDue", { title: milestone.title })}
+        clearable
         value={toDateInput(milestone.dueAt)}
-        onChange={(event) => update.mutate({ ...ids, input: { dueAt: fromDateInput(event.target.value) } })}
-        className="h-7 w-auto px-2 text-xs"
+        onChange={(day) => update.mutate({ ...ids, input: { dueAt: fromDateInput(day) } })}
+        className="h-7 w-auto gap-1.5 px-2 text-xs"
       />
       <Button variant="ghost" size="icon-xs" aria-label={t("common.removeItem", { title: milestone.title })} onClick={() => remove.mutate(ids)}>
         <X />

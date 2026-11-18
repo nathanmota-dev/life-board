@@ -1,7 +1,8 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 import { InboxPage } from "@/routes/inbox"
-import { fromDateInput } from "@/lib/dates"
+import { addDays, fromDateInput, toDayKey } from "@/lib/dates"
+import { pickDay } from "@/test/pick-day"
 import { mockApi, resetApiMock, type MockRequest } from "@/test/mock-api"
 import { renderWithProviders } from "@/test/render-with-providers"
 import type { Task, TaskInput } from "@/types/task"
@@ -94,20 +95,28 @@ describe("InboxPage triage", () => {
     ])
   })
 
-  it("asks for a date for upcoming and ignores keys while typing in it", async () => {
+  it("asks for a date for upcoming, starting on tomorrow, and ignores the shortcuts meanwhile", async () => {
     const api = mockInbox(["Pay rent", "Book dentist"])
     await startTriage()
 
     press("2")
-    const date = await screen.findByLabelText("Due date")
+    const date = await screen.findByRole("button", { name: "Due date" })
+    expect(screen.getByRole("button", { name: "Set date" })).toHaveFocus()
     press("1", date)
     press("3", date)
-    fireEvent.change(date, { target: { value: "2026-11-02" } })
-    fireEvent.submit(date.closest("form")!)
+    expect(screen.getByRole("heading", { name: "Pay rent" })).toBeInTheDocument()
+
+    const day = toDayKey(addDays(new Date(), 9))
+    await pickDay("Due date", day)
+    // Escape closes the calendar, not the date step.
+    fireEvent.click(date)
+    press("Escape", document.activeElement ?? date)
+    expect(screen.getByRole("button", { name: "Set date" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Set date" }))
 
     expect(await screen.findByRole("heading", { name: "Book dentist" })).toBeInTheDocument()
     expect(api.mutations()).toEqual([
-      { method: "PATCH", path: "/tasks/t1", body: { status: "upcoming", dueAt: fromDateInput("2026-11-02") } },
+      { method: "PATCH", path: "/tasks/t1", body: { status: "upcoming", dueAt: fromDateInput(day) } },
     ])
   })
 
@@ -116,9 +125,9 @@ describe("InboxPage triage", () => {
     await startTriage()
 
     press("2")
-    press("Escape", await screen.findByLabelText("Due date"))
+    press("Escape", await screen.findByRole("button", { name: "Due date" }))
 
-    expect(screen.queryByLabelText("Due date")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Due date" })).not.toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Pay rent" })).toBeInTheDocument()
     expect(api.mutations()).toEqual([])
   })

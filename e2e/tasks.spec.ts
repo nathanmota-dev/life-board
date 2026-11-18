@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures"
-import { choose, closeDialog, drag } from "./ui"
+import { choose, closeDialog, drag, pickDay } from "./ui"
 import type { Task } from "../web/src/types/task"
 
 test("tasks: form, persistence, completion, list layout and reopening", async ({ workspace, page }) => {
@@ -9,9 +9,8 @@ test("tasks: form, persistence, completion, list layout and reopening", async ({
   await page.getByLabel("Anotações", { exact: true }).fill("Chapter one")
   await choose(page, "Status", "Hoje")
   await choose(page, "Prioridade", "Alta")
-  await page.getByRole("dialog").getByLabel("Data de vencimento", { exact: true }).click()
-  await page.locator('[data-slot="popover-content"] .rdp-day:not(.rdp-outside) button').first().click()
-  await expect(page.getByRole("dialog").getByLabel("Data de vencimento", { exact: true })).not.toHaveText("Escolher data")
+  await pickDay(page, page.getByRole("dialog").getByLabel("Data de vencimento", { exact: true }), "2026-10-22")
+  await expect(page.getByRole("dialog").getByLabel("Data de vencimento", { exact: true })).toHaveText("22/10/2026")
   await page.getByRole("textbox", { name: "Etiquetas", exact: true }).fill("reading, personal")
   await page.getByRole("button", { name: "Criar tarefa", exact: true }).click()
   const card = page.getByRole("article", { name: "Read a book", exact: true })
@@ -22,7 +21,7 @@ test("tasks: form, persistence, completion, list layout and reopening", async ({
   await workspace.go("Tarefas")
   await page.getByRole("button", { name: "Read a book", exact: true }).click()
   await expect(page.getByRole("textbox", { name: "Etiquetas", exact: true })).toHaveValue("reading, personal")
-  await expect(page.getByRole("dialog").getByLabel("Data de vencimento", { exact: true })).not.toHaveText("Escolher data")
+  await expect(page.getByRole("dialog").getByLabel("Data de vencimento", { exact: true })).toHaveText("22/10/2026")
   await page.getByLabel("Título", { exact: true }).fill("Finish a book")
   await page.getByRole("button", { name: "Salvar", exact: true }).click()
   await page.getByRole("article", { name: "Finish a book" }).getByRole("button", { name: "Marcar como concluída" }).click()
@@ -83,12 +82,7 @@ test("tasks: pin, color, due date and combined search filters", async ({ workspa
   await card.getByRole("button", { name: "Cor", exact: true }).click()
   await page.getByRole("button", { name: "Azul", exact: true }).click()
   await page.keyboard.press("Escape")
-  await card.getByRole("button", { name: "Data de vencimento" }).click()
-  // Any day of last month makes the task overdue.
-  const dueCalendar = page.locator('[data-slot="popover-content"]')
-  await dueCalendar.locator(".rdp-button_previous").click()
-  await dueCalendar.locator(".rdp-day:not(.rdp-outside) button").first().click()
-  await expect(dueCalendar).toHaveCount(0)
+  await pickDay(page, card.getByRole("button", { name: "Data de vencimento" }), "2026-10-20")
   await page.getByRole("button", { name: "Atrasadas", exact: true }).click()
   await choose(page, "Filtrar por tag", "#work")
   await page.getByRole("button", { name: "Filtrar por cor" }).click()

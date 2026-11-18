@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { DialogForm } from "@/components/shared/dialog-form"
 import { GoalHabitPicker } from "@/components/goals/goal-habit-picker"
+import { DatePicker } from "@/components/shared/date-picker"
 import { FormField } from "@/components/shared/form-field"
 import { SelectField } from "@/components/shared/select-field"
 import { TaskPicker } from "@/components/thoughts/task-picker"
@@ -51,10 +52,10 @@ export function GoalFormDialog({ open, goal, onOpenChange }: GoalFormDialogProps
       </FormField>
       <div className="grid gap-3 sm:grid-cols-2">
         <FormField label={t("goals.startDate")} htmlFor="goal-start">
-          <Input id="goal-start" type="date" value={values.startAt} max={values.targetAt || undefined} onChange={(event) => set("startAt", event.target.value)} />
+          <DatePicker id="goal-start" clearable value={values.startAt} max={values.targetAt || undefined} onChange={(day) => set("startAt", day)} />
         </FormField>
         <FormField label={t("goals.targetDate")} htmlFor="goal-target">
-          <Input id="goal-target" type="date" value={values.targetAt} min={values.startAt || undefined} onChange={(event) => set("targetAt", event.target.value)} />
+          <DatePicker id="goal-target" clearable value={values.targetAt} min={values.startAt || undefined} onChange={(day) => set("targetAt", day)} />
         </FormField>
       </div>
       {goal ? null : (

@@ -5,6 +5,8 @@ import { GoalsPage } from "@/routes/goals"
 import { goalFixture } from "@/test/goal-fixtures"
 import { mockApi, resetApiMock } from "@/test/mock-api"
 import { renderWithProviders } from "@/test/render-with-providers"
+import { calendarDay, chooseDay, openDatePicker, pickDay } from "@/test/pick-day"
+import { fromDateInput } from "@/lib/dates"
 import type { Goal, Milestone } from "@/types/goal"
 import type { Habit } from "@/types/habit"
 
@@ -81,6 +83,8 @@ describe("GoalsPage", () => {
       "GET /goals/g1": () => ({ goal: marathon, milestones: [milestone] }),
       "GET /goals/g1/progress": () => ({ items: [{ day: "2026-10-10", progress: 20 }], startingProgress: 10 }),
       "PATCH /goals/g1": ({ body }) => ({ ...marathon, ...(body as object) }),
+      "PATCH /goals/g1/milestones/m1": ({ body }) => ({ ...milestone, ...(body as object) }),
+      "POST /goals/g1/milestones": ({ body }) => ({ ...milestone, ...(body as object), id: "m2" }),
     })
     renderWithProviders(<GoalsPage />)
 
@@ -92,6 +96,14 @@ describe("GoalsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Link habits" }))
     fireEvent.click(await screen.findByRole("checkbox", { name: /Drink water/ }))
     await waitFor(() => expect(calls.find((call) => call.method === "PATCH")?.body).toEqual({ linkedHabitIds: ["h1"] }))
+
+    await pickDay("Due date for Half marathon", "2026-11-20")
+    await waitFor(() => expect(calls.find((call) => call.path === "/goals/g1/milestones/m1")?.body).toEqual({ dueAt: fromDateInput("2026-11-20") }))
+
+    fireEvent.change(screen.getByLabelText("New milestone"), { target: { value: "10k race" } })
+    await pickDay("New milestone due date", "2026-11-05")
+    fireEvent.click(screen.getByRole("button", { name: "Add" }))
+    await waitFor(() => expect(calls.find((call) => call.method === "POST")?.body).toEqual({ title: "10k race", dueAt: fromDateInput("2026-11-05") }))
   })
 
   it("switches between auto and manual progress", async () => {
@@ -118,7 +130,11 @@ describe("GoalsPage", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "New goal" }))
     fireEvent.change(screen.getByLabelText("Goal"), { target: { value: "Hydrate" } })
-    fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-10-01" } })
+    await pickDay("Start date", "2026-10-01")
+    // The target can't come before the start.
+    openDatePicker("Target date")
+    expect(calendarDay("2026-09-30")).toBeDisabled()
+    await chooseDay("Target date", "2026-12-31")
     fireEvent.click(screen.getByRole("button", { name: "Link habits" }))
     fireEvent.click(await screen.findByRole("checkbox", { name: /Drink water/ }))
     fireEvent.click(screen.getByRole("button", { name: "Create goal" }))
@@ -126,6 +142,7 @@ describe("GoalsPage", () => {
     await waitFor(() => expect(calls.find((call) => call.method === "POST" && call.path === "/goals")?.body).toMatchObject({
       title: "Hydrate",
       startAt: new Date(2026, 9, 1).toISOString(),
+      targetAt: new Date(2026, 11, 31).toISOString(),
       linkedHabitIds: ["h1"],
     }))
   })

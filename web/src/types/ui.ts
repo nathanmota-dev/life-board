@@ -152,7 +152,19 @@ export type PeriodFilterProps = { state: PeriodState }
 
 export type BackButtonProps = { onClick: () => void }
 
-/** A day as `YYYY-MM-DD`, or `""` for none. */
-export type DayCalendarProps = { value: string; onChange: (day: string) => void; clearLabel: string }
+/** Days are `YYYY-MM-DD`, or `""` for none; `min` and `max` bound the days that can be picked. */
+export type DayCalendarProps = {
+  value: string
+  onChange: (day: string) => void
+  /** Shows a Clear button, for optional dates. */
+  clearable?: boolean
+  min?: string
+  max?: string
+}
 
-export type DatePickerProps = { id: string; value: string; onChange: (day: string) => void; clearLabel: string }
+export type DatePickerProps = DayCalendarProps & {
+  id?: string
+  /** Accessible name, when no `<label>` points at the picker. */
+  label?: string
+  className?: string
+}

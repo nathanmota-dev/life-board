@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { Plus } from "lucide-react"
 import { GoalMilestoneRow } from "@/components/goals/goal-milestone-row"
+import { DatePicker } from "@/components/shared/date-picker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAddMilestone } from "@/hooks/queries/use-goals"
@@ -35,7 +36,7 @@ export function GoalMilestones({ goal, milestones }: GoalMilestonesProps) {
         }}
       >
         <Input aria-label={t("goals.newMilestone")} value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t("goals.addMilestone")} className="h-8 min-w-40 flex-1" />
-        <Input type="date" aria-label={t("goals.newMilestoneDue")} value={dueAt} onChange={(event) => setDueAt(event.target.value)} className="h-8 w-auto" />
+        <DatePicker label={t("goals.newMilestoneDue")} clearable value={dueAt} onChange={setDueAt} className="h-8 w-auto" />
         <Button type="submit" size="sm" variant="outline" disabled={!title.trim() || add.isPending}>
           <Plus />
           {t("common.add")}
