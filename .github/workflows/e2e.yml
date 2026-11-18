@@ -38,8 +38,9 @@ jobs:
           restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
       - name: Install the toolchain from rust-toolchain.toml
         run: rustup toolchain install
+      # Restore only: the CI Cache workflow saves this key on main.
       - name: Cache Cargo downloads and builds
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cargo/registry/index/

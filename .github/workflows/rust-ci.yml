@@ -27,7 +27,8 @@ jobs:
           persist-credentials: false
       - name: Install the toolchain from rust-toolchain.toml
         run: rustup toolchain install
-      - uses: actions/cache@v4
+      # Restore only: the CI Cache workflow saves this key on main.
+      - uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cargo/registry/index/
@@ -58,7 +59,8 @@ jobs:
           persist-credentials: false
       - name: Install the toolchain from rust-toolchain.toml
         run: rustup toolchain install
-      - uses: actions/cache@v4
+      # Restore only: the CI Cache workflow saves this key on main.
+      - uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cargo/registry/index/

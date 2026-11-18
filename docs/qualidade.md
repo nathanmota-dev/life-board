@@ -14,6 +14,20 @@ Todo pull request passa por workflows independentes. O `PR Validation` reconcili
 | PR Quality Gate | auditorias, cobertura e métricas de qualidade |
 | Performance | microbenchmarks com limite de 20% de perda |
 
+### Cache do Cargo
+
+Um PR só consegue ler o cache salvo pelo próprio PR ou pela `main`. Por isso os
+workflows de PR apenas **restauram** o cache do Cargo (`actions/cache/restore`), e o
+workflow `CI Cache` (`.github/workflows/ci-cache.yml`) o salva depois de cada push na
+`main`, com a mesma chave e os mesmos comandos de compilação de cada workflow. Assim
+todo PR novo começa das compilações da `main`, e os PRs não gastam o limite de 10 GB
+de cache do repositório.
+
+A chave depende de `rust-toolchain.toml` e `Cargo.lock`. Ao mudar como um workflow
+compila o Rust (perfil, features ou `--target-dir`), mude também o caso dele no
+`ci-cache.yml`. Para gerar o cache sem esperar um push, rode o `CI Cache` manualmente
+pela aba Actions.
+
 ## Execução local
 
 ```sh

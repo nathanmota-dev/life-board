@@ -1,0 +1,112 @@
+name: CI Cache
+
+# A pull request can only restore caches saved by its own runs or by main, and
+# the pull-request workflows only restore their Cargo caches. This workflow
+# saves them on main: it compiles what each workflow compiles, under the same
+# key, so a new pull request starts from main's builds instead of from scratch.
+# A key that already exists is left as it is, so most pushes only check for it.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cache-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  cargo:
+    name: Cargo cache (${{ matrix.cache }}, ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Rust CI: Format and lint
+          - { cache: checks, os: ubuntu-24.04 }
+          # Rust CI: Tests
+          - { cache: test, os: ubuntu-24.04 }
+          - { cache: test, os: windows-latest }
+          - { cache: test, os: macos-latest }
+          # Build Linux
+          - { cache: package, os: ubuntu-24.04 }
+          # Electron E2E
+          - { cache: e2e, os: ubuntu-24.04 }
+          # PR Quality Gate
+          - { cache: quality, os: ubuntu-24.04 }
+          # Performance
+          - { cache: bench, os: ubuntu-24.04 }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Install the toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+      - name: Look for the current cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-${{ matrix.cache }}-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+          restore-keys: cargo-${{ matrix.cache }}-${{ runner.os }}-
+      - name: Install cargo-llvm-cov
+        if: steps.cache.outputs.cache-hit != 'true' && (matrix.cache == 'package' || matrix.cache == 'quality')
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov@0.9.0
+      # The same commands, profiles and features as the workflow that restores the key.
+      - name: Compile
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: bash
+        env:
+          CACHE: ${{ matrix.cache }}
+        run: |
+          set -euo pipefail
+          case "$CACHE" in
+            checks)
+              CARGO_INCREMENTAL=0 cargo clippy --workspace --all-targets --all-features --locked
+              ;;
+            test)
+              CARGO_INCREMENTAL=0 cargo test --workspace --locked --no-run
+              ;;
+            package)
+              cargo test --workspace --locked --no-run
+              # cargo-llvm-cov has no build-only mode, so this also runs the tests.
+              cargo llvm-cov --workspace --locked --no-report
+              cargo build -p life-board-api --release --locked
+              ;;
+            e2e)
+              cargo build -p life-board-api --locked --features e2e --target-dir target/e2e
+              ;;
+            quality)
+              cargo llvm-cov --workspace --locked --no-report
+              ;;
+            bench)
+              cargo bench --manifest-path src-tauri/crates/api/Cargo.toml --locked --bench date --no-run
+              ;;
+            *)
+              echo "::error::Unknown cache $CACHE."
+              exit 1
+              ;;
+          esac
+      - name: Save the cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ steps.cache.outputs.cache-primary-key }}
