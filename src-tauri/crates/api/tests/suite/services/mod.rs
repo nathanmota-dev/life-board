@@ -9,6 +9,8 @@ mod github_client;
 mod goals;
 mod google;
 mod google_auth_client;
+mod google_calendar_client;
+mod google_calendar_mapping;
 mod habits;
 mod links;
 mod mood;

@@ -1,6 +1,7 @@
 //! Google's OAuth 2.0 endpoints, through the `oauth2` crate over the workspace's
-//! `reqwest`, plus the one Calendar call the connection needs. All HTTP lives here,
-//! so tests can plug in a fake [`GoogleAuthApi`] or point the client at `wiremock`.
+//! `reqwest`, plus the one Calendar call the connection needs, made through
+//! [`GoogleCalendarClient`]. All HTTP lives here, so tests can plug in a fake
+//! [`GoogleAuthApi`] or point the client at `wiremock`.
 //!
 //! Tokens and the client secret only travel in request bodies or the
 //! `Authorization` header; no error message carries them.
@@ -17,6 +18,10 @@ use oauth2::{
     PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken, RequestTokenError, Scope, TokenResponse, TokenUrl,
 };
 use serde::Deserialize;
+
+use crate::services::google_calendar_client::{
+    CALENDAR_PATH, GoogleCalendarApi, GoogleCalendarClient, GoogleCalendarError,
+};
 
 pub const GOOGLE_ACCOUNTS_URL: &str = "https://accounts.google.com";
 pub const GOOGLE_OAUTH_URL: &str = "https://oauth2.googleapis.com";
@@ -243,16 +248,12 @@ fn tokens(response: &BasicTokenResponse) -> GoogleTokens {
     }
 }
 
-#[derive(Deserialize)]
-struct Calendar {
-    id: Option<String>,
-}
-
 /// The real client (`reqwest` with rustls, redirects off as `oauth2` advises).
 #[derive(Debug, Clone)]
 pub struct GoogleAuthClient {
     http: OAuthHttp,
     urls: GoogleUrls,
+    calendar: GoogleCalendarClient,
 }
 
 impl GoogleAuthClient {
@@ -275,7 +276,8 @@ impl GoogleAuthClient {
             .redirect(reqwest::redirect::Policy::none())
             .build()
             .unwrap_or_else(|_| reqwest::Client::new());
-        Self { http: OAuthHttp(http), urls }
+        let calendar = GoogleCalendarClient::with_base_url(format!("{}{CALENDAR_PATH}", urls.apis));
+        Self { http: OAuthHttp(http), urls, calendar }
     }
 
     pub fn urls(&self) -> &GoogleUrls {
@@ -339,29 +341,13 @@ impl GoogleAuthApi for GoogleAuthClient {
     }
 
     async fn primary_calendar_id(&self, access_token: &str) -> GoogleAuthResult<String> {
-        let response = self
-            .http
-            .0
-            .get(format!("{}/calendar/v3/calendars/primary", self.urls.apis))
-            .bearer_auth(access_token)
-            .send()
-            .await
-            .map_err(network)?;
-        let status = response.status();
-        if status == reqwest::StatusCode::UNAUTHORIZED {
-            return Err(GoogleAuthError::Unauthorized);
-        }
-        if !status.is_success() {
-            return Err(GoogleAuthError::Google(format!("Google Calendar answered {}.", status.as_u16())));
-        }
-        let calendar: Calendar = response
-            .json()
-            .await
-            .map_err(|_| GoogleAuthError::Google("Google Calendar sent an invalid response.".into()))?;
-        calendar
-            .id
-            .filter(|id| !id.is_empty())
-            .ok_or_else(|| GoogleAuthError::Google("Google Calendar returned no primary calendar.".into()))
+        self.calendar.get_primary_calendar(access_token).await.map(|calendar| calendar.id).map_err(
+            |error| match error {
+                GoogleCalendarError::Unauthorized => GoogleAuthError::Unauthorized,
+                GoogleCalendarError::Network(message) => GoogleAuthError::Network(message),
+                other => GoogleAuthError::Google(other.to_string()),
+            },
+        )
     }
 
     fn accounts_url(&self) -> &str {

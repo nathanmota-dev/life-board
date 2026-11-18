@@ -59,10 +59,15 @@ pub fn parse_js_date(text: &str) -> Option<Timestamp> {
 /// A wall-clock time in the local zone; like `Date`, the earlier instant when it
 /// repeats and the instant one hour later when it falls in a DST gap.
 pub fn local_to_utc(naive: NaiveDateTime) -> Option<Timestamp> {
-    match Local.from_local_datetime(&naive) {
+    zoned_to_utc(&Local, naive)
+}
+
+/// [`local_to_utc`] in any time zone.
+pub fn zoned_to_utc<Tz: TimeZone>(zone: &Tz, naive: NaiveDateTime) -> Option<Timestamp> {
+    match zone.from_local_datetime(&naive) {
         LocalResult::Single(value) | LocalResult::Ambiguous(value, _) => Some(value.to_utc()),
         LocalResult::None => {
-            Local.from_local_datetime(&(naive + chrono::Duration::hours(1))).earliest().map(|value| value.to_utc())
+            zone.from_local_datetime(&(naive + chrono::Duration::hours(1))).earliest().map(|value| value.to_utc())
         }
     }
 }
