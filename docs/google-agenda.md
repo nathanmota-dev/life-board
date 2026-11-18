@@ -108,3 +108,29 @@ decide é a sincronização.
   `colorId` mais próximo pela distância RGB, como `colorName` no frontend.
 - Convidados, lembretes, anexos e videoconferência não são lidos nem enviados, e
   `linkedTaskIds`/`linkedThoughtIds` ficam só no Life Board.
+
+## Vínculo dos eventos com o Google
+
+A migration `0010_calendar_event_source` acrescenta a `calendar_events` as colunas
+que ligam um evento ao Google. Perfis antigos migram com todos os eventos `local` e
+as demais colunas `NULL`.
+
+| Coluna | Significado | Na API |
+| --- | --- | --- |
+| `source` | Onde o evento nasceu: `local` ou `google`. Nunca muda. | `source` |
+| `external_id` | Id do evento no Google; `NULL` se não está vinculado. | interno |
+| `external_calendar_id` | Id da agenda no Google (o e-mail da agenda principal). | interno |
+| `external_etag` | Último `etag` visto, enviado como `If-Match` ao alterar. | interno |
+| `external_updated_at` | `updated` do Google, em milissegundos. | interno |
+| `external_url` | `htmlLink` do Google, para "Abrir no Google Agenda". | `externalUrl` |
+| `recurring_event_id` | `recurringEventId` de uma ocorrência de evento recorrente. | `recurringEventId` |
+| `sync_state` | `NULL`, `pending_create`, `pending_update` ou `pending_delete`: o que falta enviar. | `syncState` |
+
+- Um índice único em `(external_calendar_id, external_id)`, só onde `external_id` não
+  é `NULL`, impede que uma importação duplique um evento. Outro índice, em
+  `sync_state` onde não é `NULL`, serve à fila de envio.
+- `createEventBody` e `updateEventBody` não aceitam esses campos: só os serviços de
+  sincronização os gravam, com `upsert_external` e `find_by_external`
+  (`db/schema/calendar.rs`).
+- Os testes golden descartam os quatro campos públicos novos da resposta antes de
+  comparar com as gravações da API Node 1.1.2, que continuam intactas.

@@ -11,6 +11,10 @@ use crate::common::{NODE_PROFILE, fixture, migrations_before, temp_dir};
 const FIRST_RUST_MIGRATION: &str = "0009";
 /// Tables those migrations created.
 const RUST_TABLES: [&str; 1] = ["google_settings"];
+/// Objects those migrations added to Node-era tables: `calendar_events` gained columns
+/// (so its `CREATE TABLE` text differs) and two indexes.
+const RUST_ALTERED_OBJECTS: [&str; 3] =
+    ["calendar_events", "calendar_events_external_idx", "calendar_events_sync_state_idx"];
 
 #[derive(Deserialize)]
 struct Journal {
@@ -40,6 +44,9 @@ fn schema(path: &std::path::Path) -> Vec<(String, Option<String>)> {
 /// The schema without the tables of the migrations written after the Node API.
 fn node_era_schema(path: &std::path::Path) -> Vec<(String, Option<String>)> {
     schema_where(path, |table| !RUST_TABLES.contains(&table))
+        .into_iter()
+        .filter(|(name, _)| !RUST_ALTERED_OBJECTS.contains(&name.as_str()))
+        .collect()
 }
 
 fn schema_where(path: &std::path::Path, keep: fn(&str) -> bool) -> Vec<(String, Option<String>)> {
@@ -82,7 +89,7 @@ async fn upgrades_a_profile_migrated_by_node_with_only_the_newer_migrations() {
     let dir = temp_dir("node-profile-");
     let path = dir.path().join("life-board.db");
     std::fs::copy(fixture(&format!("{NODE_PROFILE}.db")), &path).unwrap();
-    let before = (recorded(&path), schema(&path));
+    let before = (recorded(&path), node_era_schema(&path));
 
     Db::open(&path).await.unwrap().close().await.unwrap();
 
@@ -104,7 +111,9 @@ async fn migrates_a_new_profile_to_the_schema_and_records_node_writes() {
     let node_records = recorded(&node);
     assert_eq!(recorded(&path)[..node_records.len()], node_records[..]);
     assert_eq!(recorded(&path), embedded_records());
-    assert_eq!(node_era_schema(&path), schema(&node));
+    let node_schema: Vec<_> =
+        schema(&node).into_iter().filter(|(name, _)| !RUST_ALTERED_OBJECTS.contains(&name.as_str())).collect();
+    assert_eq!(node_era_schema(&path), node_schema);
 }
 
 #[tokio::test]

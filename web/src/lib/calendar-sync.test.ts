@@ -13,6 +13,10 @@ function stored(id: string, title = id): CalendarEvent {
     allDay: false,
     location: null,
     color: "#FF892B",
+    source: "local",
+    externalUrl: null,
+    recurringEventId: null,
+    syncState: null,
     createdAt: "",
     updatedAt: "",
   }

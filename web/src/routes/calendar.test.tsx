@@ -21,6 +21,10 @@ function stored(id: string, title: string, start: Date, end: Date): CalendarEven
     allDay: false,
     location: null,
     color: "#3B82F6",
+    source: "local",
+    externalUrl: null,
+    recurringEventId: null,
+    syncState: null,
     createdAt: "",
     updatedAt: "",
   }
