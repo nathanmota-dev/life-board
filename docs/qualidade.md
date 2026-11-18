@@ -45,6 +45,13 @@ Os pacotes medidos são `api`, `desktop` e `web`.
 - **Marcadores proibidos:** `.only`, `.skip` incondicional, `#[ignore]`, `todo!()` e
   `unimplemented!()`.
 
+O calendarcn, copiado do registry dele em `web/src/components/calendarcn/`, fica fora
+de todas essas medições (cobertura, linhas alteradas, duplicação e tamanho) para poder
+seguir o upstream. A pasta é listada em `excludeDirectories` e na lista `ignore` da
+duplicação em `scripts/baseline.json` (e no `DEFAULT_POLICY` de
+`scripts/quality-gate.js`), e no `coverage.exclude` de `web/vitest.config.ts`. O lint
+continua valendo para ela, e o código nosso que a usa segue medido normalmente.
+
 ## Referência de comparação
 
 No CI, a referência é o commit em que o PR vai entrar, medido no mesmo runner com os

@@ -14,7 +14,15 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html", "json-summary", "json"],
       include: ["src/**/*.{ts,tsx}"],
-      exclude: ["src/**/*.{test,spec}.{ts,tsx}", "src/**/*.d.ts", "src/test/**", "src/routeTree.gen.ts"],
+      // calendarcn is vendored from its registry and left out of the quality
+      // gate; keep this list in sync with excludeDirectories in scripts/baseline.json.
+      exclude: [
+        "src/**/*.{test,spec}.{ts,tsx}",
+        "src/**/*.d.ts",
+        "src/test/**",
+        "src/routeTree.gen.ts",
+        "src/components/calendarcn/**",
+      ],
     },
     // Native hosted runners, especially macOS Intel, render interaction-heavy
     // jsdom tests more slowly. Keep a bounded CI budget without dropping checks.
