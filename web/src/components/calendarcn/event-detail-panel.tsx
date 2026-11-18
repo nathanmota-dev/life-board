@@ -26,6 +26,7 @@ import { t } from "@/components/calendarcn/lib/translate";
 import { useCalendarConfig } from "./calendar-provider";
 import { EVENT_COLOR_SWATCH_CLASS } from "./event-context-menu";
 import { EventDetailDescription } from "./event-detail-description";
+import { EventDetailExternalLink } from "./event-detail-external-link";
 import { EventDetailLocation } from "./event-detail-location";
 import {
   EVENT_ACTION_KEYS,
@@ -298,6 +299,8 @@ export function EventDetailPanel<
       <EventDetailGroup name="description" className="min-h-[51px]">
         <EventDetailDescription event={event} onEventChange={onEventChange} />
       </EventDetailGroup>
+
+      <EventDetailExternalLink event={event} />
     </div>
   );
 }

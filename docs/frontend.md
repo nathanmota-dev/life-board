@@ -19,6 +19,13 @@ O token do GitHub é configurado em Settings → GitHub e alimenta o gráfico de
 contribuições do Dashboard pela rota `/api/github/contributions`.
 A conta do Google é conectada em Settings → Google Agenda (`components/settings/google-*.tsx`);
 enquanto o login está aberto no navegador, o status é consultado a cada 2 segundos.
+Com a conta conectada, **Sincronizar agora** importa os eventos e recarrega o
+calendário e as estatísticas; o calendário aberto consulta o status a cada 60
+segundos para mostrar o que a sincronização em segundo plano trouxe. Eventos
+importados (`source: "google"`) viram itens `readOnly` no calendário: o código do
+calendarcn em `components/calendarcn/` ganhou uma checagem por evento
+(`CalendarEvent.readOnly`: sem arrastar, redimensionar, editar, recortar ou excluir)
+e um `externalLink` nos detalhes ("Abrir no Google Agenda").
 Veja [Google Agenda](google-agenda.md).
 
 ## Idiomas

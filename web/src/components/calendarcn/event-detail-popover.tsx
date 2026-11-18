@@ -323,11 +323,12 @@ export function EventDetailPopover({
           // A selected date of a repeating event holds its changes until it
           // is left, then asks which events they apply to
           onEventChange={
-            onEventChange &&
-            ((changed) =>
-              editEvent(changed, (edited) =>
-                onEventChange(edited as typeof changed),
-              ))
+            onEventChange && !event.readOnly
+              ? (changed) =>
+                  editEvent(changed, (edited) =>
+                    onEventChange(edited as typeof changed),
+                  )
+              : undefined
           }
           onPrevWeek={
             previousInSeries
@@ -340,7 +341,9 @@ export function EventDetailPopover({
               : undefined
           }
           onCut={
-            eventActions ? () => eventActions.cutEvent(event.id) : undefined
+            eventActions && !event.readOnly
+              ? () => eventActions.cutEvent(event.id)
+              : undefined
           }
           onCopy={
             eventActions ? () => eventActions.copyEvent(event.id) : undefined
@@ -351,7 +354,9 @@ export function EventDetailPopover({
               : undefined
           }
           onDelete={
-            eventActions ? () => eventActions.deleteEvent(event.id) : undefined
+            eventActions && !event.readOnly
+              ? () => eventActions.deleteEvent(event.id)
+              : undefined
           }
           headerActions={popoverHeaderActions}
           autoFocusTitle={isNew}

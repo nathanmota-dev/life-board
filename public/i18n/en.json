@@ -124,7 +124,11 @@
       "syncedAt": "{{date}} at {{time}}",
       "never": "Never",
       "disconnect": "Disconnect",
-      "disconnecting": "Disconnecting…"
+      "disconnecting": "Disconnecting…",
+      "syncNow": "Sync now",
+      "syncing": "Syncing…",
+      "syncError": "Last sync failed",
+      "syncDescription": "Events from your primary calendar, from 30 days ago to a year ahead, are imported every 15 minutes. They are read-only in Life Board."
     },
     "updates": {
       "title": "Updates",
@@ -255,7 +259,13 @@
     "location": "Location",
     "eventColor": "Event color",
     "color": "Color {{color}}",
-    "untitled": "Untitled event"
+    "untitled": "Untitled event",
+    "noTitle": "No title",
+    "googleCalendar": "Google Calendar",
+    "openInGoogle": "Open in Google Calendar",
+    "syncReauth": "Google Calendar needs to be reconnected. Imported events may be out of date.",
+    "syncFailed": "Google Calendar could not sync. Events may be out of date.",
+    "openSettings": "Open Settings"
   },
   "dashboard": {
     "noActiveGoals": "No active goals",

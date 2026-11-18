@@ -124,7 +124,11 @@
       "syncedAt": "{{date}} às {{time}}",
       "never": "Nunca",
       "disconnect": "Desconectar",
-      "disconnecting": "Desconectando…"
+      "disconnecting": "Desconectando…",
+      "syncNow": "Sincronizar agora",
+      "syncing": "Sincronizando…",
+      "syncError": "A última sincronização falhou",
+      "syncDescription": "Os eventos da sua agenda principal, de 30 dias atrás até um ano à frente, são importados a cada 15 minutos. No Life Board eles são somente leitura."
     },
     "updates": {
       "title": "Atualizações",
@@ -255,7 +259,13 @@
     "location": "Local",
     "eventColor": "Cor do evento",
     "color": "Cor {{color}}",
-    "untitled": "Evento sem título"
+    "untitled": "Evento sem título",
+    "noTitle": "Sem título",
+    "googleCalendar": "Google Agenda",
+    "openInGoogle": "Abrir no Google Agenda",
+    "syncReauth": "O Google Agenda precisa ser reconectado. Os eventos importados podem estar desatualizados.",
+    "syncFailed": "Não foi possível sincronizar o Google Agenda. Os eventos podem estar desatualizados.",
+    "openSettings": "Abrir Configurações"
   },
   "dashboard": {
     "noActiveGoals": "Nenhuma meta ativa",

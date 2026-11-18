@@ -62,3 +62,50 @@ async fn exposes_the_link_fields_and_hides_the_internal_ones() {
         assert!(!event.contains_key(hidden), "{hidden} must stay internal");
     }
 }
+
+#[tokio::test]
+async fn keeps_google_events_read_only() {
+    use life_board_api::db::schema::calendar::{EventSource, NewCalendarEvent, insert_row};
+
+    let ctx = TestApp::new().await;
+    ctx.db
+        .call(|conn| {
+            insert_row(
+                conn,
+                NewCalendarEvent {
+                    id: "from-google".into(),
+                    title: "Dentist".into(),
+                    source: Some(EventSource::Google),
+                    external_id: Some("e1".into()),
+                    external_calendar_id: Some("primary".into()),
+                    ..Default::default()
+                },
+            )
+        })
+        .await
+        .unwrap();
+    let local = text(
+        &ctx.post(
+            "/api/calendar/events",
+            json!({ "title": "Mine", "startAt": "2026-10-20T14:00:00Z", "endAt": "2026-10-20T15:00:00Z" }),
+        )
+        .await
+        .json(),
+        "id",
+    );
+
+    for response in [
+        ctx.patch("/api/calendar/events/from-google", json!({ "title": "Changed" })).await,
+        ctx.delete("/api/calendar/events/from-google").await,
+    ] {
+        assert_eq!(response.status(), 409, "{}", response.text());
+        assert_eq!(response.json()["error"], "read_only_event");
+    }
+    let list = ctx.get("/api/calendar/events").await.json();
+    assert_eq!(len(&list["items"]), 2);
+    assert!(list["items"].as_array().unwrap().iter().any(|event| event["title"] == "Dentist"));
+
+    assert_eq!(ctx.patch(&format!("/api/calendar/events/{local}"), json!({ "title": "Edited" })).await.status(), 200);
+    assert_eq!(ctx.delete(&format!("/api/calendar/events/{local}")).await.status(), 200);
+    assert_eq!(ctx.patch("/api/calendar/events/missing", json!({ "title": "x" })).await.status(), 404);
+}

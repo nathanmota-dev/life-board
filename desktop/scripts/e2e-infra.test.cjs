@@ -60,7 +60,7 @@ test("the Google fake answers the calendar calls the API client makes", async ()
     const first = await call("GET", list)
     assert.deepEqual([first.body.items.length, first.body.nextPageToken], [1, "page-2"])
     const second = await call("GET", `${list}&pageToken=page-2`)
-    assert.deepEqual(second.body.items.map(event => event.id), ["synthetic-all-day", CONFLICT_EVENT_ID])
+    assert.deepEqual(second.body.items.map(event => event.id), ["synthetic-all-day", "synthetic-series_20261013T120000Z", "synthetic-series_20261015T120000Z", CONFLICT_EVENT_ID])
     assert.equal(second.body.nextPageToken, undefined)
     assert.equal((await call("GET", events)).status, 400)
 

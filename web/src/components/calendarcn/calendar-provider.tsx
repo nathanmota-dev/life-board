@@ -1317,6 +1317,18 @@ function CalendarStateProvider({
   }, []);
 
   /** Adds a step for `undo`: what one action just changed. Returns the step */
+  /** Life Board: whether the event is stored as read-only (see `CalendarEvent.readOnly`) */
+  const isReadOnly = React.useCallback(
+    (eventId: string) =>
+      Boolean(
+        (
+          eventsRef.current.find((e) => e.id === eventId) ??
+          findEventOrOccurrence(eventsRef.current, eventId)
+        )?.readOnly,
+      ),
+    [],
+  );
+
   const recordHistory = React.useCallback(
     (action: EventHistoryAction, changes: EventHistoryChange[]) => {
       const entry: EventHistoryEntry = { action, changes, time: Date.now() };
@@ -1411,7 +1423,7 @@ function CalendarStateProvider({
           eventId === moved.id
             ? previous
             : findEventOrOccurrence(working, eventId);
-        if (!event) continue;
+        if (!event || event.readOnly) continue;
         const edited = eventId === moved.id ? moved : moveWithGroup(event);
         const index = working.findIndex((e) => e.id === eventId);
         const next = applyRecurringEdit(working, event, edited);
@@ -1617,6 +1629,7 @@ function CalendarStateProvider({
 
   const updateEvent = React.useCallback(
     (updatedEvent: CalendarEvent, scope?: SeriesEditScope) => {
+      if (isReadOnly(updatedEvent.id)) return;
       // A change to another event leaves the one a change waits for
       if (pendingSeriesChangeRef.current && !isWaitingDate(updatedEvent.id)) {
         afterSeriesChange(() => applyEventUpdate(updatedEvent, scope));
@@ -1624,7 +1637,7 @@ function CalendarStateProvider({
       }
       applyEventUpdate(updatedEvent, scope);
     },
-    [isWaitingDate, afterSeriesChange, applyEventUpdate],
+    [isReadOnly, isWaitingDate, afterSeriesChange, applyEventUpdate],
   );
 
   /**
@@ -1748,7 +1761,7 @@ function CalendarStateProvider({
         const event =
           working.find((e) => e.id === eventId) ??
           findEventOrOccurrence(working, eventId);
-        if (!event) continue;
+        if (!event || event.readOnly) continue;
         const eventChanges = getEventRemovalChanges(working, event);
         working = applyEventChanges(working, eventChanges);
         changes.push(...eventChanges);
@@ -1849,6 +1862,7 @@ function CalendarStateProvider({
 
   const deleteEvent = React.useCallback(
     (eventId: string, scope?: SeriesEditScope) => {
+      if (isReadOnly(eventId)) return;
       // One of several selected events: they all go, as one undo step and
       // with no series question (see `removeEvents`)
       const group = getActionGroup(eventId);
@@ -1870,6 +1884,7 @@ function CalendarStateProvider({
       applyEventDelete(eventId, scope);
     },
     [
+      isReadOnly,
       getActionGroup,
       removeEvents,
       announce,
@@ -1882,6 +1897,7 @@ function CalendarStateProvider({
 
   const cutEvent = React.useCallback(
     (eventId: string) => {
+      if (isReadOnly(eventId)) return;
       afterSeriesChange(() => {
         const group = getActionGroup(eventId);
         if (group) {

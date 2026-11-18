@@ -1,4 +1,5 @@
 use life_board_api::db::Db;
+use life_board_api::db::schema::calendar::{EventSource, NewCalendarEvent, insert_row};
 use life_board_api::db::schema::github::{NewGithubSettings, insert_settings};
 use life_board_api::{ServerOptions, start_server};
 use rstest::rstest;
@@ -76,6 +77,22 @@ async fn drops_only_the_encrypted_secrets_when_the_key_was_replaced_reset(#[case
         })
         .await
         .unwrap();
+    database
+        .call(|conn| {
+            let event = |id: &str, source: EventSource| NewCalendarEvent {
+                id: id.into(),
+                title: id.into(),
+                source: Some(source),
+                external_id: Some(id.into()),
+                external_calendar_id: Some("primary".into()),
+                external_url: Some("https://calendar.google.com/x".into()),
+                ..Default::default()
+            };
+            insert_row(conn, event("imported", EventSource::Google))?;
+            insert_row(conn, event("mine", EventSource::Local))
+        })
+        .await
+        .unwrap();
     database.close().await.unwrap();
 
     let options = ServerOptions { reset_secrets, ..ServerOptions::new(&data_dir, key(4)) };
@@ -86,6 +103,16 @@ async fn drops_only_the_encrypted_secrets_when_the_key_was_replaced_reset(#[case
     assert_eq!(saved["title"], "Kept");
     assert_eq!(github["connected"], !reset_secrets);
     assert_eq!(google["hasCredentials"], !reset_secrets);
+    // Without the account the imported events go and the local ones lose their link.
+    let events = get_json(&format!("{}/api/calendar/events", server.url)).await;
+    let items = events["items"].as_array().unwrap();
+    let title = |item: &Value| item["title"].as_str().unwrap().to_owned();
+    assert_eq!(
+        items.iter().map(title).collect::<Vec<_>>(),
+        if reset_secrets { vec!["mine"] } else { vec!["imported", "mine"] }
+    );
+    let mine = items.iter().find(|item| item["title"] == "mine").unwrap();
+    assert_eq!(mine["externalUrl"], if reset_secrets { Value::Null } else { json!("https://calendar.google.com/x") });
     server.close().await;
 }
 

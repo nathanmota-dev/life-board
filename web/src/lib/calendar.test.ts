@@ -106,3 +106,32 @@ describe("calendar view adapter", () => {
     expect(calendarLocale(undefined)).toBe(enUS)
   })
 })
+
+describe("toCalendarItem and Google events", () => {
+  const imported: CalendarEvent = {
+    ...event("g1", new Date(2026, 9, 12, 9), new Date(2026, 9, 12, 10)),
+    source: "google",
+    externalUrl: "https://www.google.com/calendar/event?eid=g1",
+  }
+
+  it("marks Google events read-only and links them back to Google", () => {
+    const item = toCalendarItem(imported)
+    expect(item.readOnly).toBe(true)
+    expect(item.externalLink).toEqual({
+      label: "Google Calendar",
+      openLabel: "Open in Google Calendar",
+      url: "https://www.google.com/calendar/event?eid=g1",
+    })
+    expect(toCalendarItem({ ...imported, externalUrl: null }).externalLink?.url).toBeNull()
+  })
+
+  it("leaves local events editable", () => {
+    const item = toCalendarItem(event("l1", new Date(2026, 9, 12, 9), new Date(2026, 9, 12, 10)))
+    expect(item.readOnly).toBeUndefined()
+    expect(item.externalLink).toBeUndefined()
+  })
+
+  it("shows an untitled event as No title", () => {
+    expect(toCalendarItem({ ...imported, title: "" }).title).toBe("No title")
+  })
+})

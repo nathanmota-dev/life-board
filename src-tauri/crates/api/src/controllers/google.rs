@@ -10,6 +10,7 @@ use crate::dto::{OK_RESPONSE, OkResponse};
 use crate::error::{ApiError, ApiResult};
 use crate::extract::ValidatedJson;
 use crate::services::google::{GoogleConnectStart, GoogleStatus, OAuthCallback};
+use crate::services::google_calendar::SyncResult;
 use crate::state::AppState;
 
 pub fn routes(table: RouteTable) -> RouteTable {
@@ -20,11 +21,16 @@ pub fn routes(table: RouteTable) -> RouteTable {
         .post("/google/connect", start_connect)
         .delete("/google/connect", cancel_connect)
         .delete("/google/disconnect", disconnect)
+        .post("/google/sync", sync)
 }
 
 /// Outside the auth layer: the browser that Google redirects can't send app credentials.
 pub fn public_routes(table: RouteTable) -> RouteTable {
     table.get("/google/oauth/callback", callback)
+}
+
+async fn sync(State(state): State<AppState>) -> ApiResult<Json<SyncResult>> {
+    Ok(Json(state.google_calendar.sync().await?))
 }
 
 async fn status(State(state): State<AppState>) -> ApiResult<Json<GoogleStatus>> {
@@ -94,7 +100,16 @@ async fn callback(State(state): State<AppState>, uri: Uri) -> Response {
         (None, None) => Err((StatusCode::BAD_REQUEST, "missing_code".to_owned())),
     };
     match outcome {
-        Ok(_) => page(StatusCode::OK, SUCCESS_PAGE.to_owned()),
+        Ok(_) => {
+            // The first import runs in the background, so the browser tab answers at once.
+            let calendar = state.google_calendar.clone();
+            tokio::spawn(async move {
+                if let Err(error) = calendar.sync().await {
+                    tracing::warn!("Google Calendar sync failed: {error}");
+                }
+            });
+            page(StatusCode::OK, SUCCESS_PAGE.to_owned())
+        }
         Err((status, code)) => {
             tracing::warn!("Google connection failed: {code}");
             page(status, ERROR_PAGE.replace("{code}", &code))

@@ -8,7 +8,7 @@ export { expect }
 export const EPOCH = Date.parse("2026-10-21T12:00:00Z")
 export const DAY = "2026-10-21"
 // "live" lets the backend reach the real GitHub API. Only the demo recording uses it.
-export type Scenario = { github?: "empty" | "error" | "unauthorized" | "rate-limit" | "live"; weather?: "error" | "fallback"; updates?: "available" | "current" | "network" | "hold-download" | "download-error" | "integrity" }
+export type Scenario = { google?: "changed"; github?: "empty" | "error" | "unauthorized" | "rate-limit" | "live"; weather?: "error" | "fallback"; updates?: "available" | "current" | "network" | "hold-download" | "download-error" | "integrity" }
 type NativeState = {
   external: string[]
   notifications: { options: { title: string; body: string }; emit: (event: string) => void }[]
@@ -48,7 +48,7 @@ export class Workspace {
     this.env = Object.fromEntries(Object.entries({
       ...process.env, TZ: "UTC", LIFE_BOARD_E2E_ROOT: resolve("."), LIFE_BOARD_E2E_HOME: this.home,
       LIFE_BOARD_E2E_SCENARIO: join(this.home, "scenario.json"), LIFE_BOARD_E2E_CALLS: join(this.home, "calls.jsonl"),
-      LIFE_BOARD_E2E_EPOCH: String(EPOCH), LIFE_BOARD_E2E_CLOCK: join(this.home, "clock"),
+      LIFE_BOARD_E2E_GOOGLE_SYNC: "off", LIFE_BOARD_E2E_EPOCH: String(EPOCH), LIFE_BOARD_E2E_CLOCK: join(this.home, "clock"),
       XDG_CONFIG_HOME: join(this.home, "config"), XDG_DATA_HOME: join(this.home, "data"), XDG_CACHE_HOME: join(this.home, "cache"),
     }).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
     for (const key of ["ELECTRON_RUN_AS_NODE", "ELECTRON_RENDERER_URL", "APPIMAGE", "SNAP", "FLATPAK_ID"]) delete this.env[key]

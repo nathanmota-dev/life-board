@@ -51,13 +51,23 @@ export function colorName(hex: string): CalendarItemColor {
 export function toCalendarItem(event: CalendarEvent, id = event.id): CalendarItem {
   return {
     id,
-    title: event.title,
+    title: event.title || i18n.t("calendar.noTitle"),
     start: new Date(event.startAt),
     end: new Date(event.endAt),
     isAllDay: event.allDay,
     color: colorName(event.color),
     description: event.description ?? undefined,
     location: event.location ?? undefined,
+    ...(event.source === "google"
+      ? {
+          readOnly: true,
+          externalLink: {
+            label: i18n.t("calendar.googleCalendar"),
+            openLabel: i18n.t("calendar.openInGoogle"),
+            url: event.externalUrl,
+          },
+        }
+      : {}),
   }
 }
 

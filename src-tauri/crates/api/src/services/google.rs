@@ -15,6 +15,7 @@ use tokio::sync::Mutex;
 use crate::clock;
 use crate::db::Db;
 use crate::db::columns::Timestamp;
+use crate::db::schema::calendar::forget_google;
 use crate::db::schema::google::GoogleSettings;
 use crate::dto::google::SaveGoogleCredentialsBody;
 use crate::error::{ApiError, ApiResult};
@@ -179,6 +180,15 @@ impl GoogleService {
     pub async fn disconnect(&self) -> ApiResult<()> {
         self.cancel_connect().await;
         *self.access.lock().await = None;
+        let result = self.revoke_and_forget().await;
+        // The imported events go with the account, even when forgetting it failed.
+        let cleanup =
+            self.db.call(|conn| conn.transaction().and_then(|tx| forget_google(&tx).and_then(|()| tx.commit())));
+        cleanup.await?;
+        result
+    }
+
+    async fn revoke_and_forget(&self) -> ApiResult<()> {
         let Some(settings) = store::find(&self.db).await? else { return Ok(()) };
         if let Some(sealed) = &settings.refresh_token {
             let revoked = match (self.credentials(&settings), self.open(sealed)) {
@@ -248,8 +258,18 @@ impl GoogleService {
         }
     }
 
+    /// The calendar the sync reads: the account's, once connected.
+    pub async fn calendar_id(&self) -> Result<String, GoogleTokenError> {
+        let settings = store::find(&self.db).await.map_err(google_failure)?.ok_or(GoogleTokenError::NotConnected)?;
+        match (&settings.refresh_token, &settings.email) {
+            (Some(_), _) => Ok(settings.calendar_id),
+            (None, Some(_)) => Err(GoogleTokenError::ReauthRequired),
+            (None, None) => Err(GoogleTokenError::NotConnected),
+        }
+    }
+
     /// Forgets `token` if it is still the cached one (another caller may have refreshed it).
-    async fn expire_access_token(&self, token: &str) {
+    pub async fn expire_access_token(&self, token: &str) {
         let mut cache = self.access.lock().await;
         if cache.as_ref().is_some_and(|cached| cached.token == token) {
             *cache = None;

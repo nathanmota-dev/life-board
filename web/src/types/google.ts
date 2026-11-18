@@ -15,6 +15,12 @@ export type GoogleStatus = {
 
 export type GoogleCredentialsInput = { clientId: string; clientSecret: string }
 
+/** What one sync changed. */
+export type GoogleSyncResult = { imported: number; updated: number; removed: number }
+
+/** Why the calendar warns about Google: Google refused the authorization, or the last sync failed. */
+export type GoogleSyncProblem = "reauth" | "error"
+
 export type GoogleConnectStart = { authUrl: string }
 
 export type GoogleStatusProps = { status: GoogleStatus }

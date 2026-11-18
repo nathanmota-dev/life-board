@@ -1,9 +1,9 @@
 import { useTranslation } from "react-i18next"
-import { Unplug } from "lucide-react"
+import { RefreshCw, Unplug } from "lucide-react"
 import { GoogleConnectButton } from "@/components/settings/google-connect-button"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { Button } from "@/components/ui/button"
-import { useDisconnectGoogle } from "@/hooks/queries/use-google"
+import { useDisconnectGoogle, useSyncGoogle } from "@/hooks/queries/use-google"
 import { formatDate, formatTime } from "@/lib/dates"
 import { errorMessage } from "@/lib/format"
 import type { GoogleDetailRow, GoogleStatusProps } from "@/types/google"
@@ -12,6 +12,7 @@ import type { GoogleDetailRow, GoogleStatusProps } from "@/types/google"
 export function GoogleConnected({ status }: GoogleStatusProps) {
   const { t } = useTranslation()
   const disconnect = useDisconnectGoogle()
+  const sync = useSyncGoogle()
   const rows: GoogleDetailRow[] = [
     { label: t("settings.google.account"), value: <span className="font-medium break-all">{status.email}</span> },
     {
@@ -29,6 +30,7 @@ export function GoogleConnected({ status }: GoogleStatusProps) {
         : t("settings.google.never"),
     },
   ]
+  const syncError = sync.error ? errorMessage(sync.error) : status.lastSyncError
 
   return (
     <div className="flex flex-col gap-4">
@@ -42,8 +44,20 @@ export function GoogleConnected({ status }: GoogleStatusProps) {
       </dl>
       {status.reauthRequired ? <p className="text-sm text-destructive">{t("settings.google.reauthDescription")}</p> : null}
       {status.reauthRequired ? <GoogleConnectButton pending={status.pending} reconnect /> : null}
+      {status.connected ? <p className="text-sm text-muted-foreground">{t("settings.google.syncDescription")}</p> : null}
+      {status.connected && syncError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {t("settings.google.syncError")}: {syncError}
+        </p>
+      ) : null}
       {disconnect.error ? <p className="text-sm text-destructive">{errorMessage(disconnect.error)}</p> : null}
-      <div>
+      <div className="flex flex-wrap gap-2">
+        {status.connected ? (
+          <Button disabled={sync.isPending} onClick={() => sync.mutate(undefined)}>
+            <RefreshCw className={sync.isPending ? "animate-spin" : undefined} />
+            {sync.isPending ? t("settings.google.syncing") : t("settings.google.syncNow")}
+          </Button>
+        ) : null}
         <Button variant="outline" disabled={disconnect.isPending} onClick={() => disconnect.mutate(undefined)}>
           <Unplug />
           {disconnect.isPending ? t("settings.google.disconnecting") : t("settings.google.disconnect")}

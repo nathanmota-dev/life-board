@@ -475,6 +475,22 @@ export interface CalendarEvent {
    * `CalendarInfo` its `calendarId` names), else blue.
    */
   color?: EventColor;
+  /**
+   * Life Board: an event that can't be changed here (one imported from Google
+   * Calendar). It can't be dragged, resized, edited, cut or deleted, and its
+   * details show without inputs.
+   */
+  readOnly?: boolean;
+}
+
+/** Life Board: the service an event comes from, and the page that shows it there */
+export interface EventExternalLink {
+  /** Name of the service (e.g. "Google Calendar") */
+  label: string;
+  /** Text of the link (e.g. "Open in Google Calendar") */
+  openLabel: string;
+  /** Address of the event there; without one, only the name shows */
+  url: string | null;
 }
 
 /**
@@ -485,6 +501,11 @@ export interface CalendarEvent {
 export interface DetailedCalendarEvent extends CalendarEvent {
   /** Kind picked in the header menu. Defaults to "event" */
   kind?: EventKind;
+  /**
+   * Life Board: where the event comes from, shown in its details with a link
+   * that opens it there (an event imported from Google Calendar)
+   */
+  externalLink?: EventExternalLink;
   /** Calendar ID this event belongs to */
   calendarId?: string;
   /**
