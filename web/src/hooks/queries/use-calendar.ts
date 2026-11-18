@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { queryKeys } from "@/hooks/queries/query-keys"
 import { useInvalidatingMutation } from "@/hooks/queries/use-invalidating-mutation"
+import { GOOGLE_PENDING_REFETCH_MS, hasPendingSync } from "@/lib/google"
 import { calendarService } from "@/services/calendar-service"
 import type { CalendarEventInput, CalendarRange } from "@/types/calendar"
 
@@ -15,6 +16,8 @@ export function useCalendarRangeEvents(range: CalendarRange | null) {
     queryFn: () => calendarService.list(range as CalendarRange),
     enabled: range !== null,
     placeholderData: keepPreviousData,
+    // Until Google has the changes, the events keep their "Not synced yet" mark.
+    refetchInterval: (query) => (hasPendingSync(query.state.data) ? GOOGLE_PENDING_REFETCH_MS : false),
   })
 }
 

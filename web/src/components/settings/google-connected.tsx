@@ -24,6 +24,10 @@ export function GoogleConnected({ status }: GoogleStatusProps) {
       ),
     },
     {
+      label: t("settings.google.pendingChanges"),
+      value: t("settings.google.pendingChangesValue", { count: status.pendingChanges }),
+    },
+    {
       label: t("settings.google.lastSync"),
       value: status.lastSyncAt
         ? t("settings.google.syncedAt", { date: formatDate(status.lastSyncAt), time: formatTime(status.lastSyncAt) })
@@ -45,6 +49,11 @@ export function GoogleConnected({ status }: GoogleStatusProps) {
       {status.reauthRequired ? <p className="text-sm text-destructive">{t("settings.google.reauthDescription")}</p> : null}
       {status.reauthRequired ? <GoogleConnectButton pending={status.pending} reconnect /> : null}
       {status.connected ? <p className="text-sm text-muted-foreground">{t("settings.google.syncDescription")}</p> : null}
+      {status.connected && status.lastConflict ? (
+        <p data-testid="google-conflict" className="text-sm text-muted-foreground">
+          {t("settings.google.conflict", { title: status.lastConflict.title })}
+        </p>
+      ) : null}
       {status.connected && syncError ? (
         <p role="alert" className="text-sm text-destructive">
           {t("settings.google.syncError")}: {syncError}

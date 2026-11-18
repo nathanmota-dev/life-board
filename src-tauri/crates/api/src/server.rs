@@ -106,7 +106,12 @@ pub async fn start_server(options: ServerOptions) -> Result<RunningServer, Start
     let mut app_options = AppOptions::new(db.clone(), &data_dir, crypto);
     app_options.server_url = Some(url.clone());
     let state = AppState::new(app_options).await?;
-    let scheduler = scheduler_enabled().then(|| state.google_calendar.start_scheduler(FIRST_SYNC_DELAY, SYNC_INTERVAL));
+    // The periodic sync can be turned off for the Playwright suite; sending a change never is.
+    let scheduler = Some(if scheduler_enabled() {
+        state.google_calendar.start_scheduler(FIRST_SYNC_DELAY, SYNC_INTERVAL)
+    } else {
+        state.google_calendar.start_sender()
+    });
     let app = build_app(state);
 
     let (shutdown, signal) = tokio::sync::oneshot::channel::<()>();
@@ -129,7 +134,7 @@ pub async fn start_server(options: ServerOptions) -> Result<RunningServer, Start
     })
 }
 
-/// The Google Calendar loop runs, except when the Playwright suite turns it off
+/// The periodic Google Calendar sync runs, except when the Playwright suite turns it off
 /// (`LIFE_BOARD_E2E_GOOGLE_SYNC=off`, only under the `e2e` feature) to stay deterministic.
 fn scheduler_enabled() -> bool {
     #[cfg(feature = "e2e")]

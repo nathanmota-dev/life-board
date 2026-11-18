@@ -2,7 +2,7 @@ use axum::http::StatusCode;
 use chrono::TimeDelta;
 use serde::Serialize;
 
-use crate::db::columns::{Timestamp, js_date_opt};
+use crate::db::columns::{Timestamp, js_date, js_date_opt};
 use crate::error::ApiError;
 use crate::services::google_auth_client::GoogleAuthError;
 
@@ -31,6 +31,19 @@ pub struct GoogleStatus {
     #[serde(with = "js_date_opt")]
     pub last_sync_at: Option<Timestamp>,
     pub last_sync_error: Option<String>,
+    /// Changes made in Life Board that Google doesn't have yet.
+    pub pending_changes: i64,
+    /// The last time the Google version of an event won over a change made here.
+    pub last_conflict: Option<ConflictNotice>,
+}
+
+/// An event whose local change was dropped because Google had a newer one.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConflictNotice {
+    pub title: String,
+    #[serde(with = "js_date")]
+    pub at: Timestamp,
 }
 
 /// `POST /google/connect`.

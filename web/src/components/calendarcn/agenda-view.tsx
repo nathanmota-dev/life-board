@@ -42,6 +42,7 @@ import {
   EventSeriesScopeDialog,
   SeriesChangeDot,
 } from "./event-series-scope-dialog";
+import { EventSyncMark } from "./event-sync-mark";
 import {
   DECLINED_EVENT_OUTLINE_CLASS,
   DECLINED_EVENT_TEXT_CLASS,
@@ -655,6 +656,7 @@ function AgendaEventRow({
                 )}
               >
                 <SeriesChangeDot eventId={event.id} />
+<EventSyncMark event={event} />
                 {event.title}
               </span>
               <span

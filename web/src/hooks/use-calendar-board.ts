@@ -21,7 +21,7 @@ export function useCalendarBoard() {
 
   const sync = useMemo(() => {
     const refresh = () => {
-      for (const queryKey of [queryKeys.calendar, queryKeys.stats, queryKeys.links]) {
+      for (const queryKey of [queryKeys.calendar, queryKeys.stats, queryKeys.links, queryKeys.google]) {
         void queryClient.invalidateQueries({ queryKey })
       }
     }

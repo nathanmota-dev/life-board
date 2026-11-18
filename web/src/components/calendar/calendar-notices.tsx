@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -7,6 +7,7 @@ import { useGoogleCalendarWatch } from "@/hooks/use-google-calendar-watch"
 import { googleSyncProblem } from "@/lib/google"
 
 const GOOGLE_NOTICE_ID = "google-sync"
+const GOOGLE_CONFLICT_ID = "google-conflict"
 
 /**
  * Shows the calendar view's notices ("Event deleted", with Undo) as the app's toasts,
@@ -16,7 +17,11 @@ export function CalendarNotices() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { notice, dismissNotice } = useCalendarNotice()
-  const problem = googleSyncProblem(useGoogleCalendarWatch())
+  const status = useGoogleCalendarWatch()
+  const problem = googleSyncProblem(status)
+  const conflict = status?.lastConflict ?? null
+  // A conflict that already happened when the calendar opened isn't announced again.
+  const seenConflict = useRef<string | null | undefined>(undefined)
 
   useEffect(() => {
     if (!notice) return
@@ -29,6 +34,15 @@ export function CalendarNotices() {
       onAutoClose: dismiss,
     })
   }, [notice, dismissNotice, t])
+
+  useEffect(() => {
+    if (!status) return
+    const at = conflict?.at ?? null
+    if (conflict && seenConflict.current !== undefined && seenConflict.current !== at) {
+      toast.info(t("calendar.conflictKept", { title: conflict.title }), { id: GOOGLE_CONFLICT_ID })
+    }
+    seenConflict.current = at
+  }, [status, conflict, t])
 
   useEffect(() => {
     if (!problem) return

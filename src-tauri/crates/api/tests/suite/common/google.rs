@@ -165,18 +165,63 @@ pub fn query_param(url: &str, name: &str) -> Option<String> {
 }
 
 type ListAnswer = Box<dyn Fn(usize) -> CalendarResult<Vec<GoogleEvent>> + Send + Sync>;
+type EventAnswer = Box<dyn Fn(usize) -> CalendarResult<GoogleEvent> + Send + Sync>;
+type DeleteAnswer = Box<dyn Fn(usize) -> CalendarResult<()> + Send + Sync>;
+
+/// What the sync sent, in order.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Sent {
+    Insert { token: String, calendar: String, body: GoogleEventBody },
+    Patch { token: String, calendar: String, event: String, etag: String, body: GoogleEventBody },
+    Delete { token: String, calendar: String, event: String },
+    Get { calendar: String, event: String },
+}
 
 /// A fake [`GoogleCalendarApi`] for the sync: `list_events` answers with its closure (given how
 /// many listings ran before) after an optional delay, and records the token and window of each call.
+/// The writes answer with their own closures (given how many of that kind ran before) and are recorded
+/// in [`FakeCalendar::sent`]. [`FakeCalendar::hold`] makes the next writes wait until released.
 pub struct FakeCalendar {
     listed: Mutex<Vec<(String, String, EventWindow)>>,
     list: Mutex<ListAnswer>,
     delay: Mutex<Duration>,
+    sent: Mutex<Vec<Sent>>,
+    insert: Mutex<EventAnswer>,
+    patch: Mutex<EventAnswer>,
+    get: Mutex<EventAnswer>,
+    delete: Mutex<DeleteAnswer>,
+    held: Mutex<bool>,
+    gate: tokio::sync::Semaphore,
+    entered: tokio::sync::Notify,
+}
+
+fn answered(prefix: &str, etag: &str) -> EventAnswer {
+    let (prefix, etag) = (prefix.to_owned(), etag.to_owned());
+    Box::new(move |count| {
+        Ok(GoogleEvent {
+            id: format!("{prefix}{count}"),
+            etag: Some(format!("\"{etag}{count}\"")),
+            html_link: Some(format!("https://www.google.com/calendar/event?eid={prefix}{count}")),
+            ..Default::default()
+        })
+    })
 }
 
 impl Default for FakeCalendar {
     fn default() -> Self {
-        Self { listed: Mutex::new(Vec::new()), list: Mutex::new(Box::new(|_| Ok(Vec::new()))), delay: Mutex::default() }
+        Self {
+            listed: Mutex::new(Vec::new()),
+            list: Mutex::new(Box::new(|_| Ok(Vec::new()))),
+            delay: Mutex::default(),
+            sent: Mutex::default(),
+            insert: Mutex::new(answered("created-", "i")),
+            patch: Mutex::new(answered("patched-", "p")),
+            get: Mutex::new(Box::new(|_| Err(GoogleCalendarError::Gone))),
+            delete: Mutex::new(Box::new(|_| Ok(()))),
+            held: Mutex::default(),
+            gate: tokio::sync::Semaphore::new(0),
+            entered: tokio::sync::Notify::new(),
+        }
     }
 }
 
@@ -194,6 +239,22 @@ impl FakeCalendar {
         self.on_list(move |_| Ok(events.clone()));
     }
 
+    pub fn on_insert(&self, answer: impl Fn(usize) -> CalendarResult<GoogleEvent> + Send + Sync + 'static) {
+        *self.insert.lock().unwrap() = Box::new(answer);
+    }
+
+    pub fn on_patch(&self, answer: impl Fn(usize) -> CalendarResult<GoogleEvent> + Send + Sync + 'static) {
+        *self.patch.lock().unwrap() = Box::new(answer);
+    }
+
+    pub fn on_get(&self, answer: impl Fn(usize) -> CalendarResult<GoogleEvent> + Send + Sync + 'static) {
+        *self.get.lock().unwrap() = Box::new(answer);
+    }
+
+    pub fn on_delete(&self, answer: impl Fn(usize) -> CalendarResult<()> + Send + Sync + 'static) {
+        *self.delete.lock().unwrap() = Box::new(answer);
+    }
+
     pub fn delay(&self, delay: Duration) {
         *self.delay.lock().unwrap() = delay;
     }
@@ -202,10 +263,49 @@ impl FakeCalendar {
     pub fn listings(&self) -> Vec<(String, String, EventWindow)> {
         self.listed.lock().unwrap().clone()
     }
+
+    /// Every write and fetch, in order.
+    pub fn sent(&self) -> Vec<Sent> {
+        self.sent.lock().unwrap().clone()
+    }
+
+    /// The writes from now on wait for [`release`](Self::release).
+    pub fn hold(&self) {
+        *self.held.lock().unwrap() = true;
+    }
+
+    /// Lets the held writes go, and stops holding.
+    pub fn release(&self) {
+        *self.held.lock().unwrap() = false;
+        self.gate.add_permits(1024);
+    }
+
+    /// Completes once a write is waiting in [`hold`](Self::hold).
+    pub async fn entered(&self) {
+        self.entered.notified().await;
+    }
+
+    fn record(&self, call: Sent) -> usize {
+        let mut sent = self.sent.lock().unwrap();
+        let kind = std::mem::discriminant(&call);
+        let count = sent.iter().filter(|recorded| std::mem::discriminant(*recorded) == kind).count();
+        sent.push(call);
+        count
+    }
+
+    async fn wait_if_held(&self) {
+        let held = *self.held.lock().unwrap();
+        if held {
+            self.entered.notify_one();
+            if let Ok(permit) = self.gate.acquire().await {
+                permit.forget();
+            }
+        }
+    }
 }
 
 fn unused() -> GoogleCalendarError {
-    GoogleCalendarError::Http { status: 0, message: "not used by the import".into() }
+    GoogleCalendarError::Http { status: 0, message: "not used by the tests".into() }
 }
 
 #[async_trait]
@@ -227,16 +327,44 @@ impl GoogleCalendarApi for FakeCalendar {
         (self.list.lock().unwrap())(count)
     }
 
-    async fn insert_event(&self, _: &str, _: &str, _: &GoogleEventBody) -> CalendarResult<GoogleEvent> {
-        Err(unused())
+    async fn get_event(&self, _token: &str, event: EventRef<'_>) -> CalendarResult<GoogleEvent> {
+        let count = self.record(Sent::Get { calendar: event.calendar_id.to_owned(), event: event.event_id.to_owned() });
+        (self.get.lock().unwrap())(count)
     }
 
-    async fn patch_event(&self, _: &str, _: EventRef<'_>, _: &str, _: &GoogleEventBody) -> CalendarResult<GoogleEvent> {
-        Err(unused())
+    async fn insert_event(&self, token: &str, calendar: &str, body: &GoogleEventBody) -> CalendarResult<GoogleEvent> {
+        let count =
+            self.record(Sent::Insert { token: token.to_owned(), calendar: calendar.to_owned(), body: body.clone() });
+        self.wait_if_held().await;
+        (self.insert.lock().unwrap())(count)
     }
 
-    async fn delete_event(&self, _: &str, _: EventRef<'_>) -> CalendarResult<()> {
-        Err(unused())
+    async fn patch_event(
+        &self,
+        token: &str,
+        event: EventRef<'_>,
+        etag: &str,
+        body: &GoogleEventBody,
+    ) -> CalendarResult<GoogleEvent> {
+        let count = self.record(Sent::Patch {
+            token: token.to_owned(),
+            calendar: event.calendar_id.to_owned(),
+            event: event.event_id.to_owned(),
+            etag: etag.to_owned(),
+            body: body.clone(),
+        });
+        self.wait_if_held().await;
+        (self.patch.lock().unwrap())(count)
+    }
+
+    async fn delete_event(&self, token: &str, event: EventRef<'_>) -> CalendarResult<()> {
+        let count = self.record(Sent::Delete {
+            token: token.to_owned(),
+            calendar: event.calendar_id.to_owned(),
+            event: event.event_id.to_owned(),
+        });
+        self.wait_if_held().await;
+        (self.delete.lock().unwrap())(count)
     }
 }
 

@@ -21,6 +21,12 @@ pub enum SyncFailure {
     Internal(String),
 }
 
+impl From<crate::db::DbError> for SyncFailure {
+    fn from(error: crate::db::DbError) -> Self {
+        Self::Internal(error.to_string())
+    }
+}
+
 impl SyncFailure {
     pub(super) fn from_token(error: GoogleTokenError) -> Self {
         match error {

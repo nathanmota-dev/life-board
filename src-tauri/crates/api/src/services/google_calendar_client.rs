@@ -58,6 +58,8 @@ pub trait GoogleCalendarApi: Send + Sync + 'static {
     /// Every event (and occurrence of a recurring one, deleted ones included)
     /// in `window`, across all pages.
     async fn list_events(&self, token: &str, calendar: &str, window: EventWindow) -> CalendarResult<Vec<GoogleEvent>>;
+    /// One event as Google has it now. [`GoogleCalendarError::Gone`] when it no longer exists.
+    async fn get_event(&self, token: &str, event: EventRef<'_>) -> CalendarResult<GoogleEvent>;
     async fn insert_event(&self, token: &str, calendar: &str, body: &GoogleEventBody) -> CalendarResult<GoogleEvent>;
     /// Fails with [`GoogleCalendarError::Conflict`] when the event's etag is no longer `etag`.
     async fn patch_event(
@@ -257,6 +259,12 @@ impl GoogleCalendarApi for GoogleCalendarClient {
             }
         }
         Err(GoogleCalendarError::Http { status: 200, message: "Google Calendar sent too many pages.".into() })
+    }
+
+    async fn get_event(&self, token: &str, event: EventRef<'_>) -> CalendarResult<GoogleEvent> {
+        let mut call = Call::new(Method::GET, event_path(event));
+        call.on_event = true;
+        self.json(token, call).await
     }
 
     async fn insert_event(&self, token: &str, calendar: &str, body: &GoogleEventBody) -> CalendarResult<GoogleEvent> {

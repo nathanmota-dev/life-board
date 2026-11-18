@@ -8,7 +8,7 @@ export { expect }
 export const EPOCH = Date.parse("2026-10-21T12:00:00Z")
 export const DAY = "2026-10-21"
 // "live" lets the backend reach the real GitHub API. Only the demo recording uses it.
-export type Scenario = { google?: "changed"; github?: "empty" | "error" | "unauthorized" | "rate-limit" | "live"; weather?: "error" | "fallback"; updates?: "available" | "current" | "network" | "hold-download" | "download-error" | "integrity" }
+export type Scenario = { google?: "changed" | "offline"; github?: "empty" | "error" | "unauthorized" | "rate-limit" | "live"; weather?: "error" | "fallback"; updates?: "available" | "current" | "network" | "hold-download" | "download-error" | "integrity" }
 type NativeState = {
   external: string[]
   notifications: { options: { title: string; body: string }; emit: (event: string) => void }[]

@@ -11,7 +11,14 @@ export type GoogleStatus = {
   reauthRequired: boolean
   lastSyncAt: string | null
   lastSyncError: string | null
+  /** Changes made in Life Board that Google doesn't have yet. */
+  pendingChanges: number
+  /** The last time Google's version of an event won over a change made here. */
+  lastConflict: GoogleConflict | null
 }
+
+/** An event whose local change was dropped because Google had a newer version. */
+export type GoogleConflict = { title: string; at: string }
 
 export type GoogleCredentialsInput = { clientId: string; clientSecret: string }
 

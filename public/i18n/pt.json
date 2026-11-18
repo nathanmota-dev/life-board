@@ -128,7 +128,11 @@
       "syncNow": "Sincronizar agora",
       "syncing": "Sincronizando…",
       "syncError": "A última sincronização falhou",
-      "syncDescription": "Os eventos da sua agenda principal, de 30 dias atrás até um ano à frente, são importados a cada 15 minutos. No Life Board eles são somente leitura."
+      "syncDescription": "Os eventos da sua agenda principal, de 30 dias atrás até um ano à frente, são importados a cada 15 minutos. Os eventos que você cria ou altera no Life Board enquanto está conectado são enviados ao Google em segundos. Se o mesmo evento mudou nos dois lados, a versão do Google é mantida.",
+      "pendingChanges": "Aguardando envio",
+      "pendingChangesValue_one": "{{count}} alteração",
+      "pendingChangesValue_other": "{{count}} alterações",
+      "conflict": "A versão do Google de “{{title}}” foi mantida porque ele também mudou lá."
     },
     "updates": {
       "title": "Atualizações",
@@ -263,6 +267,9 @@
     "noTitle": "Sem título",
     "googleCalendar": "Google Agenda",
     "openInGoogle": "Abrir no Google Agenda",
+    "notSynced": "Ainda não sincronizado",
+    "occurrenceOnly": "As alterações valem só para esta ocorrência.",
+    "conflictKept": "O Google tinha uma versão mais nova de “{{title}}”, então ela foi mantida.",
     "syncReauth": "O Google Agenda precisa ser reconectado. Os eventos importados podem estar desatualizados.",
     "syncFailed": "Não foi possível sincronizar o Google Agenda. Os eventos podem estar desatualizados.",
     "openSettings": "Abrir Configurações"

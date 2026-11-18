@@ -49,6 +49,8 @@ pub struct GoogleService {
     pending: Arc<Mutex<Option<PendingFlow>>>,
     /// Also serializes refreshes, so concurrent callers share one.
     access: Arc<Mutex<Option<CachedToken>>>,
+    /// Kept in memory: it only tells the user once, and resets with the app.
+    conflict: Arc<std::sync::Mutex<Option<ConflictNotice>>>,
 }
 
 impl GoogleService {
@@ -57,7 +59,15 @@ impl GoogleService {
     }
 
     pub fn with_clock(db: Db, client: Arc<dyn GoogleAuthApi>, crypto: CryptoService, now: Now) -> Self {
-        Self { db, client, crypto, now, pending: Arc::new(Mutex::new(None)), access: Arc::new(Mutex::new(None)) }
+        Self {
+            db,
+            client,
+            crypto,
+            now,
+            pending: Arc::new(Mutex::new(None)),
+            access: Arc::new(Mutex::new(None)),
+            conflict: Arc::default(),
+        }
     }
 
     fn now(&self) -> Timestamp {
@@ -66,6 +76,7 @@ impl GoogleService {
 
     pub async fn status(&self) -> ApiResult<GoogleStatus> {
         let pending = self.pending_flow_alive().await;
+        let (pending_changes, last_conflict) = (store::pending_changes(&self.db).await?, self.last_conflict());
         Ok(match store::find(&self.db).await? {
             Some(settings) => GoogleStatus {
                 connected: settings.refresh_token.is_some(),
@@ -75,6 +86,8 @@ impl GoogleService {
                 pending,
                 last_sync_at: settings.last_sync_at,
                 last_sync_error: settings.last_sync_error,
+                pending_changes,
+                last_conflict,
             },
             None => GoogleStatus {
                 connected: false,
@@ -84,8 +97,20 @@ impl GoogleService {
                 reauth_required: false,
                 last_sync_at: None,
                 last_sync_error: None,
+                pending_changes,
+                last_conflict,
             },
         })
+    }
+
+    /// Notes that Google's version of the event called `title` replaced a change made here.
+    pub fn record_conflict(&self, title: &str, at: Timestamp) {
+        *self.conflict.lock().unwrap_or_else(std::sync::PoisonError::into_inner) =
+            Some(ConflictNotice { title: title.to_owned(), at });
+    }
+
+    fn last_conflict(&self) -> Option<ConflictNotice> {
+        self.conflict.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone()
     }
 
     /// Drops an expired flow, so a late callback finds nothing.
@@ -180,6 +205,7 @@ impl GoogleService {
     pub async fn disconnect(&self) -> ApiResult<()> {
         self.cancel_connect().await;
         *self.access.lock().await = None;
+        *self.conflict.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
         let result = self.revoke_and_forget().await;
         // The imported events go with the account, even when forgetting it failed.
         let cleanup =

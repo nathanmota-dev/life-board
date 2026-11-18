@@ -274,3 +274,21 @@ fn reads_cancelled_events_with_only_an_id() {
     assert_eq!(event, GoogleEvent { id: "gone".into(), status: Some("cancelled".into()), ..GoogleEvent::default() });
     assert_eq!(serde_json::to_value(&event).unwrap(), json!({ "id": "gone", "status": "cancelled" }));
 }
+
+#[tokio::test]
+async fn gets_one_event_and_reports_a_gone_one() {
+    let event_path = format!("{CALENDAR_PATH}/abc_123%40google.com");
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(event_path.as_str()))
+        .and(header("authorization", format!("Bearer {TOKEN}").as_str()))
+        .respond_with(ok(json!({ "id": "abc_123@google.com", "etag": "\"4\"", "summary": "Gym" })))
+        .mount(&server)
+        .await;
+    let client = client_for(&server).await;
+    let fetched = client.get_event(TOKEN, event("abc_123@google.com")).await.unwrap();
+    assert_eq!((fetched.summary.as_deref(), fetched.etag.as_deref()), (Some("Gym"), Some("\"4\"")));
+
+    let (_gone, gone) = answering(google_error(410, "deleted")).await;
+    assert_eq!(gone.get_event(TOKEN, event("e1")).await.unwrap_err(), GoogleCalendarError::Gone);
+}

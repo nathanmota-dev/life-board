@@ -78,3 +78,12 @@ pub async fn delete(db: &Db) -> ApiResult<()> {
     db.call(|conn| conn.execute("DELETE FROM google_settings", [])).await?;
     Ok(())
 }
+
+/// Changes made in Life Board that are still waiting to reach Google.
+pub async fn pending_changes(db: &Db) -> ApiResult<i64> {
+    Ok(db
+        .call(|conn| {
+            conn.query_row("SELECT COUNT(*) FROM calendar_events WHERE sync_state IS NOT NULL", [], |row| row.get(0))
+        })
+        .await?)
+}

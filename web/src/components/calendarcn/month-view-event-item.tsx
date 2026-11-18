@@ -9,6 +9,7 @@ import {
   useIsEventInSelection,
 } from "./calendar-provider";
 import { SeriesChangeDot } from "./event-series-scope-dialog";
+import { EventSyncMark } from "./event-sync-mark";
 import {
   DECLINED_EVENT_TEXT_CLASS,
   EVENT_FOCUS_RING_CLASS,
@@ -196,6 +197,7 @@ export function MonthViewEventItem({
               )}
             >
               <SeriesChangeDot eventId={event.id} />
+<EventSyncMark event={event} />
               {event.title}
             </span>
           </span>

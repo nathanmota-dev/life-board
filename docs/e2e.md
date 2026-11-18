@@ -73,8 +73,10 @@ não entram no pacote de produção:
   continua em `accounts.google.com`: o teste lê essa URL de `globalThis.e2e.external`
   e faz o papel do navegador, chamando o callback com um código fictício. O servidor
   do Google lê `scenario.json` a cada listagem: com `google: "changed"`, um evento
-  some e outro muda de título. `LIFE_BOARD_E2E_GOOGLE_SYNC=off` desliga a
-  sincronização periódica da API.
+  some e outro muda de título, e com `google: "offline"` a conexão cai sem resposta.
+  O servidor também aceita `POST`, `PATCH` (com `If-Match`) e `DELETE` de eventos, e
+  registra cada chamada com seu `If-Match` e corpo. `LIFE_BOARD_E2E_GOOGLE_SYNC=off`
+  desliga a sincronização periódica da API; o envio das mudanças continua.
 - Esse servidor responde REST/GraphQL sintético na fronteira HTTP do GitHub. Token de teste, conta, PRs, issues, contribuições e repositórios são
   fictícios. Cenários incluem conta vazia, credenciais inválidas e falhas externas.
 - Geolocalização e Open-Meteo são interceptados no renderer. Requisições externas

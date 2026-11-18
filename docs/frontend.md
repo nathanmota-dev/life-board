@@ -22,10 +22,12 @@ enquanto o login está aberto no navegador, o status é consultado a cada 2 segu
 Com a conta conectada, **Sincronizar agora** importa os eventos e recarrega o
 calendário e as estatísticas; o calendário aberto consulta o status a cada 60
 segundos para mostrar o que a sincronização em segundo plano trouxe. Eventos
-importados (`source: "google"`) viram itens `readOnly` no calendário: o código do
-calendarcn em `components/calendarcn/` ganhou uma checagem por evento
-(`CalendarEvent.readOnly`: sem arrastar, redimensionar, editar, recortar ou excluir)
-e um `externalLink` nos detalhes ("Abrir no Google Agenda").
+importados (`source: "google"`) são editáveis como os locais; o código do
+calendarcn em `components/calendarcn/` ganhou um `externalLink` nos detalhes
+("Abrir no Google Agenda"), uma marca "Ainda não sincronizado" (`unsyncedLabel`,
+enquanto `syncState` estiver preenchido) e a dica "As alterações valem só para esta
+ocorrência." (`detailHint`, para ocorrências de eventos recorrentes). Enquanto há
+mudança pendente, a lista de eventos é recarregada a cada 3 segundos.
 Veja [Google Agenda](google-agenda.md).
 
 ## Idiomas
