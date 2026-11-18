@@ -208,10 +208,17 @@ export class Workspace {
   }
   /** Runs an action that recreates the main window and adopts it as the current page. */
   async reopen(action: () => Promise<unknown>) {
-    const opened = this.app.waitForEvent("window")
     await action()
-    this.page = await opened
     await expect.poll(() => this.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible())).toBe(true)
+    // A window closed right after it opened (as when closing while the interface
+    // loads) can still be reported after the action, so adopt the newest page
+    // that answers instead of the first `window` event.
+    await expect.poll(async () => {
+      for (const page of [...this.app.windows()].reverse()) {
+        if (!page.isClosed() && await page.evaluate(() => true).catch(() => false)) { this.page = page; return true }
+      }
+      return false
+    }).toBe(true)
     return this.page
   }
   async stop() {

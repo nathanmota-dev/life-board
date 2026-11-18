@@ -78,3 +78,33 @@ ou se você clicar em **Cancelar**, uma resposta atrasada do Google é recusada.
   [Backend](backend.md)). O access token fica só na memória e é renovado 60 segundos
   antes de expirar.
 - Só a agenda **principal** da conta é usada.
+
+## Cliente da API do Google Agenda
+
+`services/google_calendar_client.rs` concentra as chamadas à Calendar API v3, como
+o cliente do GitHub: o trait `GoogleCalendarApi` permite um fake nos testes,
+`with_base_url` aponta para o `wiremock`, e, com a feature `e2e`,
+`LIFE_BOARD_E2E_GOOGLE_URL` troca o host pelo servidor falso
+`e2e/support/google-server.cjs`. Cada chamada recebe o access token, que só vai no
+cabeçalho `Authorization`. O cliente não renova o token nem repete pedidos; quem
+decide é a sincronização.
+
+- **Listagem**: `GET /calendars/{id}/events` com `singleEvents=true` (o Google já
+  expande os eventos recorrentes em ocorrências), `showDeleted=true`, `timeMin`,
+  `timeMax` e `maxResults=250`, seguindo o `nextPageToken` até o fim.
+- **Escrita**: `POST` cria, `PATCH` com `If-Match: <etag>` altera e `DELETE` remove.
+- **Erros**: `Unauthorized` (401), `Conflict` (412), `Gone` (404 ou 410 ao alterar
+  ou remover), `RateLimited` (429 ou 403 `rateLimitExceeded`/`userRateLimitExceeded`),
+  `Http` e `Network`.
+- **Eventos de dia inteiro**: o Google manda `start.date` e um `end.date`
+  **exclusivo**. O Life Board guarda, como o formulário (`valuesToEventInput`) e a
+  visão do calendário, a meia-noite local do primeiro dia e a do **último** dia: de
+  `2026-10-12` a `2026-10-13` no Google é um dia só, com `startAt == endAt`. As datas
+  são lidas no fuso local, qualquer que seja o fuso da agenda no Google.
+- **Eventos com horário**: `dateTime` em RFC 3339 com offset, enviado sem
+  `timeZone`.
+- **Cores**: as 11 cores de evento do Google (`colorId` de "1" a "11") viram hex;
+  sem `colorId`, o evento fica com a cor padrão. Na volta, a cor guardada vai para o
+  `colorId` mais próximo pela distância RGB, como `colorName` no frontend.
+- Convidados, lembretes, anexos e videoconferência não são lidos nem enviados, e
+  `linkedTaskIds`/`linkedThoughtIds` ficam só no Life Board.
