@@ -44,6 +44,50 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* Calendar (calendarcn) */
+  --text-xxs: 0.625rem;
+  --color-calendar-day-hover-current-week: var(--calendar-day-hover-current-week);
+  --color-calendar-day-hover: var(--calendar-day-hover);
+  --color-calendar-current-week: var(--calendar-current-week);
+  --color-calendar-weekend: var(--calendar-weekend);
+  --color-event-gray-bg: var(--event-gray-bg);
+  --color-event-gray-border: var(--event-gray-border);
+  --color-event-gray: var(--event-gray);
+  --color-event-purple-bg: var(--event-purple-bg);
+  --color-event-purple-border: var(--event-purple-border);
+  --color-event-purple: var(--event-purple);
+  --color-event-blue-bg: var(--event-blue-bg);
+  --color-event-blue-border: var(--event-blue-border);
+  --color-event-blue: var(--event-blue);
+  --color-event-green-bg: var(--event-green-bg);
+  --color-event-green-border: var(--event-green-border);
+  --color-event-green: var(--event-green);
+  --color-event-yellow-bg: var(--event-yellow-bg);
+  --color-event-yellow-border: var(--event-yellow-border);
+  --color-event-yellow: var(--event-yellow);
+  --color-event-orange-bg: var(--event-orange-bg);
+  --color-event-orange-border: var(--event-orange-border);
+  --color-event-orange: var(--event-orange);
+  --color-event-red-bg: var(--event-red-bg);
+  --color-event-red-border: var(--event-red-border);
+  --color-event-red: var(--event-red);
+  /* Calendar (calendarcn): the day "+N more" opens fades from the accent */
+  @keyframes column-highlight-fade {
+    from {
+      background-color: color-mix(in oklab, var(--primary) 30%, transparent);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+  @keyframes calendar-loading-slide {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(300%);
+    }
+  }
 }
 
 :root {
@@ -86,6 +130,32 @@
   --chart-3: color-mix(in oklab, var(--brand) 50%, var(--background));
   --chart-4: color-mix(in oklab, var(--brand) 32%, var(--background));
   --chart-5: color-mix(in oklab, var(--brand) 16%, var(--background));
+  /* Calendar (calendarcn) event colors and day backgrounds */
+  --event-red: #b23e31;
+  --event-red-border: #ee000e;
+  --event-red-bg: #ffe1d4;
+  --event-orange: #ad4517;
+  --event-orange-border: #fe7132;
+  --event-orange-bg: #ffe3c8;
+  --event-yellow: #855100;
+  --event-yellow-border: #f2b827;
+  --event-yellow-bg: #fff0be;
+  --event-green: #027b27;
+  --event-green-border: #49ca81;
+  --event-green-bg: #deffe3;
+  --event-blue: #006cbf;
+  --event-blue-border: #32a5e5;
+  --event-blue-bg: #e2f9ff;
+  --event-purple: #7733d2;
+  --event-purple-border: #9950ff;
+  --event-purple-bg: #feecff;
+  --event-gray: #5f6061;
+  --event-gray-border: #b3b4b4;
+  --event-gray-bg: #f6f4f3;
+  --calendar-weekend: #fcfcfc;
+  --calendar-current-week: #edece9;
+  --calendar-day-hover: #eeece8;
+  --calendar-day-hover-current-week: #e2e1dc;
 }
 
 .dark {
@@ -121,6 +191,32 @@
   --chart-3: color-mix(in oklab, var(--brand) 50%, var(--background));
   --chart-4: color-mix(in oklab, var(--brand) 32%, var(--background));
   --chart-5: color-mix(in oklab, var(--brand) 16%, var(--background));
+  /* Calendar (calendarcn) event colors and day backgrounds */
+  --event-red: #d85140;
+  --event-red-border: #d85140;
+  --event-red-bg: #6c2920;
+  --event-orange: #e07040;
+  --event-orange-border: #e07040;
+  --event-orange-bg: #5f3524;
+  --event-yellow: #d4a83a;
+  --event-yellow-border: #d4a83a;
+  --event-yellow-bg: #4e3f1b;
+  --event-green: #52b577;
+  --event-green-border: #52b577;
+  --event-green-bg: #2d4935;
+  --event-blue: #4895c8;
+  --event-blue-border: #4895c8;
+  --event-blue-bg: #2f4656;
+  --event-purple: #8a5ad6;
+  --event-purple-border: #8a5ad6;
+  --event-purple-bg: #483a63;
+  --event-gray: #a0a0a0;
+  --event-gray-border: #a0a0a0;
+  --event-gray-bg: #424242;
+  --calendar-weekend: #181818;
+  --calendar-current-week: #2e2e2e;
+  --calendar-day-hover: #2e2e2e;
+  --calendar-day-hover-current-week: #3d3d3d;
 }
 
 @layer base {
@@ -136,6 +232,10 @@
 
   html, body, #root {
     min-height: 100%;
+  }
+  /* Calendar (calendarcn): the cursor a drag or resize sets */
+  [data-event-id], [data-event-id] * {
+    cursor: var(--cursor, default);
   }
 }
 
@@ -232,5 +332,35 @@
   .markdown-content p.is-editor-empty:first-child::before {
     @apply pointer-events-none float-left h-0 text-muted-foreground;
     content: attr(data-placeholder);
+  }
+}
+
+/* Calendar (calendarcn) */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.column-highlight {
+  animation: column-highlight-fade 2s ease-out forwards;
+}
+
+.calendar-loading-bar {
+  width: 33.333%;
+  animation: calendar-loading-slide 1.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .column-highlight {
+    animation: none;
+    background-color: color-mix(in oklab, var(--primary) 30%, transparent);
+  }
+  .calendar-loading-bar {
+    width: 100%;
+    opacity: 0.5;
+    animation: none;
   }
 }

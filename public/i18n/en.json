@@ -223,8 +223,8 @@
     "ends": "Ends",
     "location": "Location",
     "eventColor": "Event color",
-    "newEventAt": "New event at {{time}}",
-    "color": "Color {{color}}"
+    "color": "Color {{color}}",
+    "untitled": "Untitled event"
   },
   "dashboard": {
     "noActiveGoals": "No active goals",
@@ -949,5 +949,174 @@
     "thoughts": "Thoughts",
     "calendar": "Calendar",
     "goals": "Goals"
+  },
+  "calendarcn": {
+    "newEvent": "New event",
+    "untitled": "Untitled event",
+    "allDay": "All-day",
+    "allDayAxis": "All-day",
+    "today": "today",
+    "todayLabel": "{{date}}, today",
+    "loading": "Loading events",
+    "weekNumber": "Week {{week}}",
+    "eventCount_one": "{{count}} event",
+    "eventCount_other": "{{count}} events",
+    "views": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year",
+      "agenda": "Agenda"
+    },
+    "period": {
+      "day": "day",
+      "week": "week",
+      "month": "month",
+      "year": "year",
+      "agenda": "{{count}} days"
+    },
+    "nav": {
+      "today": "Today",
+      "previous": "Previous {{period}}",
+      "next": "Next {{period}}"
+    },
+    "view": {
+      "or": "or",
+      "numberOfDays": "Number of days",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "settings": "View settings",
+      "weekends": "Weekends",
+      "weekNumbers": "Week numbers"
+    },
+    "header": {
+      "toggleCalendarSidebar": "Toggle calendar sidebar",
+      "toggleNavigationSidebar": "Toggle navigation sidebar",
+      "openSidebar": "Open sidebar",
+      "closeSidebar": "Close sidebar"
+    },
+    "month": {
+      "more_one": "{{count}} more",
+      "more_other": "{{count}} more",
+      "showMore_one": "Show {{count}} more event on {{date}}",
+      "showMore_other": "Show {{count}} more events on {{date}}"
+    },
+    "agenda": {
+      "allDay": "All day",
+      "from": "From {{time}}",
+      "until": "Until {{time}}",
+      "dayOfSpan": "Day {{day}} of {{count}}",
+      "emptyTitle": "Nothing planned",
+      "emptyDescription": "No events from {{from}} to {{to}}."
+    },
+    "actions": {
+      "cut": "Cut",
+      "copy": "Copy",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "blockOnCalendar": "Block on calendar"
+    },
+    "colors": {
+      "red": "Red",
+      "orange": "Orange",
+      "yellow": "Yellow",
+      "green": "Green",
+      "blue": "Blue",
+      "purple": "Purple",
+      "gray": "Gray"
+    },
+    "details": {
+      "label": "Event details",
+      "title": "Title",
+      "color": "Event color",
+      "moreActions": "More actions",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "location": "Location",
+      "editLocation": "Edit location",
+      "suggestedPlaces": "Suggested places",
+      "description": "Description",
+      "dock": "Dock to sidebar",
+      "close": "Close"
+    },
+    "notice": {
+      "delete": "Event deleted",
+      "cut": "Event cut",
+      "copy": "Event copied",
+      "updated": "Event updated",
+      "allDeleted": "All events deleted"
+    },
+    "group": {
+      "notice": {
+        "delete_one": "{{count}} event deleted",
+        "delete_other": "{{count}} events deleted",
+        "cut_one": "{{count}} event cut",
+        "cut_other": "{{count}} events cut",
+        "copy_one": "{{count}} event copied",
+        "copy_other": "{{count}} events copied"
+      },
+      "done": {
+        "delete_one": "Deleted {{count}} event",
+        "delete_other": "Deleted {{count}} events",
+        "cut_one": "Cut {{count}} event",
+        "cut_other": "Cut {{count}} events",
+        "copy_one": "Copied {{count}} event",
+        "copy_other": "Copied {{count}} events",
+        "duplicate_one": "Duplicated {{count}} event",
+        "duplicate_other": "Duplicated {{count}} events",
+        "paste_one": "Pasted {{count}} event",
+        "paste_other": "Pasted {{count}} events",
+        "move_one": "Moved {{count}} event",
+        "move_other": "Moved {{count}} events"
+      }
+    },
+    "history": {
+      "bare": {
+        "undo": "Undone",
+        "redo": "Redone"
+      },
+      "done": {
+        "create": "Created {{title}}",
+        "edit": "Changed {{title}}",
+        "delete": "Deleted {{title}}",
+        "cut": "Cut {{title}}",
+        "copy": "Copied {{title}}",
+        "duplicate": "Duplicated {{title}}",
+        "paste": "Pasted {{title}}"
+      },
+      "undo": {
+        "create": "Undid creating {{title}}",
+        "edit": "Undid editing {{title}}",
+        "delete": "Undid deleting {{title}}",
+        "cut": "Undid cutting {{title}}",
+        "duplicate": "Undid duplicating {{title}}",
+        "paste": "Undid pasting {{title}}"
+      },
+      "redo": {
+        "create": "Redid creating {{title}}",
+        "edit": "Redid editing {{title}}",
+        "delete": "Redid deleting {{title}}",
+        "cut": "Redid cutting {{title}}",
+        "duplicate": "Redid duplicating {{title}}",
+        "paste": "Redid pasting {{title}}"
+      }
+    },
+    "announce": {
+      "created": "Created {{title}}, {{time}}",
+      "resized": "Resized {{title}}, now {{time}}",
+      "moved": "Moved {{title}} to {{date}}, {{time}}",
+      "movedAllDay": "Moved {{title}} to {{date}}"
+    },
+    "spoken": {
+      "allDay": "all day, {{date}}",
+      "allDayRange": "all day, {{start}} to {{end}}",
+      "timed": "{{start}} to {{end}}, {{date}}",
+      "timedRange": "{{startDate}}, {{startTime}} to {{endDate}}, {{endTime}}",
+      "declined": "{{label}}, declined"
+    }
   }
 }

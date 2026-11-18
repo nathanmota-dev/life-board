@@ -1,54 +1,33 @@
 import { useTranslation } from "react-i18next"
-import { useState } from "react"
-import { Plus } from "lucide-react"
-import { CalendarToolbar } from "@/components/calendar/calendar-toolbar"
-import { CalendarWeek } from "@/components/calendar/calendar-week"
-import { EventFormDialog } from "@/components/calendar/event-form-dialog"
+import { CalendarNotices } from "@/components/calendar/calendar-notices"
+import { CalendarSurface } from "@/components/calendar/calendar-surface"
+import { NewEventButton } from "@/components/calendar/new-event-button"
+import { CalendarProvider } from "@/components/calendarcn/calendar-provider"
 import { DataState } from "@/components/shared/data-state"
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Page, PageSection } from "@/components/workspace-ui"
-import { useCalendarEvents } from "@/hooks/queries/use-calendar"
-import { layoutWeek, weekDays, weekRange } from "@/lib/calendar"
-import { startOfWeek } from "@/lib/dates"
-import type { EventDialogState } from "@/types/calendar"
+import { Page } from "@/components/workspace-ui"
+import { useCalendarBoard } from "@/hooks/use-calendar-board"
+import { calendarLocale, newCalendarItem } from "@/lib/calendar"
+import type { CalendarItem } from "@/types/calendar"
 
 export function CalendarPage() {
-  const { t } = useTranslation()
-  const [weekStart, setWeekStart] = useState(() => startOfWeek())
-  const [dialog, setDialog] = useState<EventDialogState>({ open: false, event: null, start: null })
-  const events = useCalendarEvents(weekRange(weekStart))
-  const days = weekDays(weekStart)
+  const { t, i18n } = useTranslation()
+  const { error, ...board } = useCalendarBoard()
 
   return (
-    <Page
-      title={t("navigation.calendar")}
-      description={t("calendar.description")}
-      actions={
-        <Button size="sm" onClick={() => setDialog({ open: true, event: null, start: null })}>
-          <Plus />
-          {t("calendar.newEvent")}
-        </Button>
-      }
-      toolbar={<CalendarToolbar weekStart={weekStart} onChange={setWeekStart} />}
+    <CalendarProvider<CalendarItem>
+      {...board}
+      createEvent={newCalendarItem}
+      locale={calendarLocale(i18n.resolvedLanguage)}
+      hourCycle={24}
+      defaultWeekStartsOn={0}
+      defaultView="week"
     >
-      <PageSection>
-        <DataState isLoading={events.isLoading} error={events.error} loading={<Skeleton className="h-[32rem] w-full rounded-2xl" />}>
-          <CalendarWeek
-            days={days}
-            layout={layoutWeek(events.data ?? [], days)}
-            onCreate={(start) => setDialog({ open: true, event: null, start })}
-            onOpen={(event) => setDialog({ open: true, event, start: null })}
-          />
+      <CalendarNotices />
+      <Page title={t("navigation.calendar")} description={t("calendar.description")} actions={<NewEventButton />}>
+        <DataState isLoading={false} error={error}>
+          <CalendarSurface />
         </DataState>
-      </PageSection>
-      <EventFormDialog
-        key={`${dialog.event?.id ?? dialog.start?.toISOString() ?? "new"}-${dialog.open}`}
-        open={dialog.open}
-        event={dialog.event}
-        start={dialog.start}
-        onOpenChange={(open) => setDialog((current) => ({ ...current, open }))}
-      />
-    </Page>
+      </Page>
+    </CalendarProvider>
   )
 }

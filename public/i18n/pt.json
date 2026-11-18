@@ -223,8 +223,8 @@
     "ends": "Fim",
     "location": "Local",
     "eventColor": "Cor do evento",
-    "newEventAt": "Novo evento às {{time}}",
-    "color": "Cor {{color}}"
+    "color": "Cor {{color}}",
+    "untitled": "Evento sem título"
   },
   "dashboard": {
     "noActiveGoals": "Nenhuma meta ativa",
@@ -949,5 +949,174 @@
     "thoughts": "Ideias",
     "calendar": "Calendário",
     "goals": "Metas"
+  },
+  "calendarcn": {
+    "newEvent": "Novo evento",
+    "untitled": "Evento sem título",
+    "allDay": "Dia inteiro",
+    "allDayAxis": "Dia todo",
+    "today": "hoje",
+    "todayLabel": "{{date}}, hoje",
+    "loading": "Carregando eventos",
+    "weekNumber": "Semana {{week}}",
+    "eventCount_one": "{{count}} evento",
+    "eventCount_other": "{{count}} eventos",
+    "views": {
+      "day": "Dia",
+      "week": "Semana",
+      "month": "Mês",
+      "year": "Ano",
+      "agenda": "Agenda"
+    },
+    "period": {
+      "day": "dia",
+      "week": "semana",
+      "month": "mês",
+      "year": "ano",
+      "agenda": "{{count}} dias"
+    },
+    "nav": {
+      "today": "Hoje",
+      "previous": "Anterior: {{period}}",
+      "next": "Próximo: {{period}}"
+    },
+    "view": {
+      "or": "ou",
+      "numberOfDays": "Número de dias",
+      "days_one": "{{count}} dia",
+      "days_other": "{{count}} dias",
+      "settings": "Exibição",
+      "weekends": "Fins de semana",
+      "weekNumbers": "Números das semanas"
+    },
+    "header": {
+      "toggleCalendarSidebar": "Alternar barra lateral do calendário",
+      "toggleNavigationSidebar": "Alternar barra lateral de navegação",
+      "openSidebar": "Abrir barra lateral",
+      "closeSidebar": "Fechar barra lateral"
+    },
+    "month": {
+      "more_one": "Mais {{count}}",
+      "more_other": "Mais {{count}}",
+      "showMore_one": "Mostrar mais {{count}} evento em {{date}}",
+      "showMore_other": "Mostrar mais {{count}} eventos em {{date}}"
+    },
+    "agenda": {
+      "allDay": "Dia inteiro",
+      "from": "A partir de {{time}}",
+      "until": "Até {{time}}",
+      "dayOfSpan": "Dia {{day}} de {{count}}",
+      "emptyTitle": "Nada planejado",
+      "emptyDescription": "Nenhum evento de {{from}} a {{to}}."
+    },
+    "actions": {
+      "cut": "Recortar",
+      "copy": "Copiar",
+      "duplicate": "Duplicar",
+      "delete": "Excluir",
+      "blockOnCalendar": "Bloquear no calendário"
+    },
+    "colors": {
+      "red": "Vermelho",
+      "orange": "Laranja",
+      "yellow": "Amarelo",
+      "green": "Verde",
+      "blue": "Azul",
+      "purple": "Roxo",
+      "gray": "Cinza"
+    },
+    "details": {
+      "label": "Detalhes do evento",
+      "title": "Título",
+      "color": "Cor do evento",
+      "moreActions": "Mais ações",
+      "startTime": "Hora de início",
+      "endTime": "Hora de término",
+      "startDate": "Data de início",
+      "endDate": "Data de término",
+      "previousMonth": "Mês anterior",
+      "nextMonth": "Próximo mês",
+      "location": "Local",
+      "editLocation": "Editar local",
+      "suggestedPlaces": "Locais sugeridos",
+      "description": "Descrição",
+      "dock": "Fixar na barra lateral",
+      "close": "Fechar"
+    },
+    "notice": {
+      "delete": "Evento excluído",
+      "cut": "Evento recortado",
+      "copy": "Evento copiado",
+      "updated": "Evento atualizado",
+      "allDeleted": "Todos os eventos excluídos"
+    },
+    "group": {
+      "notice": {
+        "delete_one": "{{count}} evento excluído",
+        "delete_other": "{{count}} eventos excluídos",
+        "cut_one": "{{count}} evento recortado",
+        "cut_other": "{{count}} eventos recortados",
+        "copy_one": "{{count}} evento copiado",
+        "copy_other": "{{count}} eventos copiados"
+      },
+      "done": {
+        "delete_one": "{{count}} evento excluído",
+        "delete_other": "{{count}} eventos excluídos",
+        "cut_one": "{{count}} evento recortado",
+        "cut_other": "{{count}} eventos recortados",
+        "copy_one": "{{count}} evento copiado",
+        "copy_other": "{{count}} eventos copiados",
+        "duplicate_one": "{{count}} evento duplicado",
+        "duplicate_other": "{{count}} eventos duplicados",
+        "paste_one": "{{count}} evento colado",
+        "paste_other": "{{count}} eventos colados",
+        "move_one": "{{count}} evento movido",
+        "move_other": "{{count}} eventos movidos"
+      }
+    },
+    "history": {
+      "bare": {
+        "undo": "Desfeito",
+        "redo": "Refeito"
+      },
+      "done": {
+        "create": "{{title}} criado",
+        "edit": "{{title}} alterado",
+        "delete": "{{title}} excluído",
+        "cut": "{{title}} recortado",
+        "copy": "{{title}} copiado",
+        "duplicate": "{{title}} duplicado",
+        "paste": "{{title}} colado"
+      },
+      "undo": {
+        "create": "Criação de {{title}} desfeita",
+        "edit": "Edição de {{title}} desfeita",
+        "delete": "Exclusão de {{title}} desfeita",
+        "cut": "Recorte de {{title}} desfeito",
+        "duplicate": "Duplicação de {{title}} desfeita",
+        "paste": "Colagem de {{title}} desfeita"
+      },
+      "redo": {
+        "create": "Criação de {{title}} refeita",
+        "edit": "Edição de {{title}} refeita",
+        "delete": "Exclusão de {{title}} refeita",
+        "cut": "Recorte de {{title}} refeito",
+        "duplicate": "Duplicação de {{title}} refeita",
+        "paste": "Colagem de {{title}} refeita"
+      }
+    },
+    "announce": {
+      "created": "{{title}} criado, {{time}}",
+      "resized": "{{title}} redimensionado, agora {{time}}",
+      "moved": "{{title}} movido para {{date}}, {{time}}",
+      "movedAllDay": "{{title}} movido para {{date}}"
+    },
+    "spoken": {
+      "allDay": "dia inteiro, {{date}}",
+      "allDayRange": "dia inteiro, de {{start}} a {{end}}",
+      "timed": "das {{start}} às {{end}}, {{date}}",
+      "timedRange": "{{startDate}}, {{startTime}} até {{endDate}}, {{endTime}}",
+      "declined": "{{label}}, recusado"
+    }
   }
 }

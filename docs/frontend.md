@@ -10,7 +10,7 @@ Cada rota de `web/src/routes/` é uma view curta que monta componentes de
 - `web/src/types/`: tipos do domínio e das props dos componentes (nada de tipos nas views).
 - `web/src/services/`: chamadas HTTP por módulo, todas via `api-client.ts`.
 - `web/src/hooks/queries/`: hooks do TanStack Query; mutations invalidam o cache do módulo.
-- `web/src/lib/`: funções puras reaproveitáveis (datas, layout do calendário, hábitos…).
+- `web/src/lib/`: funções puras reaproveitáveis (datas, adaptador do calendário, hábitos…).
 - `web/src/components/shared/`: peças comuns (stat card, badges, estados vazios, dialogs).
 
 A cor de destaque (Settings → General) muda `--brand` no `:root`; botões, anéis
@@ -31,6 +31,33 @@ As URLs continuam iguais, sem prefixos de idioma. Os JSONs são incluídos no
 bundle para funcionar offline no Electron e copiados para `out/renderer/i18n/`.
 Para novos textos, adicione a mesma chave aos dois arquivos e use `useTranslation()`
 no componente. Opções traduzidas devem ser calculadas durante a renderização.
+
+## Calendário
+
+A rota `/calendar` usa o [calendarcn](https://calendarcn.xyz/docs), instalado pelo
+registry do shadcn em `web/src/components/calendarcn/`. O código é nosso para editar,
+como os componentes de `components/ui/`, mas fica isolado nessa pasta para não
+sobrescrever os nossos `lib/utils.ts`, `hooks/use-now.ts` e `components/ui/`.
+
+- `lib/calendar.ts` converte os eventos da API em eventos do calendarcn e de volta,
+  incluindo as cores (hex na API, nomes como `orange` no calendarcn).
+- `lib/calendar-sync.ts` salva as edições em segundo plano: eventos novos ganham um id
+  no cliente, mapeado para o id da API, e edições seguidas (como o título digitado)
+  são agrupadas antes do `PATCH`.
+- `hooks/use-calendar-board.ts` carrega o intervalo visível e liga os callbacks do
+  provider (`onEventCreate`, `onEventUpdate`, `onEventDelete`).
+- Os textos usam `t()` de `components/calendarcn/lib/translate.ts`, com as chaves em
+  `calendarcn.*` dos dicionários; um teste confere que toda chave usada existe em PT e EN.
+- O painel de detalhes mostra só os campos que a API guarda (cor, título, horário, dia
+  inteiro, local e descrição). Recorrência, participantes, fusos e lembretes foram
+  removidos até o backend suportá-los.
+
+Para trazer uma versão nova, aponte temporariamente os aliases do `web/components.json`
+para a pasta (`components`, `ui`, `lib`, `hooks` e `utils` em `@/components/calendarcn/...`),
+adicione o registry `"@calendarcn": "https://calendarcn.xyz/r/{name}.json"`, rode
+`npx shadcn@latest add @calendarcn/calendar --dry-run --cwd web` e compare com
+`--diff` antes de aplicar. Depois restaure os aliases e reaplique as nossas mudanças
+(traduções com `t()`, campos removidos do painel e trechos marcados com `Life Board:`).
 
 ## Componentes do shadcn/ui
 
