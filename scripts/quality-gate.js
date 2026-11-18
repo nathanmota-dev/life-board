@@ -40,6 +40,9 @@ const DEFAULT_POLICY = Object.freeze({
     sourceRoots: ["api/src", "desktop/src", "web/src"],
     sourceExtensions: [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts", ".rs"],
     excludeFiles: ["web/src/routeTree.gen.ts"],
+    // Third-party code copied in through a registry (calendarcn) is kept close
+    // to upstream so it can be updated, so the gate doesn't measure it.
+    excludeDirectories: ["web/src/components/calendarcn"],
     excludeTestsFromFileSize: true,
     duplication: {
         minLines: 5,
@@ -51,6 +54,7 @@ const DEFAULT_POLICY = Object.freeze({
             "**/__tests__/**",
             "**/test/**",
             "**/routeTree.gen.ts",
+            "**/components/calendarcn/**",
             "**/*.test.*",
             "**/*.spec.*",
             "**/*.d.ts",
@@ -258,6 +262,10 @@ function resolvePolicy(policy, languages = projectLanguages()) {
 function isTestFile(relativePath) {
     return /(^|\/)(__tests__|test|tests)(\/|$)/.test(relativePath)
         || /\.(test|spec)\.[^/]+$/.test(relativePath);
+}
+
+function isExcludedDirectory(relativePath, policy) {
+    return (policy.excludeDirectories ?? []).some((directory) => relativePath.startsWith(`${directory}/`));
 }
 
 function isDeclarationFile(relativePath) {
@@ -494,7 +502,8 @@ function collectFileSizes(policy, repositoryRoot = REPOSITORY_ROOT) {
             const relativePath = path.relative(repositoryRoot, absolutePath).split(path.sep).join("/");
 
             if ((policy.excludeTestsFromFileSize && isTestFile(relativePath))
-                || policy.excludeFiles?.includes(relativePath)) {
+                || policy.excludeFiles?.includes(relativePath)
+                || isExcludedDirectory(relativePath, policy)) {
                 continue;
             }
 
@@ -607,6 +616,12 @@ function validatePolicy(policy) {
         if (!Array.isArray(values) || values.length === 0 || values.some((value) => typeof value !== "string" || !value)) {
             throw new QualityGateInputError(`baseline.policy.${key} must be a non-empty string array.`);
         }
+    }
+
+    if (policy.excludeDirectories !== undefined
+        && (!Array.isArray(policy.excludeDirectories)
+            || policy.excludeDirectories.some((value) => typeof value !== "string" || !value || value.endsWith("/")))) {
+        throw new QualityGateInputError("baseline.policy.excludeDirectories must be an array of paths without a trailing slash.");
     }
 
     if (typeof policy.excludeTestsFromFileSize !== "boolean") {

@@ -278,6 +278,39 @@ test("collectFileSizes scans configured source roots, excludes tests, and does n
     });
 });
 
+test("collectFileSizes skips excluded directories but keeps sibling paths with the same prefix", (context) => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "quality-gate-"));
+    context.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+    fs.mkdirSync(path.join(directory, "app", "vendor", "deep"), { recursive: true });
+    fs.mkdirSync(path.join(directory, "app", "vendored"), { recursive: true });
+    fs.writeFileSync(path.join(directory, "app", "main.ts"), "one\n", "utf8");
+    fs.writeFileSync(path.join(directory, "app", "vendor", "big.ts"), "one\ntwo\n", "utf8");
+    fs.writeFileSync(path.join(directory, "app", "vendor", "deep", "big.tsx"), "one\n", "utf8");
+    fs.writeFileSync(path.join(directory, "app", "vendored", "own.ts"), "one\n", "utf8");
+    const policy = {
+        ...structuredClone(DEFAULT_POLICY),
+        sourceRoots: ["app"],
+        excludeDirectories: ["app/vendor"],
+    };
+
+    assert.deepEqual(collectFileSizes(policy, directory), {
+        "app/main.ts": 1,
+        "app/vendored/own.ts": 1,
+    });
+});
+
+test("validateBaseline accepts a policy without excludeDirectories and rejects malformed entries", () => {
+    const withoutDirectories = createBaseline();
+    delete withoutDirectories.policy.excludeDirectories;
+    assert.equal(validateBaseline(withoutDirectories).schemaVersion, 1);
+
+    for (const value of ["web/src/vendor", ["web/src/vendor/"], [""], [1]]) {
+        const baseline = createBaseline();
+        baseline.policy.excludeDirectories = value;
+        assert.throws(() => validateBaseline(baseline), /excludeDirectories must be an array/);
+    }
+});
+
 test("validateBaseline rejects unsupported schemas and inconsistent oversized counts", () => {
     assert.equal(validateBaseline(createBaseline()).schemaVersion, 1);
     const unknownSchema = createBaseline();
