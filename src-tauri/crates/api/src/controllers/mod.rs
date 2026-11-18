@@ -10,6 +10,7 @@ pub mod calendar;
 pub mod file_boards;
 pub mod github;
 pub mod goals;
+pub mod google;
 pub mod habits;
 pub mod health;
 pub mod links;
@@ -81,9 +82,10 @@ impl RouteTable {
     }
 }
 
-/// Routes outside the auth layer: `/api/health`.
+/// Routes outside the auth layer: `/api/health` and the Google OAuth callback,
+/// which the user's browser calls.
 pub fn public() -> RouteTable {
-    health::routes(RouteTable::new())
+    google::public_routes(health::routes(RouteTable::new()))
 }
 
 /// Every other route, in the order `buildApp` registers the controllers.
@@ -99,6 +101,7 @@ pub fn protected() -> RouteTable {
         projects::routes,
         stats::routes,
         github::routes,
+        google::routes,
         file_boards::routes,
         settings::routes,
     ]

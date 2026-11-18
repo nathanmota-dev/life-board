@@ -10,6 +10,8 @@ pub mod files_settings;
 pub mod github;
 pub mod github_client;
 pub mod goals;
+pub mod google;
+pub mod google_auth_client;
 pub mod habits;
 pub mod links;
 pub mod mood;

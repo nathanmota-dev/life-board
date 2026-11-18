@@ -64,6 +64,13 @@
       "when": 1792618188882,
       "tag": "0008_app_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1795006588000,
+      "tag": "0009_google_settings",
+      "breakpoints": true
     }
   ]
 }

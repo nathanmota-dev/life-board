@@ -18,6 +18,12 @@ const ERROR_KEYS: Record<string, ErrorTranslationKey | undefined> = {
   relative_dir: "errors.relative_dir",
   invalid_dir: "errors.invalid_dir",
   move_failed: "errors.move_failed",
+  missing_credentials: "errors.missing_credentials",
+  invalid_credentials: "errors.invalid_credentials",
+  invalid_grant: "errors.invalid_grant",
+  google_unavailable: "errors.google_unavailable",
+  google_not_connected: "errors.google_not_connected",
+  reauth_required: "errors.reauth_required",
 }
 
 export function formatBytes(bytes: number) {

@@ -2,6 +2,7 @@ mod calendar;
 mod file_boards;
 mod github;
 mod goals;
+mod google;
 mod habits;
 mod health;
 mod links;

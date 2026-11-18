@@ -67,13 +67,53 @@ async fn drops_only_the_encrypted_secrets_when_the_key_was_replaced_reset(#[case
     )
     .await
     .unwrap();
+    database
+        .call(|conn| {
+            conn.execute(
+                "INSERT INTO google_settings (id, client_id_ciphertext, client_id_iv, client_id_tag, client_secret_ciphertext, client_secret_iv, client_secret_tag, created_at, updated_at) VALUES ('default', 'c', 'i', 't', 'c', 'i', 't', 1, 1)",
+                [],
+            )
+        })
+        .await
+        .unwrap();
     database.close().await.unwrap();
 
     let options = ServerOptions { reset_secrets, ..ServerOptions::new(&data_dir, key(4)) };
     let server = start_server(options).await.unwrap();
     let saved = get_json(&format!("{}/api/tasks/{task_id}", server.url)).await;
     let github = get_json(&format!("{}/api/github/status", server.url)).await;
+    let google = get_json(&format!("{}/api/google/status", server.url)).await;
     assert_eq!(saved["title"], "Kept");
     assert_eq!(github["connected"], !reset_secrets);
+    assert_eq!(google["hasCredentials"], !reset_secrets);
+    server.close().await;
+}
+
+#[tokio::test]
+async fn sends_the_google_redirect_back_to_the_address_it_listens_on() {
+    let root = temp_dir("life-board-server-");
+    let server = start_server(ServerOptions::new(root.path().join("data"), key(3))).await.unwrap();
+    let client = reqwest::Client::new();
+    let saved = client
+        .put(format!("{}/api/google/credentials", server.url))
+        .json(&json!({ "clientId": "1-x.apps.googleusercontent.com", "clientSecret": "secret" }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(saved.status(), 200);
+    let started: Value = client
+        .post(format!("{}/api/google/connect", server.url))
+        .header("host", "evil.example")
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    let auth_url = reqwest::Url::parse(started["authUrl"].as_str().unwrap()).unwrap();
+    let redirect = auth_url.query_pairs().find(|(key, _)| key == "redirect_uri").unwrap().1.into_owned();
+    assert_eq!(redirect, format!("{}/api/google/oauth/callback", server.url));
+    assert!(redirect.starts_with("http://127.0.0.1:"));
     server.close().await;
 }

@@ -10,6 +10,7 @@ export const queryKeys = {
   habits: ["habits"],
   stats: ["stats"],
   github: ["github"],
+  google: ["google"],
   fileBoards: ["file-boards"],
   projects: ["projects"],
   weather: ["weather"],

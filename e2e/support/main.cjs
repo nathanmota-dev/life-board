@@ -36,13 +36,14 @@ const load = Module._load
 const native = new Proxy(electron, { get: (target, key) => key === "Notification" ? SyntheticNotification : Reflect.get(target, key) })
 Module._load = function (id, ...args) { return id === "electron" ? native : load.call(this, id, ...args) }
 // The sidecar built with the `e2e` feature follows the test clock and talks to
-// the synthetic GitHub below; the feature never reaches a packaged binary.
+// the synthetic GitHub and Google below; the feature never reaches a packaged binary.
 const childProcess = require("node:child_process")
 const spawn = childProcess.spawn
 let githubUrl
+let googleUrl
 childProcess.spawn = (file, args, options) => {
   if (!basename(file).startsWith("life-board-api")) return spawn(file, args, options)
-  return spawn(join(root, "target/e2e/debug/life-board-api"), args, { ...options, env: { ...options.env, LIFE_BOARD_E2E_GITHUB_URL: githubUrl } })
+  return spawn(join(root, "target/e2e/debug/life-board-api"), args, { ...options, env: { ...options.env, LIFE_BOARD_E2E_GITHUB_URL: githubUrl, LIFE_BOARD_E2E_GOOGLE_URL: googleUrl } })
 }
 if (scenario.updates) {
   // Only the test bootstrap emulates distribution detection. All resources and
@@ -53,7 +54,8 @@ if (scenario.updates) {
   app.relaunch = options => { state.relaunch.push(options); record({ kind: "relaunch", options }) }
   require("./updates.cjs")()
 }
-require("./github-server.cjs")(record).then(url => {
-  githubUrl = url
+Promise.all([require("./github-server.cjs")(record), require("./google-server.cjs")(record)]).then(([github, google]) => {
+  githubUrl = github
+  googleUrl = google
   require(join(root, "out/main/index.js"))
 })

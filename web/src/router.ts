@@ -14,6 +14,7 @@ import { FileItemPage } from "@/routes/file-item"
 import { SettingsPage } from "@/routes/settings"
 import { workspacePages } from "@/routes/workspace-pages"
 import type { NavigationTitleKey } from "@/types/i18n"
+import { SETTINGS_TABS, type SettingsTab } from "@/types/settings"
 
 export function createAppRouter(sidebarLayout: RouteComponent) {
   const rootRoute = createRootRoute({ component: Outlet })
@@ -57,11 +58,8 @@ export function createAppRouter(sidebarLayout: RouteComponent) {
     getParentRoute: () => sidebarRoute,
     path: "settings",
     component: SettingsPage,
-    validateSearch: (search: Record<string, unknown>): { tab?: "general" | "files" | "github" | "updates" } => ({
-      tab:
-        search.tab === "updates" || search.tab === "github" || search.tab === "files" || search.tab === "general"
-          ? search.tab
-          : undefined,
+    validateSearch: (search: Record<string, unknown>): { tab?: SettingsTab } => ({
+      tab: SETTINGS_TABS.find((tab) => tab === search.tab),
     }),
     staticData: { titleKey: "navigation.settings" },
   })

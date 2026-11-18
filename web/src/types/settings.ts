@@ -21,3 +21,8 @@ export type FilesSettings = {
   uploadsDir: string
   defaultUploadsDir: string
 }
+
+/** The tabs of Settings, also accepted as `?tab=` in its URL. */
+export const SETTINGS_TABS = ["general", "files", "updates", "github", "google"] as const
+
+export type SettingsTab = (typeof SETTINGS_TABS)[number]

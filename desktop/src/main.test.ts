@@ -346,3 +346,22 @@ describe("single-instance startup", () => {
     expect(mocks.confirmSecretsReset).not.toHaveBeenCalled()
   })
 })
+
+describe("app:open-external", () => {
+  it("opens only allow-listed links in the default browser", async () => {
+    await import("./main")
+    await ready()
+    const { shell } = await import("electron")
+    const handler = mocks.handle.mock.calls.find(([channel]) => channel === "app:open-external")?.[1] as
+      (event: unknown, url: unknown) => unknown
+
+    for (const url of ["https://accounts.google.com/o/oauth2/v2/auth?state=s", "https://console.cloud.google.com/apis", "https://github.com/me"]) {
+      handler({}, url)
+    }
+    for (const url of ["https://accounts.google.com.evil.example/o/oauth2/", "https://example.com/", 7]) handler({}, url)
+
+    expect(vi.mocked(shell.openExternal).mock.calls.map(([url]) => url)).toEqual([
+      "https://accounts.google.com/o/oauth2/v2/auth?state=s", "https://console.cloud.google.com/apis", "https://github.com/me",
+    ])
+  })
+})

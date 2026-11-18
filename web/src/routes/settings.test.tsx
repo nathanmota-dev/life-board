@@ -32,6 +32,16 @@ describe("SettingsPage", () => {
     expect(await screen.findByRole("heading", { name: "Updates" })).toBeInTheDocument()
   })
 
+  it("connects Google Calendar from its own tab", async () => {
+    mockApi({
+      "GET /google/status": () => ({ connected: false, email: null, hasCredentials: false, pending: false, reauthRequired: false, lastSyncAt: null, lastSyncError: null }),
+    })
+    renderWithProviders(<SettingsPage />)
+    fireEvent.mouseDown(await screen.findByRole("tab", { name: "Google Calendar" }))
+    expect(await screen.findByRole("heading", { name: "Google Calendar" })).toBeInTheDocument()
+    expect(await screen.findByLabelText("Client ID")).toBeInTheDocument()
+  })
+
   it("shows the uploads folder in the Files tab", async () => {
     mockApi({
       "GET /settings/files": () => ({ baseDir: null, uploadsDir: "/data/uploads", defaultUploadsDir: "/data/uploads" }),

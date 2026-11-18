@@ -9,6 +9,7 @@ pub mod common;
 pub mod file_boards;
 pub mod github;
 pub mod goals;
+pub mod google;
 pub mod habits;
 pub mod links;
 pub mod mood;

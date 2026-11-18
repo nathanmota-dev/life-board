@@ -6,6 +6,7 @@ import { AccentPanel } from "@/components/settings/accent-panel"
 import { AppearancePanel } from "@/components/settings/appearance-panel"
 import { FilesPanel } from "@/components/settings/files-panel"
 import { GithubTokenPanel } from "@/components/settings/github-token-panel"
+import { GooglePanel } from "@/components/settings/google-panel"
 import { LanguagePanel } from "@/components/settings/language-panel"
 import { StartupPanel } from "@/components/settings/startup-panel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -31,6 +32,7 @@ export function SettingsPage() {
             <TabsTrigger value="files">{t("settings.files.tab")}</TabsTrigger>
             <TabsTrigger value="updates">{t("settings.updates.title")}</TabsTrigger>
             <TabsTrigger value="github">{t("navigation.github")}</TabsTrigger>
+            <TabsTrigger value="google">{t("settings.google.title")}</TabsTrigger>
           </TabsList>
           <TabsContent value="general">
             <div className="grid gap-4 lg:grid-cols-2">
@@ -48,6 +50,9 @@ export function SettingsPage() {
           </TabsContent>
           <TabsContent value="github">
             <GithubTokenPanel />
+          </TabsContent>
+          <TabsContent value="google">
+            <GooglePanel />
           </TabsContent>
         </Tabs>
       </PageSection>

@@ -73,6 +73,13 @@ is under `/api`. `GET` routes also answer `HEAD`.
 | | `GET /api/github/repos/recent` | `RecentReposQuery` | `200 { items }` |
 | | `GET /api/github/prs` | `ListPrsQuery` | `200 { items }` |
 | | `GET /api/github/issues` | `ListIssuesQuery` | `200 { items }` |
+| google | `GET /api/google/status` | — | `200 { connected, email, hasCredentials, pending, reauthRequired, lastSyncAt, lastSyncError }` |
+| | `PUT /api/google/credentials` | `SaveGoogleCredentialsBody` | `200` the status |
+| | `DELETE /api/google/credentials` | — | `200 { ok: true }` |
+| | `POST /api/google/connect` | — | `200 { authUrl }` |
+| | `DELETE /api/google/connect` | — | `200 { ok: true }` |
+| | `GET /api/google/oauth/callback` | `code`, `state`, `error` | `200` HTML page; errors are `400`/`502` HTML pages |
+| | `DELETE /api/google/disconnect` | — | `200 { ok: true }` |
 | file-boards | `GET /api/file-boards` | — | `200 { items }` |
 | | `POST /api/file-boards` | `CreateBoardBody` | `201 FileBoard` |
 | | `PATCH /api/file-boards/:id` | `UpdateBoardBody` | `200 FileBoard` |
@@ -118,7 +125,10 @@ one by one (see `tests/suite/dto.rs`):
 - Domain errors keep their status and code: `404 not_found`, `400 invalid_range`,
   `focus_limit`, `invalid_order`, `future_day`, `project_not_done`,
   `missing_file`, `relative_dir`, `invalid_dir`, `not_connected`,
-  `invalid_token`, `500 move_failed`, `502 sync_failed`, `github_unavailable`.
+  `invalid_token`, `missing_credentials`, `invalid_credentials`, `invalid_grant`,
+  `no_pending_flow`, `invalid_state`, `flow_expired`, `google_not_connected`,
+  `reauth_required`, `500 move_failed`, `502 sync_failed`, `github_unavailable`,
+  `google_unavailable`.
 - Body errors keep the codes of the Node API: `400 FST_ERR_CTP_EMPTY_JSON_BODY`,
   `400 FST_ERR_CTP_INVALID_JSON_BODY`, `415 FST_ERR_CTP_INVALID_MEDIA_TYPE`,
   `413 FST_ERR_CTP_BODY_TOO_LARGE` (JSON bodies up to 1 MiB). `text/plain` is
@@ -194,7 +204,8 @@ allowed. Preflights answer `204`. Other origins get no
 
 ## Auth
 
-`/api/health` is public. Every other route goes through `plugins::auth`, which
+`/api/health` and `/api/google/oauth/callback` (called by the browser Google
+redirects, which can't send app credentials) are public. Every other route goes through `plugins::auth`, which
 allows all requests (`AllowAll`). Tests plug in a
 rejecting `Authenticator` through `AppOptions::authenticator`.
 
@@ -204,10 +215,12 @@ In order:
 
 1. create the data directory;
 2. open `life-board.db` and migrate;
-3. when `resetSecrets`, delete `github_settings` (the only encrypted secret);
-4. `files_settings.load()` points the shared storage at the saved folder;
-5. `file_boards.purge_deleted()` drops rows soft deleted by earlier versions;
-6. listen on `127.0.0.1:0` (or the requested host and port).
+3. when `resetSecrets`, delete `github_settings` and `google_settings` (the
+   only encrypted secrets);
+4. listen on `127.0.0.1:0` (or the requested host and port); the Google OAuth
+   redirect goes back to this address;
+5. `files_settings.load()` points the shared storage at the saved folder;
+6. `file_boards.purge_deleted()` drops rows soft deleted by earlier versions.
 
 ## Sidecar binary `life-board-api`
 

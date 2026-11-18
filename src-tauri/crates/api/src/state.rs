@@ -12,6 +12,8 @@ use crate::services::files_settings::FilesSettingsService;
 use crate::services::github::{GithubService, SyncLogger, TracingLogger};
 use crate::services::github_client::{GithubApi, GithubClient};
 use crate::services::goals::GoalsService;
+use crate::services::google::GoogleService;
+use crate::services::google_auth_client::{GoogleAuthApi, GoogleAuthClient};
 use crate::services::habits::HabitsService;
 use crate::services::links::LinksService;
 use crate::services::mood::MoodService;
@@ -28,6 +30,12 @@ pub struct AppOptions {
     pub crypto: CryptoService,
     /// Default: `GithubClient::new()`.
     pub github_client: Option<Arc<dyn GithubApi>>,
+    /// Default: `GoogleAuthClient::new()`.
+    pub google_client: Option<Arc<dyn GoogleAuthApi>>,
+    /// The address `start_server` listens on (`RunningServer.url`). Google sends the
+    /// browser back to it, so it never comes from a request. Default: none, and
+    /// `POST /google/connect` fails.
+    pub server_url: Option<String>,
     /// Default: `AllowAll`.
     pub authenticator: Option<Arc<dyn Authenticator>>,
     /// Default: `RealDisk`.
@@ -43,6 +51,8 @@ impl AppOptions {
             data_dir: data_dir.into(),
             crypto,
             github_client: None,
+            google_client: None,
+            server_url: None,
             authenticator: None,
             disk: None,
             logger: None,
@@ -68,6 +78,9 @@ pub struct AppState {
     pub projects: ProjectsService,
     pub stats: StatsService,
     pub github: GithubService,
+    pub google: GoogleService,
+    /// See [`AppOptions::server_url`].
+    pub server_url: Option<String>,
     pub file_boards: FileBoardsService,
     pub files_settings: FilesSettingsService,
 }
@@ -75,7 +88,8 @@ pub struct AppState {
 impl AppState {
     /// Builds the services, then runs `files_settings.load()` and `file_boards.purge_deleted()`.
     pub async fn new(options: AppOptions) -> ApiResult<Self> {
-        let AppOptions { db, data_dir, crypto, github_client, authenticator, disk, logger } = options;
+        let AppOptions { db, data_dir, crypto, github_client, google_client, server_url, authenticator, disk, logger } =
+            options;
         let disk = disk.unwrap_or_else(|| Arc::new(RealDisk));
         let storage = FileStorageService::with_disk(data_dir.join("uploads"), disk);
         let github = GithubService::new(
@@ -83,6 +97,11 @@ impl AppState {
             github_client.unwrap_or_else(|| Arc::new(GithubClient::new())),
             crypto.clone(),
             logger.unwrap_or_else(|| Arc::new(TracingLogger)),
+        );
+        let google = GoogleService::new(
+            db.clone(),
+            google_client.unwrap_or_else(|| Arc::new(GoogleAuthClient::new())),
+            crypto.clone(),
         );
         let state = Self {
             tasks: TasksService::new(db.clone()),
@@ -95,6 +114,8 @@ impl AppState {
             projects: ProjectsService::new(db.clone()),
             stats: StatsService::new(db.clone()),
             github,
+            google,
+            server_url,
             file_boards: FileBoardsService::new(db.clone(), storage.clone()),
             files_settings: FilesSettingsService::new(db.clone(), storage.clone(), storage.root()),
             authenticator: authenticator.unwrap_or_else(|| Arc::new(AllowAll)),
