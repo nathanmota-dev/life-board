@@ -1,72 +1,92 @@
-import { addDays, fromDateTimeInput, minutesSinceMidnight, startOfDay, toDateTimeInput, toDayKey } from "@/lib/dates"
-import type { CalendarEvent, CalendarEventInput, EventFormValues, PositionedEvent, WeekLayout } from "@/types/calendar"
+import { fromDateTimeInput, startOfDay, toDateTimeInput } from "@/lib/dates"
+import { enUS, ptBR } from "date-fns/locale"
+import { i18n } from "@/lib/i18n"
+import type {
+  CalendarEvent,
+  CalendarEventInput,
+  CalendarItem,
+  CalendarItemColor,
+  CalendarRange,
+  CalendarVisibleRange,
+  EventFormValues,
+} from "@/types/calendar"
 
-export const START_HOUR = 6
-export const END_HOUR = 24
-export const HOUR_HEIGHT = 56
 export const EVENT_COLORS = ["#FF892B", "#8B5CF6", "#3B82F6", "#10B981", "#F43F5E", "#64748B"]
 
-export const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, index) => START_HOUR + index)
-
-export function weekDays(weekStart: Date) {
-  return Array.from({ length: 7 }, (_, index) => addDays(weekStart, index))
+/** The stored color of each of the calendar view's named colors. */
+export const EVENT_COLOR_HEX: Record<CalendarItemColor, string> = {
+  orange: "#FF892B",
+  purple: "#8B5CF6",
+  blue: "#3B82F6",
+  green: "#10B981",
+  red: "#F43F5E",
+  gray: "#64748B",
+  yellow: "#F59E0B",
 }
 
-export function weekRange(weekStart: Date) {
-  return { from: weekStart.toISOString(), to: new Date(addDays(weekStart, 7).getTime() - 1).toISOString() }
+const NAMED_COLORS = Object.entries(EVENT_COLOR_HEX) as [CalendarItemColor, string][]
+
+function toRgb(hex: string) {
+  const value = Number.parseInt(hex.slice(1), 16)
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255]
 }
 
-export function minuteToOffset(minute: number) {
-  return ((minute - START_HOUR * 60) / 60) * HOUR_HEIGHT
-}
-
-/** Splits overlapping events into side-by-side lanes so none of them hide each other. */
-function assignLanes(items: Omit<PositionedEvent, "lane" | "lanes">[]): PositionedEvent[] {
-  const sorted = [...items].sort((a, b) => a.startMinute - b.startMinute || b.endMinute - a.endMinute)
-  const result: PositionedEvent[] = []
-  let cluster: PositionedEvent[] = []
-  let clusterEnd = -1
-
-  const closeCluster = () => {
-    const lanes = Math.max(1, ...cluster.map((item) => item.lane + 1))
-    for (const item of cluster) result.push({ ...item, lanes })
-    cluster = []
-  }
-
-  for (const item of sorted) {
-    if (item.startMinute >= clusterEnd) {
-      closeCluster()
-      clusterEnd = -1
+/** The named color closest to a stored hex color. */
+export function colorName(hex: string): CalendarItemColor {
+  const [r, g, b] = toRgb(hex)
+  let best = NAMED_COLORS[0]
+  let bestDistance = Number.POSITIVE_INFINITY
+  for (const entry of NAMED_COLORS) {
+    const [er, eg, eb] = toRgb(entry[1])
+    const distance = (r - er) ** 2 + (g - eg) ** 2 + (b - eb) ** 2
+    if (distance < bestDistance) {
+      best = entry
+      bestDistance = distance
     }
-    const taken = new Set(cluster.filter((other) => other.endMinute > item.startMinute).map((other) => other.lane))
-    let lane = 0
-    while (taken.has(lane)) lane++
-    cluster.push({ ...item, lane, lanes: 1 })
-    clusterEnd = Math.max(clusterEnd, item.endMinute)
   }
-  closeCluster()
-  return result
+  return best[0]
 }
 
-export function layoutWeek(events: CalendarEvent[], days: Date[]): WeekLayout {
-  const keys = days.map((day) => toDayKey(day))
-  const allDay: CalendarEvent[][] = days.map(() => [])
-  const timed: Omit<PositionedEvent, "lane" | "lanes">[][] = days.map(() => [])
-
-  for (const event of events) {
-    const start = new Date(event.startAt)
-    const dayIndex = keys.indexOf(toDayKey(start))
-    if (dayIndex === -1) continue
-    if (event.allDay) {
-      allDay[dayIndex].push(event)
-      continue
-    }
-    const end = new Date(event.endAt)
-    const startMinute = Math.max(START_HOUR * 60, minutesSinceMidnight(start))
-    const endMinute = toDayKey(end) === keys[dayIndex] ? minutesSinceMidnight(end) : END_HOUR * 60
-    timed[dayIndex].push({ event, dayIndex, startMinute, endMinute: Math.max(endMinute, startMinute + 20) })
+/** A stored event as the calendar view draws it, under the id the view knows it by. */
+export function toCalendarItem(event: CalendarEvent, id = event.id): CalendarItem {
+  return {
+    id,
+    title: event.title,
+    start: new Date(event.startAt),
+    end: new Date(event.endAt),
+    isAllDay: event.allDay,
+    color: colorName(event.color),
+    description: event.description ?? undefined,
+    location: event.location ?? undefined,
   }
-  return { allDay, timed: timed.map(assignLanes) }
+}
+
+/** The API body for an event edited in the calendar view. */
+export function toEventInput(item: CalendarItem): CalendarEventInput {
+  return {
+    title: item.title.trim() || i18n.t("calendar.untitled"),
+    startAt: item.start.toISOString(),
+    endAt: item.end.toISOString(),
+    allDay: Boolean(item.isAllDay),
+    location: item.location?.trim() || null,
+    description: item.description?.trim() || null,
+    color: EVENT_COLOR_HEX[item.color ?? "orange"],
+  }
+}
+
+/** The API range for the dates the calendar view draws. */
+export function toCalendarRange(range: CalendarVisibleRange): CalendarRange {
+  return { from: range.start.toISOString(), to: new Date(range.end.getTime() - 1).toISOString() }
+}
+
+/** The date-fns locale for the app's language, which names days and months in the calendar view. */
+export function calendarLocale(language: string | undefined) {
+  return language === "pt" ? ptBR : enUS
+}
+
+/** A new event for the slot clicked in the calendar view. */
+export function newCalendarItem(range: { start: Date; end: Date }): CalendarItem {
+  return { id: crypto.randomUUID(), title: i18n.t("calendar.newEvent"), start: range.start, end: range.end, color: "orange" }
 }
 
 export function emptyEventValues(start: Date | null): EventFormValues {
@@ -106,6 +126,12 @@ export function valuesToEventInput(values: EventFormValues): CalendarEventInput 
     description: values.description.trim() || null,
     color: values.color,
   }
+}
+
+/** The hour after now, as the range "New event" fills. */
+export function nextHourRange() {
+  const start = nextHour()
+  return { start, end: new Date(start.getTime() + 60 * 60 * 1000) }
 }
 
 function nextHour() {

@@ -100,7 +100,7 @@ uma página exige atualizar esse inventário e seus testes funcionais.
 | `goals` | Cadastro, edição, exclusão, vínculos, marcos/prazos, progresso automático/manual, áreas/status, agrupamento, timeline e risco |
 | `habits-mood` | Hábitos personalizados, check-ins, progresso, desfazer, edição/exclusão, filtros e períodos; humor diário, atualização/exclusão e painel |
 | `thoughts-tags-activity` | Ideias, fixação, busca, edição/exclusão, paginação; vínculos/backlinks, etiquetas e atividade entre módulos |
-| `calendar-files` | Agenda semanal, grade, intervalos inválidos, sobreposição, dia inteiro, edição pelo painel; quadros, uploads múltiplos, miniaturas, bytes, metadados e exclusão |
+| `calendar-files` | Criação pelo botão e pela grade, detalhes (título, local, cor, dia inteiro), exclusão e desfazer, arraste, sobreposição, semana/mês/agenda, edição pelo painel; quadros, uploads múltiplos, miniaturas, bytes, metadados e exclusão |
 | `github` | Token inválido/válido, sincronização, categorias de PRs, issues, contribuições/repositórios, links, persistência e desconexão; vazio e recuperação de falha |
 | `pomodoro-desktop` | Controles, presets/durações, fases, pausas, som, auto start, conclusão/estatísticas, bandeja/notificação, janela oculta e som com pomodoro ativo, janela destruída e recriada pela bandeja, notificação e segunda instância, ciclos repetidos, tamanho da janela, encerramento; clima/fallback/erro |
 | `updates` | Descoberta, atualizado/disponível, notas/link, progresso entre páginas, cancelamento, falhas de rede/integridade/permissão e reinício controlado preservando dados/timer |

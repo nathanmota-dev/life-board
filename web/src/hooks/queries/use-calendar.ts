@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { queryKeys } from "@/hooks/queries/query-keys"
 import { useInvalidatingMutation } from "@/hooks/queries/use-invalidating-mutation"
 import { calendarService } from "@/services/calendar-service"
@@ -6,6 +6,16 @@ import type { CalendarEventInput, CalendarRange } from "@/types/calendar"
 
 export function useCalendarEvents(range: CalendarRange) {
   return useQuery({ queryKey: [...queryKeys.calendar, range], queryFn: () => calendarService.list(range) })
+}
+
+/** Events in the range the calendar view draws; keeps the previous range's while the next one loads. */
+export function useCalendarRangeEvents(range: CalendarRange | null) {
+  return useQuery({
+    queryKey: [...queryKeys.calendar, range],
+    queryFn: () => calendarService.list(range as CalendarRange),
+    enabled: range !== null,
+    placeholderData: keepPreviousData,
+  })
 }
 
 export function useCreateEvent() {

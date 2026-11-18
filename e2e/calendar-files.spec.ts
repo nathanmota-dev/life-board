@@ -3,29 +3,37 @@ import { choose } from "./ui"
 import { readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
-test("calendar: create, edit, delete and validate intervals", async ({ workspace, page }) => {
+type StoredEvent = { id: string; title: string; startAt: string; endAt: string; allDay: boolean; location: string | null; color: string }
+
+test("calendar: create, edit, delete and undo from the event details", async ({ workspace, page }) => {
+  const events = () => workspace.list<StoredEvent>("calendar/events")
   await workspace.go("Calendário")
   await page.getByRole("button", { name: "Novo evento", exact: true }).click()
-  await page.getByLabel("Título", { exact: true }).fill("Dentist")
-  await page.getByLabel("Início", { exact: true }).fill(`${DAY}T14:00`)
-  await page.getByLabel("Fim", { exact: true }).fill(`${DAY}T13:00`)
-  await page.getByLabel("Local", { exact: true }).fill("Office")
-  await page.getByRole("button", { name: "Criar evento", exact: true }).click()
-  await expect(page.getByText("O fim deve ser posterior ao início.", { exact: true })).toBeVisible()
-  await page.getByLabel("Fim", { exact: true }).fill(`${DAY}T15:00`)
-  await page.getByRole("radio").last().click()
-  await page.getByRole("button", { name: "Criar evento", exact: true }).click()
-  await page.getByRole("button", { name: /Dentist/ }).click()
-  await expect(page.getByLabel("Local", { exact: true })).toHaveValue("Office")
-  await page.getByLabel("Título", { exact: true }).fill("Dental check-up")
-  await page.getByRole("checkbox", { name: "Dia inteiro", exact: true }).click()
-  await page.getByLabel("Fim", { exact: true }).fill("2026-10-22")
-  await page.getByRole("button", { name: "Salvar", exact: true }).click()
+  const details = page.getByRole("dialog", { name: "Detalhes do evento", exact: true })
+  const title = details.getByRole("textbox", { name: "Título", exact: true })
+  await expect(title).toBeFocused()
+  await page.keyboard.type("Dentist")
+  await page.keyboard.press("Enter")
+  await expect.poll(async () => (await events()).map(event => event.title)).toEqual(["Dentist"])
+  await details.getByRole("combobox", { name: "Local", exact: true }).click()
+  await page.keyboard.type("Office")
+  await page.keyboard.press("Enter")
+  await details.getByRole("button", { name: "Verde", exact: true }).click()
+  await expect.poll(async () => (await events())[0]).toMatchObject({ location: "Office", color: "#10B981" })
+
   await page.reload()
-  await page.getByRole("button", { name: /Dental check-up/ }).click()
-  await expect(page.getByRole("checkbox", { name: "Dia inteiro", exact: true })).toBeChecked()
-  await page.getByRole("button", { name: "Excluir", exact: true }).click()
-  await expect(page.getByRole("button", { name: /Dental check-up/ })).toHaveCount(0)
+  await page.getByRole("button", { name: /^Dentist,/ }).first().click()
+  await expect(details.getByText("Office", { exact: true })).toBeVisible()
+  await details.getByRole("switch", { name: "Dia inteiro", exact: true }).click()
+  await expect.poll(async () => (await events())[0].allDay).toBe(true)
+
+  await details.getByRole("button", { name: "Mais ações", exact: true }).click()
+  await page.getByRole("menuitem", { name: /Excluir/ }).click()
+  await expect(page.getByRole("button", { name: /^Dentist,/ })).toHaveCount(0)
+  await expect.poll(async () => (await events()).length).toBe(0)
+  await page.getByRole("button", { name: "Desfazer", exact: true }).click()
+  await expect(page.getByRole("button", { name: /^Dentist,/ }).first()).toBeVisible()
+  await expect.poll(async () => (await events()).map(event => [event.title, event.allDay])).toEqual([["Dentist", true]])
 })
 
 test("file board: failed uploads and size limit preserve the board and allow retry", async ({ workspace, page }) => {
@@ -189,31 +197,55 @@ test("file board: create a markdown document, write it and number the next one",
   expect(await workspace.list(`file-boards/${board.id}/items`)).toHaveLength(2)
 })
 
-test("calendar: grid creation, overlapping events, week navigation and dashboard editing", async ({ workspace, page }) => {
+test("calendar: grid creation, drag, overlapping events, views, week navigation and dashboard editing", async ({ workspace, page }) => {
   await workspace.create("calendar/events", { title: "Overlapping A", startAt: `${DAY}T10:00:00Z`, endAt: `${DAY}T12:00:00Z` })
   await workspace.create("calendar/events", { title: "Overlapping B", startAt: `${DAY}T11:00:00Z`, endAt: `${DAY}T13:00:00Z` })
   await workspace.go("Calendário")
-  const a = page.getByRole("button", { name: /Overlapping A/ })
-  const b = page.getByRole("button", { name: /Overlapping B/ })
+  const a = page.getByRole("button", { name: /^Overlapping A,/ })
+  const b = page.getByRole("button", { name: /^Overlapping B,/ })
   await expect(a).toBeVisible()
   await expect(b).toBeVisible()
-  const boundsA = await a.boundingBox()
-  const boundsB = await b.boundingBox()
-  expect(boundsA!.x).not.toBe(boundsB!.x)
-  await page.getByRole("button", { name: "Semana anterior", exact: true }).click()
+  await page.getByRole("button", { name: "Anterior: semana", exact: true }).click()
   await expect(a).toHaveCount(0)
-  await page.getByRole("button", { name: "Próxima semana", exact: true }).click()
+  await page.getByRole("button", { name: "Próximo: semana", exact: true }).click()
   await expect(a).toBeVisible()
-  await page.getByRole("button", { name: "Novo evento às 09:00", exact: true }).first().click()
-  await page.getByLabel("Título", { exact: true }).fill("From grid")
-  await page.getByRole("button", { name: "Criar evento", exact: true }).click()
-  await expect(page.getByRole("button", { name: /From grid/ })).toBeVisible()
+  const boundsA = (await a.boundingBox())!
+  const boundsB = (await b.boundingBox())!
+  expect(boundsA.x).not.toBe(boundsB.x)
+  const hour = boundsB.y - boundsA.y
+
+  // A click on an empty slot creates an event there and opens it, ready to name
+  const wednesday = (await page.getByRole("group", { name: "quarta-feira, 21 de outubro", exact: true }).boundingBox())!
+  await page.mouse.click(wednesday.x + wednesday.width - 8, boundsA.y + 5 * hour + 4)
+  await page.keyboard.type("From grid")
+  await page.keyboard.press("Enter")
+  await expect.poll(async () => (await workspace.list<StoredEvent>("calendar/events")).find(event => event.title === "From grid")?.startAt)
+    .toBe(`${DAY}T15:00:00.000Z`)
+  await page.keyboard.press("Escape")
+
+  // Dragging an event moves it by the hours it travelled
+  const moved = (await b.boundingBox())!
+  await page.mouse.move(moved.x + moved.width / 2, moved.y + 8)
+  await page.mouse.down()
+  await page.mouse.move(moved.x + moved.width / 2, moved.y + 8 + hour / 2, { steps: 4 })
+  await page.mouse.move(moved.x + moved.width / 2, moved.y + 8 + 2 * hour, { steps: 4 })
+  await page.mouse.up()
+  await expect.poll(async () => (await workspace.list<StoredEvent>("calendar/events")).find(event => event.title === "Overlapping B")?.startAt)
+    .toBe(`${DAY}T13:00:00.000Z`)
+
+  await page.getByRole("button", { name: "Semana", exact: true }).click()
+  await page.getByRole("menuitem", { name: /^Mês/ }).click()
+  await expect(page.getByRole("button", { name: /^Overlapping A,/ })).toBeVisible()
+  await page.getByRole("button", { name: "Mês", exact: true }).click()
+  await page.getByRole("menuitem", { name: /^Agenda/ }).click()
+  await expect(page.getByRole("button", { name: /^From grid,/ })).toBeVisible()
+
   await workspace.go("Painel")
   await page.getByRole("button", { name: "Abrir Overlapping A", exact: true }).click()
   await page.getByLabel("Título", { exact: true }).fill("Edited from dashboard")
   await page.getByRole("button", { name: "Salvar", exact: true }).click()
   await workspace.go("Calendário")
-  await expect(page.getByRole("button", { name: /Edited from dashboard/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /^Edited from dashboard,/ }).first()).toBeVisible()
 })
 
 test("file board: create and switch boards, multiple uploads, bytes, metadata and cleanup", async ({ workspace, page }) => {
