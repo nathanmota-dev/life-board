@@ -7,8 +7,9 @@ pessoal como o do GitHub, então cada pessoa cria o próprio cliente OAuth no Go
 Cloud e cola o ID e a chave secreta dele em **Configurações > Google Agenda**. Nada
 disso vai para o repositório ou para o binário.
 
-Por enquanto, a conexão só liga e desliga a conta: os eventos do Google ainda não
-aparecem na Agenda.
+Depois de conectada, os eventos da agenda principal aparecem no Calendário do Life
+Board e se mantêm atualizados (veja [Importação dos eventos](#importação-dos-eventos)).
+Por enquanto eles são **somente leitura** no Life Board.
 
 ## Criar as credenciais no Google Cloud
 
@@ -56,7 +57,8 @@ ou se você clicar em **Cancelar**, uma resposta atrasada do Google é recusada.
 - **Reconectar** aparece quando o Google deixa de aceitar a autorização salva (por
   exemplo, depois de remover o acesso na sua conta do Google ou de 7 dias com a tela
   de consentimento em teste).
-- **Desconectar** revoga o acesso no Google e apaga o refresh token e o e-mail. O ID
+- **Desconectar** revoga o acesso no Google, apaga o refresh token e o e-mail e
+  **remove os eventos importados**; os eventos criados no Life Board continuam. O ID
   e a chave secreta continuam salvos, então reconectar é um clique.
 - **Trocar credenciais** apaga o ID e a chave secreta, para colar os de outro
   cliente.
@@ -134,3 +136,49 @@ as demais colunas `NULL`.
   (`db/schema/calendar.rs`).
 - Os testes golden descartam os quatro campos públicos novos da resposta antes de
   comparar com as gravações da API Node 1.1.2, que continuam intactas.
+
+## Importação dos eventos
+
+`services/google_calendar.rs` (e `google_calendar/import.rs`) lê a agenda principal
+e grava os eventos em `calendar_events`, como `services/github/sync.rs` faz com o
+GitHub: registra `last_sync_at` ou `last_sync_error` em `google_settings`, e uma
+falha no meio não apaga o que já estava salvo.
+
+- **Janela**: do início do dia local de 30 dias atrás até 365 dias à frente. Linhas
+  fora da janela ficam como estão.
+- **Quando sincroniza**: logo depois de conectar; 10 segundos depois que a API
+  inicia, se houver conta conectada; a cada **15 minutos** enquanto o app roda; e em
+  **Sincronizar agora**, em Configurações > Google Agenda
+  (`POST /api/google/sync`, `409 not_connected` sem conta). Com a feature `e2e`,
+  `LIFE_BOARD_E2E_GOOGLE_SYNC=off` desliga o ciclo para os testes serem
+  determinísticos.
+- **Uma sincronização por vez**: um segundo pedido espera a que está rodando e
+  devolve o mesmo resultado.
+- **Leitura completa**: cada sincronização lê a janela inteira (ainda sem
+  `syncToken`) e grava tudo em **uma transação** com `upsert_external`. Só depois de
+  **todas as páginas** chegarem, os eventos `google` cujo início está na janela e
+  que o Google não devolveu são removidos. Uma sincronização que falha no meio não
+  remove nada.
+- **Cancelados e removidos**: `status = cancelled` (inclusive uma ocorrência
+  cancelada de um evento recorrente) remove a linha com `deleted_at`, como uma
+  exclusão local. Se o Google devolver o evento de novo, o `upsert` limpa
+  `deleted_at`.
+- **Sem título**: o evento é guardado com título vazio, e o calendário mostra "Sem
+  título"/"No title".
+- **Pendências**: linhas com `sync_state` preenchido são ignoradas pela importação;
+  só existem depois que os eventos do Life Board forem enviados ao Google.
+- **Erros**: `401` renova o token uma vez (`GoogleService::access_token()`) e repete;
+  autorização recusada (`ReauthRequired`) interrompe e as Configurações passam a
+  oferecer **Reconectar**; limite de requisições ou falha de rede interrompem,
+  gravam `last_sync_error` e esperam o próximo intervalo.
+- **Somente leitura**: `PATCH` e `DELETE` de um evento `source = 'google'` respondem
+  `409 read_only_event`, e o calendário não oferece arrastar, redimensionar, editar,
+  recortar nem excluir esses eventos. Os detalhes mostram "Google Agenda" e **Abrir
+  no Google Agenda** (`externalUrl`, liberado em `app:open-external` para
+  `https://www.google.com/calendar/` e `https://calendar.google.com/`).
+- **Desconectar** (e `reset_secrets`) apaga de verdade as linhas `google` e limpa os
+  campos de vínculo e o `sync_state` das linhas `local`.
+- **Calendário aberto**: a tela consulta `GET /api/google/status` a cada 60 segundos
+  e recarrega os eventos quando `lastSyncAt` muda. Um aviso com atalho para as
+  Configurações aparece quando `reauthRequired` ou `lastSyncError` estão preenchidos.
+- **Dashboard**: eventos importados contam no painel e nas estatísticas como os locais.

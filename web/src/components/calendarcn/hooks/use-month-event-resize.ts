@@ -276,6 +276,7 @@ export function useMonthEventResize({
     ) => {
       if (!isPrimaryPress(e)) return;
       e.stopPropagation();
+      if (event.readOnly) return;
       startGesture(e, (start) => beginResize(start, event, edge));
     },
     [startGesture, beginResize],

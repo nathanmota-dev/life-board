@@ -10,6 +10,7 @@ use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWriteExt, BufReader, Lines};
 use crate::build_app;
 use crate::db::Db;
 use crate::services::crypto::CryptoService;
+use crate::services::google_calendar::{FIRST_SYNC_DELAY, SYNC_INTERVAL, SyncScheduler};
 use crate::state::{AppOptions, AppState};
 
 /// `ServerOptions`. Migrations are embedded, so there is no folder to pass.
@@ -53,11 +54,15 @@ pub struct RunningServer {
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
     task: Option<tokio::task::JoinHandle<()>>,
     db: Option<Db>,
+    scheduler: Option<SyncScheduler>,
 }
 
 impl RunningServer {
     /// Stops accepting connections, waits for the server and closes the database (`app.close()`).
     pub async fn close(mut self) {
+        if let Some(scheduler) = self.scheduler.take() {
+            scheduler.stop();
+        }
         if let Some(shutdown) = self.shutdown.take() {
             let _ = shutdown.send(());
         }
@@ -87,6 +92,8 @@ pub async fn start_server(options: ServerOptions) -> Result<RunningServer, Start
             let tx = conn.transaction()?;
             tx.execute("DELETE FROM github_settings", [])?;
             tx.execute("DELETE FROM google_settings", [])?;
+            // Without the account the imported events can't be kept up to date.
+            crate::db::schema::calendar::forget_google(&tx)?;
             tx.commit()
         })
         .await?;
@@ -99,6 +106,7 @@ pub async fn start_server(options: ServerOptions) -> Result<RunningServer, Start
     let mut app_options = AppOptions::new(db.clone(), &data_dir, crypto);
     app_options.server_url = Some(url.clone());
     let state = AppState::new(app_options).await?;
+    let scheduler = scheduler_enabled().then(|| state.google_calendar.start_scheduler(FIRST_SYNC_DELAY, SYNC_INTERVAL));
     let app = build_app(state);
 
     let (shutdown, signal) = tokio::sync::oneshot::channel::<()>();
@@ -110,7 +118,25 @@ pub async fn start_server(options: ServerOptions) -> Result<RunningServer, Start
             tracing::error!(%error, "server stopped");
         }
     });
-    Ok(RunningServer { addr, port: addr.port(), url, shutdown: Some(shutdown), task: Some(task), db: Some(db) })
+    Ok(RunningServer {
+        addr,
+        port: addr.port(),
+        url,
+        shutdown: Some(shutdown),
+        task: Some(task),
+        db: Some(db),
+        scheduler,
+    })
+}
+
+/// The Google Calendar loop runs, except when the Playwright suite turns it off
+/// (`LIFE_BOARD_E2E_GOOGLE_SYNC=off`, only under the `e2e` feature) to stay deterministic.
+fn scheduler_enabled() -> bool {
+    #[cfg(feature = "e2e")]
+    if std::env::var("LIFE_BOARD_E2E_GOOGLE_SYNC").is_ok_and(|value| value == "off") {
+        return false;
+    }
+    true
 }
 
 /// The profile database inside the data directory.

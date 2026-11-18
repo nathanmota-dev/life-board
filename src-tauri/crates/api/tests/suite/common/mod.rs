@@ -98,6 +98,8 @@ impl TestApp {
     pub async fn with(configure: impl FnOnce(&mut AppOptions)) -> Self {
         let database = test_db().await;
         let mut options = AppOptions::new(database.db.clone(), database.path(), crypto(7));
+        // Never the real Google: a test that syncs plugs in its own listing.
+        options.google_calendar_client = Some(google::FakeCalendar::new());
         configure(&mut options);
         let state = AppState::new(options).await.expect("app state");
         let app = build_app(state.clone());

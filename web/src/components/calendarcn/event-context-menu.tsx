@@ -300,10 +300,12 @@ export function EventContextMenu({
       <Separator />
 
       <MenuItem
-        disabled={!eventActions}
+        disabled={!eventActions || event.readOnly}
         keyShortcuts={EVENT_ACTION_KEYS.cut.aria}
         onSelect={
-          eventActions ? () => runAction(eventActions.cutEvent) : undefined
+          eventActions && !event.readOnly
+            ? () => runAction(eventActions.cutEvent)
+            : undefined
         }
       >
         <SquareDashed className="size-3.5" />
@@ -338,10 +340,12 @@ export function EventContextMenu({
       <Separator />
 
       <MenuItem
-        disabled={!eventActions}
+        disabled={!eventActions || event.readOnly}
         keyShortcuts={EVENT_ACTION_KEYS.delete.aria}
         onSelect={
-          eventActions ? () => runAction(eventActions.deleteEvent) : undefined
+          eventActions && !event.readOnly
+            ? () => runAction(eventActions.deleteEvent)
+            : undefined
         }
         className="text-[#E56458] hover:!bg-[#DE5551] hover:!text-white focus:!bg-[#DE5551] focus:!text-white [&:hover>svg]:!text-white [&:focus>svg]:!text-white [&:hover>.ml-auto]:!text-white [&:focus>.ml-auto]:!text-white"
       >

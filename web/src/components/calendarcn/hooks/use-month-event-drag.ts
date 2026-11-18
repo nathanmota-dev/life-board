@@ -285,6 +285,7 @@ export function useMonthEventDrag({
 
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent<HTMLElement>, event: CalendarEvent) => {
+      if (event.readOnly) return;
       startGesture(e, (start) => beginDrag(start, event));
     },
     [startGesture, beginDrag],

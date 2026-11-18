@@ -6,7 +6,9 @@ use axum::response::{IntoResponse, Response};
 use life_board_api::plugins::auth::Authenticator;
 use serde_json::json;
 
-use crate::common::google::{CLIENT_ID, CLIENT_SECRET, EMAIL, FakeGoogle, REFRESH_TOKEN, SERVER_URL, state_of};
+use crate::common::google::{
+    CLIENT_ID, CLIENT_SECRET, EMAIL, FakeCalendar, FakeGoogle, REFRESH_TOKEN, SERVER_URL, state_of,
+};
 use crate::common::{TestApp, TestResponse, assert_match};
 
 async fn app(fake: &Arc<FakeGoogle>) -> TestApp {
@@ -191,4 +193,51 @@ async fn keeps_only_the_callback_outside_the_auth_layer() {
     assert_eq!(ctx.get("/api/google/status").await.status(), 401);
     assert_eq!(ctx.post_empty("/api/google/connect").await.status(), 401);
     assert_page(&ctx.get("/api/google/oauth/callback?code=x&state=y").await, 400, "no_pending_flow");
+}
+
+#[tokio::test]
+async fn syncs_through_the_route_and_needs_a_connected_account() {
+    let fake = FakeGoogle::new();
+    let calendar = FakeCalendar::new();
+    calendar.lists(vec![
+        serde_json::from_value(json!({
+            "id": "e1", "summary": "Dentist", "htmlLink": "https://www.google.com/calendar/event?eid=e1",
+            "start": { "dateTime": "2999-01-01T10:00:00Z" }, "end": { "dateTime": "2999-01-01T11:00:00Z" },
+        }))
+        .unwrap(),
+    ]);
+    let (auth, api) = (fake.clone(), calendar.clone());
+    let ctx = TestApp::with(|options| {
+        options.google_client = Some(auth);
+        options.google_calendar_client = Some(api);
+        options.server_url = Some(SERVER_URL.into());
+    })
+    .await;
+    assert_error_code(&ctx.post_empty("/api/google/sync").await, 409, Some("not_connected"));
+
+    ctx.put("/api/google/credentials", json!({ "clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET })).await;
+    assert_error_code(&ctx.post_empty("/api/google/sync").await, 409, Some("not_connected"));
+    let state = start(&ctx).await;
+    assert_page(&ctx.get(&format!("/api/google/oauth/callback?code=c&state={state}")).await, 200, "Conectado.");
+    // The callback starts the first import in the background.
+    for _ in 0..100 {
+        if ctx.get("/api/google/status").await.json()["lastSyncAt"].is_string() {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    assert_eq!(calendar.listings().len(), 1);
+
+    let synced = ctx.post_empty("/api/google/sync").await;
+    assert_eq!(synced.status(), 200, "{}", synced.text());
+    assert_eq!(synced.json(), json!({ "imported": 0, "updated": 0, "removed": 0 }));
+    let listed = ctx.get("/api/calendar/events?limit=10").await.json();
+    assert_match(
+        &listed["items"][0],
+        &json!({ "title": "Dentist", "source": "google", "externalUrl": "https://www.google.com/calendar/event?eid=e1" }),
+    );
+
+    calendar.on_list(|_| Err(life_board_api::services::google_calendar_client::GoogleCalendarError::RateLimited));
+    assert_error_code(&ctx.post_empty("/api/google/sync").await, 502, Some("google_unavailable"));
+    assert!(ctx.get("/api/google/status").await.json()["lastSyncError"].is_string());
 }

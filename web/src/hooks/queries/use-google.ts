@@ -33,6 +33,12 @@ export function useCancelGoogleConnect() {
   return useInvalidatingMutation(googleService.cancelConnect, [queryKeys.google])
 }
 
+/** Disconnecting also removes the imported events, so the calendar reloads. */
 export function useDisconnectGoogle() {
-  return useInvalidatingMutation(googleService.disconnect, [queryKeys.google])
+  return useInvalidatingMutation(googleService.disconnect, [queryKeys.google, queryKeys.calendar])
+}
+
+/** "Sync now": imports the events, then reloads the calendar and the stats. */
+export function useSyncGoogle() {
+  return useInvalidatingMutation(googleService.sync, [queryKeys.google, queryKeys.calendar])
 }

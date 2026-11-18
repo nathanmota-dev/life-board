@@ -192,6 +192,17 @@ pub fn upsert_external(conn: &rusqlite::Connection, row: NewCalendarEvent) -> ru
     )
 }
 
+/// Disconnecting from Google: hard-deletes the imported events and unlinks the
+/// local ones, which stay as plain local events.
+pub fn forget_google(conn: &rusqlite::Connection) -> rusqlite::Result<()> {
+    conn.execute("DELETE FROM calendar_events WHERE source = 'google'", [])?;
+    conn.execute(
+        "UPDATE calendar_events SET external_id = NULL, external_calendar_id = NULL, external_etag = NULL, external_updated_at = NULL, external_url = NULL, recurring_event_id = NULL, sync_state = NULL WHERE source = 'local' AND (external_id IS NOT NULL OR external_calendar_id IS NOT NULL OR external_etag IS NOT NULL OR external_updated_at IS NOT NULL OR external_url IS NOT NULL OR recurring_event_id IS NOT NULL OR sync_state IS NOT NULL)",
+        [],
+    )?;
+    Ok(())
+}
+
 pub const DEFAULT_COLOR: &str = "#3b82f6";
 
 pub async fn insert(db: &Db, rows: Vec<NewCalendarEvent>) -> Result<(), DbError> {

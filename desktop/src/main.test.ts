@@ -355,13 +355,17 @@ describe("app:open-external", () => {
     const handler = mocks.handle.mock.calls.find(([channel]) => channel === "app:open-external")?.[1] as
       (event: unknown, url: unknown) => unknown
 
-    for (const url of ["https://accounts.google.com/o/oauth2/v2/auth?state=s", "https://console.cloud.google.com/apis", "https://github.com/me"]) {
-      handler({}, url)
-    }
-    for (const url of ["https://accounts.google.com.evil.example/o/oauth2/", "https://example.com/", 7]) handler({}, url)
-
-    expect(vi.mocked(shell.openExternal).mock.calls.map(([url]) => url)).toEqual([
+    const allowed = [
       "https://accounts.google.com/o/oauth2/v2/auth?state=s", "https://console.cloud.google.com/apis", "https://github.com/me",
-    ])
+      "https://www.google.com/calendar/event?eid=abc", "https://calendar.google.com/calendar/u/0/r",
+    ]
+    for (const url of allowed) handler({}, url)
+    for (const url of [
+      "https://accounts.google.com.evil.example/o/oauth2/", "https://example.com/", 7,
+      "https://www.google.com.evil.example/calendar/", "https://calendar.google.com.evil.example/", "https://www.google.com/search?q=calendar",
+      "http://calendar.google.com/", "https://evil.example/https://calendar.google.com/",
+    ]) handler({}, url)
+
+    expect(vi.mocked(shell.openExternal).mock.calls.map(([url]) => url)).toEqual(allowed)
   })
 })

@@ -1,4 +1,5 @@
 const { createServer } = require("node:http")
+const { readFileSync } = require("node:fs")
 
 // The sidecar reaches this server instead of oauth2.googleapis.com and
 // www.googleapis.com, so the suite exercises the real OAuth and Calendar clients
@@ -9,24 +10,36 @@ const CODE = "synthetic-google-code"
 const REFRESH_TOKEN = "synthetic-google-refresh-token-for-e2e-only"
 const ACCESS_TOKEN = "synthetic-google-access-token"
 const EMAIL = "synthetic.user@gmail.com"
+// The scenario "changed" lists the calendar after an edit in Google: this event is gone
+// and the timed one has a new title (the scenario file is read on every listing).
+const REMOVED_EVENT_ID = "synthetic-all-day"
+const RENAMED_EVENT_ID = "synthetic-timed"
+const RENAMED_TITLE = "Synthetic meeting renamed"
 // Patching this event always answers 412, as if it had just changed in Google.
 const CONFLICT_EVENT_ID = "synthetic-conflict"
 const EVENTS_PATH = /^\/calendar\/v3\/calendars\/([^/]+)\/events(?:\/([^/]+))?$/
 const LIST_PARAMS = ["singleEvents", "showDeleted", "timeMin", "timeMax", "maxResults"]
 
-// The primary calendar, listed in two pages: the first event, then the rest.
+// The primary calendar, listed in two pages: the first event, then the rest. The
+// recurring event comes as two occurrences, as `singleEvents=true` expands it.
 function seedEvents() {
-  const event = (id, fields) => ({ id, status: "confirmed", etag: `"${id}-1"`, updated: "2026-10-01T12:00:00.000Z", htmlLink: `https://calendar.google.test/event?eid=${id}`, ...fields })
+  const event = (id, fields) => ({ id, status: "confirmed", etag: `"${id}-1"`, updated: "2026-10-01T12:00:00.000Z", htmlLink: `https://www.google.com/calendar/event?eid=${id}`, ...fields })
   return new Map([
     event("synthetic-timed", { summary: "Synthetic meeting", start: { dateTime: "2026-10-12T09:00:00-03:00" }, end: { dateTime: "2026-10-12T10:00:00-03:00" }, colorId: "7" }),
     event("synthetic-all-day", { summary: "Synthetic trip", start: { date: "2026-10-14" }, end: { date: "2026-10-17" } }),
+    event("synthetic-series_20261013T120000Z", { summary: "Synthetic standup", recurringEventId: "synthetic-series", start: { dateTime: "2026-10-13T09:00:00-03:00" }, end: { dateTime: "2026-10-13T09:30:00-03:00" } }),
+    event("synthetic-series_20261015T120000Z", { summary: "Synthetic standup", recurringEventId: "synthetic-series", start: { dateTime: "2026-10-15T09:00:00-03:00" }, end: { dateTime: "2026-10-15T09:30:00-03:00" } }),
     event(CONFLICT_EVENT_ID, { summary: "Synthetic conflict", start: { date: "2026-10-20" }, end: { date: "2026-10-21" } }),
   ].map(item => [item.id, item]))
 }
 
 function listEvents(events, url) {
   if (LIST_PARAMS.some(name => !url.searchParams.has(name)) || url.searchParams.get("singleEvents") !== "true" || url.searchParams.get("showDeleted") !== "true") return [400, { error: { code: 400, message: "Missing list parameters" } }]
+  const scenario = process.env.LIFE_BOARD_E2E_SCENARIO
+  const changed = scenario ? JSON.parse(readFileSync(scenario, "utf8")).google === "changed" : false
   const items = [...events.values()]
+    .filter(item => !changed || item.id !== REMOVED_EVENT_ID)
+    .map(item => changed && item.id === RENAMED_EVENT_ID ? { ...item, summary: RENAMED_TITLE, etag: `"${item.id}-2"` } : item)
   if (url.searchParams.get("pageToken") === "page-2") return [200, { items: items.slice(1) }]
   return [200, { items: items.slice(0, 1), nextPageToken: "page-2" }]
 }
@@ -98,4 +111,4 @@ module.exports = function startGoogleServer(record) {
   return new Promise(resolve => server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${server.address().port}`)))
 }
 
-Object.assign(module.exports, { CLIENT_ID, CLIENT_SECRET, CODE, REFRESH_TOKEN, ACCESS_TOKEN, EMAIL, CONFLICT_EVENT_ID })
+Object.assign(module.exports, { REMOVED_EVENT_ID, RENAMED_EVENT_ID, RENAMED_TITLE, CLIENT_ID, CLIENT_SECRET, CODE, REFRESH_TOKEN, ACCESS_TOKEN, EMAIL, CONFLICT_EVENT_ID })

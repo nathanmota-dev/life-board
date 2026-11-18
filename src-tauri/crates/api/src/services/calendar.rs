@@ -1,9 +1,10 @@
 use crate::clock;
+use axum::http::StatusCode;
 use rusqlite::types::Value;
 
 use crate::db::Db;
 use crate::db::columns::{Timestamp, new_id, to_bool};
-use crate::db::schema::calendar::{CalendarEvent, NewCalendarEvent, insert_row};
+use crate::db::schema::calendar::{CalendarEvent, EventSource, NewCalendarEvent, insert_row};
 use crate::dto::calendar::{CreateEventBody, ListEventsQuery, UpdateEventBody};
 use crate::error::{ApiError, ApiResult};
 use crate::services::query::{Assignments, SqlFragment, and, list_value, query_all, query_first, time_value};
@@ -56,6 +57,7 @@ impl CalendarService {
     /// Checks the range against the stored dates; `404` for missing or deleted events.
     pub async fn update(&self, id: &str, input: UpdateEventBody) -> ApiResult<CalendarEvent> {
         let current = self.find(id).await?;
+        assert_writable(&current)?;
         assert_valid_range(input.start_at.unwrap_or(current.start_at), input.end_at.unwrap_or(current.end_at))?;
         let mut set = Assignments::new();
         set.maybe("title", input.title)
@@ -77,7 +79,7 @@ impl CalendarService {
 
     /// Soft delete.
     pub async fn remove(&self, id: &str) -> ApiResult<()> {
-        self.find(id).await?;
+        assert_writable(&self.find(id).await?)?;
         let params = [time_value(clock::now()), Value::Text(id.to_owned())];
         self.db
             .call(move |conn| {
@@ -104,6 +106,18 @@ impl CalendarService {
             .await?
             .ok_or_else(not_found)
     }
+}
+
+/// `409 read_only_event`: events imported from Google can't be changed in Life Board.
+fn assert_writable(event: &CalendarEvent) -> ApiResult<()> {
+    if event.source == EventSource::Google {
+        return Err(ApiError::http(
+            StatusCode::CONFLICT,
+            "read_only_event",
+            "Events imported from Google Calendar can't be changed here.",
+        ));
+    }
+    Ok(())
 }
 
 fn not_found() -> ApiError {

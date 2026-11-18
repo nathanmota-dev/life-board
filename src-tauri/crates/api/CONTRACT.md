@@ -42,8 +42,8 @@ is under `/api`. `GET` routes also answer `HEAD`.
 | | `DELETE /api/goals/:goalId/milestones/:milestoneId` | — | `200 { ok: true }` |
 | calendar | `GET /api/calendar/events` | `ListEventsQuery` | `200 { items }` |
 | | `POST /api/calendar/events` | `CreateEventBody` | `201 CalendarEvent` |
-| | `PATCH /api/calendar/events/:id` | `UpdateEventBody` | `200 CalendarEvent` |
-| | `DELETE /api/calendar/events/:id` | — | `200 { ok: true }` |
+| | `PATCH /api/calendar/events/:id` | `UpdateEventBody` | `200 CalendarEvent`; `409 read_only_event` for a Google event |
+| | `DELETE /api/calendar/events/:id` | — | `200 { ok: true }`; `409 read_only_event` for a Google event |
 | mood | `GET /api/mood/today` | — | `200 { day, entry, nextAvailableAt }` |
 | | `GET /api/mood/entries` | `ListMoodQuery` | `200 { items }` |
 | | `POST /api/mood/entries` | `UpsertMoodBody` | `201` created / `200` updated, `MoodEntry` |
@@ -79,7 +79,8 @@ is under `/api`. `GET` routes also answer `HEAD`.
 | | `POST /api/google/connect` | — | `200 { authUrl }` |
 | | `DELETE /api/google/connect` | — | `200 { ok: true }` |
 | | `GET /api/google/oauth/callback` | `code`, `state`, `error` | `200` HTML page; errors are `400`/`502` HTML pages |
-| | `DELETE /api/google/disconnect` | — | `200 { ok: true }` |
+| | `DELETE /api/google/disconnect` | — | `200 { ok: true }`; deletes the imported events and unlinks the local ones |
+| | `POST /api/google/sync` | — | `200 { imported, updated, removed }`; `409 not_connected` |
 | file-boards | `GET /api/file-boards` | — | `200 { items }` |
 | | `POST /api/file-boards` | `CreateBoardBody` | `201 FileBoard` |
 | | `PATCH /api/file-boards/:id` | `UpdateBoardBody` | `200 FileBoard` |
@@ -127,7 +128,7 @@ one by one (see `tests/suite/dto.rs`):
   `missing_file`, `relative_dir`, `invalid_dir`, `not_connected`,
   `invalid_token`, `missing_credentials`, `invalid_credentials`, `invalid_grant`,
   `no_pending_flow`, `invalid_state`, `flow_expired`, `google_not_connected`,
-  `reauth_required`, `500 move_failed`, `502 sync_failed`, `github_unavailable`,
+  `reauth_required`, `409 read_only_event`, `500 move_failed`, `502 sync_failed`, `github_unavailable`,
   `google_unavailable`.
 - Body errors keep the codes of the Node API: `400 FST_ERR_CTP_EMPTY_JSON_BODY`,
   `400 FST_ERR_CTP_INVALID_JSON_BODY`, `415 FST_ERR_CTP_INVALID_MEDIA_TYPE`,

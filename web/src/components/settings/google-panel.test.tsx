@@ -109,6 +109,46 @@ describe("GooglePanel", () => {
     expect(await screen.findByRole("button", { name: "Save credentials" })).toBeInTheDocument()
   })
 
+  it("syncs now, then reloads the calendar and the stats", async () => {
+    current = { ...empty, hasCredentials: true, connected: true, email: "someone@gmail.com" }
+    const { calls } = mockGoogle({
+      "POST /google/sync": () => {
+        current = { ...current, lastSyncAt: "2026-10-21T12:00:00.000Z" }
+        return { imported: 3, updated: 0, removed: 0 }
+      },
+    })
+    const { queryClient } = renderWithProviders(<GooglePanel />)
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries")
+
+    expect(await screen.findByText("Never")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Sync now" }))
+    await waitFor(() => expect(calls.some((call) => call.method === "POST" && call.path === "/google/sync")).toBe(true))
+    await waitFor(() => {
+      const roots = invalidate.mock.calls.map(([filters]) => (filters?.queryKey as string[])[0])
+      expect(roots).toEqual(expect.arrayContaining(["calendar", "stats", "google"]))
+    })
+    expect(await screen.findByText(/2026|21/)).toBeInTheDocument()
+    expect(screen.queryByText(/Last sync failed/)).not.toBeInTheDocument()
+  })
+
+  it("shows why the last sync failed, and why Sync now failed", async () => {
+    current = { ...empty, hasCredentials: true, connected: true, email: "someone@gmail.com", lastSyncError: "Google Calendar answered 500." }
+    mockGoogle({ "POST /google/sync": () => [502, { error: "google_unavailable", message: "down" }] })
+    renderWithProviders(<GooglePanel />)
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Last sync failed: Google Calendar answered 500.")
+    fireEvent.click(screen.getByRole("button", { name: "Sync now" }))
+    expect(await screen.findByText(/Google is unavailable. Try again later./)).toBeInTheDocument()
+  })
+
+  it("offers no Sync now while Reconnect is needed", async () => {
+    current = { ...empty, hasCredentials: true, reauthRequired: true, email: "someone@gmail.com" }
+    mockGoogle()
+    renderWithProviders(<GooglePanel />)
+    expect(await screen.findByText("Reconnect needed")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Sync now" })).not.toBeInTheDocument()
+  })
+
   it("offers Reconnect when Google refused the stored authorization", async () => {
     current = { ...empty, hasCredentials: true, reauthRequired: true, email: "someone@gmail.com" }
     const { calls } = mockGoogle({ "POST /google/connect": () => [502, { error: "google_unavailable", message: "down" }] })

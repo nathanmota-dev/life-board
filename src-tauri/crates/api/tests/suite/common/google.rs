@@ -10,6 +10,11 @@ use life_board_api::services::google::{GoogleService, Now};
 use life_board_api::services::google_auth_client::{
     CodeGrant, GoogleAuthApi, GoogleAuthResult, GoogleCredentials, GoogleTokens,
 };
+use life_board_api::services::google_calendar::GoogleCalendarService;
+use life_board_api::services::google_calendar_client::{
+    CalendarResult, EventRef, EventWindow, GoogleCalendarApi, GoogleCalendarError, GoogleEvent, GoogleEventBody,
+    PrimaryCalendar,
+};
 
 use super::{crypto, ms};
 
@@ -157,4 +162,90 @@ pub fn state_of(auth_url: &str) -> String {
 pub fn query_param(url: &str, name: &str) -> Option<String> {
     let url = reqwest::Url::parse(url).expect("URL");
     url.query_pairs().find(|(key, _)| key == name).map(|(_, value)| value.into_owned())
+}
+
+type ListAnswer = Box<dyn Fn(usize) -> CalendarResult<Vec<GoogleEvent>> + Send + Sync>;
+
+/// A fake [`GoogleCalendarApi`] for the sync: `list_events` answers with its closure (given how
+/// many listings ran before) after an optional delay, and records the token and window of each call.
+pub struct FakeCalendar {
+    listed: Mutex<Vec<(String, String, EventWindow)>>,
+    list: Mutex<ListAnswer>,
+    delay: Mutex<Duration>,
+}
+
+impl Default for FakeCalendar {
+    fn default() -> Self {
+        Self { listed: Mutex::new(Vec::new()), list: Mutex::new(Box::new(|_| Ok(Vec::new()))), delay: Mutex::default() }
+    }
+}
+
+impl FakeCalendar {
+    pub fn new() -> Arc<Self> {
+        Arc::new(Self::default())
+    }
+
+    pub fn on_list(&self, answer: impl Fn(usize) -> CalendarResult<Vec<GoogleEvent>> + Send + Sync + 'static) {
+        *self.list.lock().unwrap() = Box::new(answer);
+    }
+
+    /// Always answers with `events`.
+    pub fn lists(&self, events: Vec<GoogleEvent>) {
+        self.on_list(move |_| Ok(events.clone()));
+    }
+
+    pub fn delay(&self, delay: Duration) {
+        *self.delay.lock().unwrap() = delay;
+    }
+
+    /// `(token, calendar, window)` of every listing.
+    pub fn listings(&self) -> Vec<(String, String, EventWindow)> {
+        self.listed.lock().unwrap().clone()
+    }
+}
+
+fn unused() -> GoogleCalendarError {
+    GoogleCalendarError::Http { status: 0, message: "not used by the import".into() }
+}
+
+#[async_trait]
+impl GoogleCalendarApi for FakeCalendar {
+    async fn get_primary_calendar(&self, _token: &str) -> CalendarResult<PrimaryCalendar> {
+        Err(unused())
+    }
+
+    async fn list_events(&self, token: &str, calendar: &str, window: EventWindow) -> CalendarResult<Vec<GoogleEvent>> {
+        let count = {
+            let mut listed = self.listed.lock().unwrap();
+            listed.push((token.to_owned(), calendar.to_owned(), window));
+            listed.len() - 1
+        };
+        let delay = *self.delay.lock().unwrap();
+        if !delay.is_zero() {
+            tokio::time::sleep(delay).await;
+        }
+        (self.list.lock().unwrap())(count)
+    }
+
+    async fn insert_event(&self, _: &str, _: &str, _: &GoogleEventBody) -> CalendarResult<GoogleEvent> {
+        Err(unused())
+    }
+
+    async fn patch_event(&self, _: &str, _: EventRef<'_>, _: &str, _: &GoogleEventBody) -> CalendarResult<GoogleEvent> {
+        Err(unused())
+    }
+
+    async fn delete_event(&self, _: &str, _: EventRef<'_>) -> CalendarResult<()> {
+        Err(unused())
+    }
+}
+
+/// A calendar service on `db` over `google`, the fake and the test clock.
+pub fn calendar_service(
+    db: &life_board_api::db::Db,
+    google: &GoogleService,
+    api: &Arc<FakeCalendar>,
+    clock: &TestClock,
+) -> GoogleCalendarService {
+    GoogleCalendarService::with_clock(db.clone(), google.clone(), api.clone(), clock.now())
 }

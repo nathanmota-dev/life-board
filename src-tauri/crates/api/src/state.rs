@@ -14,6 +14,8 @@ use crate::services::github_client::{GithubApi, GithubClient};
 use crate::services::goals::GoalsService;
 use crate::services::google::GoogleService;
 use crate::services::google_auth_client::{GoogleAuthApi, GoogleAuthClient};
+use crate::services::google_calendar::GoogleCalendarService;
+use crate::services::google_calendar_client::{GoogleCalendarApi, GoogleCalendarClient};
 use crate::services::habits::HabitsService;
 use crate::services::links::LinksService;
 use crate::services::mood::MoodService;
@@ -32,6 +34,8 @@ pub struct AppOptions {
     pub github_client: Option<Arc<dyn GithubApi>>,
     /// Default: `GoogleAuthClient::new()`.
     pub google_client: Option<Arc<dyn GoogleAuthApi>>,
+    /// Default: `GoogleCalendarClient::new()`.
+    pub google_calendar_client: Option<Arc<dyn GoogleCalendarApi>>,
     /// The address `start_server` listens on (`RunningServer.url`). Google sends the
     /// browser back to it, so it never comes from a request. Default: none, and
     /// `POST /google/connect` fails.
@@ -52,6 +56,7 @@ impl AppOptions {
             crypto,
             github_client: None,
             google_client: None,
+            google_calendar_client: None,
             server_url: None,
             authenticator: None,
             disk: None,
@@ -79,6 +84,7 @@ pub struct AppState {
     pub stats: StatsService,
     pub github: GithubService,
     pub google: GoogleService,
+    pub google_calendar: GoogleCalendarService,
     /// See [`AppOptions::server_url`].
     pub server_url: Option<String>,
     pub file_boards: FileBoardsService,
@@ -88,8 +94,18 @@ pub struct AppState {
 impl AppState {
     /// Builds the services, then runs `files_settings.load()` and `file_boards.purge_deleted()`.
     pub async fn new(options: AppOptions) -> ApiResult<Self> {
-        let AppOptions { db, data_dir, crypto, github_client, google_client, server_url, authenticator, disk, logger } =
-            options;
+        let AppOptions {
+            db,
+            data_dir,
+            crypto,
+            github_client,
+            google_client,
+            google_calendar_client,
+            server_url,
+            authenticator,
+            disk,
+            logger,
+        } = options;
         let disk = disk.unwrap_or_else(|| Arc::new(RealDisk));
         let storage = FileStorageService::with_disk(data_dir.join("uploads"), disk);
         let github = GithubService::new(
@@ -103,6 +119,11 @@ impl AppState {
             google_client.unwrap_or_else(|| Arc::new(GoogleAuthClient::new())),
             crypto.clone(),
         );
+        let google_calendar = GoogleCalendarService::new(
+            db.clone(),
+            google.clone(),
+            google_calendar_client.unwrap_or_else(|| Arc::new(GoogleCalendarClient::new())),
+        );
         let state = Self {
             tasks: TasksService::new(db.clone()),
             thoughts: ThoughtsService::new(db.clone()),
@@ -115,6 +136,7 @@ impl AppState {
             stats: StatsService::new(db.clone()),
             github,
             google,
+            google_calendar,
             server_url,
             file_boards: FileBoardsService::new(db.clone(), storage.clone()),
             files_settings: FilesSettingsService::new(db.clone(), storage.clone(), storage.root()),

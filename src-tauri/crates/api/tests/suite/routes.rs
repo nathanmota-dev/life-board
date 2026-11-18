@@ -51,6 +51,7 @@ fn registers_the_routes_added_after_the_node_api() {
         ("DELETE", "/api/google/connect"),
         ("GET", "/api/google/oauth/callback"),
         ("DELETE", "/api/google/disconnect"),
+        ("POST", "/api/google/sync"),
     ];
     for (method, path) in added {
         assert!(
