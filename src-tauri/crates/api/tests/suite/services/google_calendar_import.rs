@@ -227,6 +227,8 @@ async fn leaves_events_with_a_pending_change_untouched() {
     let mut pending = linked(&ctx, "pending", "Mine", 5);
     pending.sync_state = Some(SyncState::PendingUpdate);
     insert(&ctx.db.db, pending).await;
+    // Google keeps failing, so the change is still pending when the import runs.
+    ctx.api.on_patch(|_| Err(GoogleCalendarError::Http { status: 503, message: "later".into() }));
     ctx.api.lists(vec![timed(&ctx, "pending", "Theirs", 9), cancelled("other")]);
     assert_eq!(ctx.service.sync().await.unwrap(), result(0, 0, 0));
     let stored = alive(&ctx.db.db).await;

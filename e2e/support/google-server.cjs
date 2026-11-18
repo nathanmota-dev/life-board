@@ -15,8 +15,10 @@ const EMAIL = "synthetic.user@gmail.com"
 const REMOVED_EVENT_ID = "synthetic-all-day"
 const RENAMED_EVENT_ID = "synthetic-timed"
 const RENAMED_TITLE = "Synthetic meeting renamed"
-// Patching this event always answers 412, as if it had just changed in Google.
+// Patching this event always answers 412, as if it had just changed in Google: its
+// title there is GOOGLE_TITLE from then on.
 const CONFLICT_EVENT_ID = "synthetic-conflict"
+const GOOGLE_TITLE = "Synthetic conflict from Google"
 const EVENTS_PATH = /^\/calendar\/v3\/calendars\/([^/]+)\/events(?:\/([^/]+))?$/
 const LIST_PARAMS = ["singleEvents", "showDeleted", "timeMin", "timeMax", "maxResults"]
 
@@ -57,7 +59,9 @@ function calendarEvents(calendar, request, url, body) {
   }
   const event = events.get(eventId)
   if (!event || event.status === "cancelled") return [request.method === "DELETE" ? 410 : 404, { error: { code: 404, message: "Not Found" } }]
+  if (request.method === "GET") return [200, event]
   if (request.method === "PATCH") {
+    if (eventId === CONFLICT_EVENT_ID) events.set(eventId, { ...event, summary: GOOGLE_TITLE, etag: `"${eventId}-2"`, updated: new Date().toISOString() })
     if (eventId === CONFLICT_EVENT_ID || request.headers["if-match"] !== event.etag) return [412, { error: { code: 412, message: "Precondition Failed", errors: [{ reason: "conditionNotMet" }] } }]
     const version = Number(event.etag.slice(event.etag.lastIndexOf("-") + 1, -1)) + 1
     const patched = { ...event, ...JSON.parse(body), etag: `"${eventId}-${version}"`, updated: new Date().toISOString() }
@@ -69,6 +73,15 @@ function calendarEvents(calendar, request, url, body) {
     return [204, null]
   }
   return null
+}
+
+function offline() {
+  const scenario = process.env.LIFE_BOARD_E2E_SCENARIO
+  return scenario ? JSON.parse(readFileSync(scenario, "utf8")).google === "offline" : false
+}
+
+function safeJson(text) {
+  try { return JSON.parse(text) } catch { return undefined }
 }
 
 function answer(calendar, request, body) {
@@ -98,9 +111,12 @@ module.exports = function startGoogleServer(record) {
     const chunks = []
     for await (const chunk of request) chunks.push(chunk)
     const url = `https://google.test${request.url}`
-    record({ kind: "google", url, method: request.method })
+    const text = Buffer.concat(chunks).toString()
+    record({ kind: "google", dropped: offline() || undefined, url, method: request.method, ifMatch: request.headers["if-match"], body: request.method === "PATCH" || request.method === "POST" ? safeJson(text) : undefined })
+    // The scenario "offline" makes Google unreachable: the connection drops without an answer.
+    if (offline()) return request.socket.destroy()
     let result
-    try { result = answer(calendar, request, Buffer.concat(chunks).toString()) } catch (error) { result = [400, { error: { code: 400, message: error.message } }] }
+    try { result = answer(calendar, request, text) } catch (error) { result = [400, { error: { code: 400, message: error.message } }] }
     if (!result) {
       record({ kind: "unexpected", url, message: "Unexpected Google request" })
       return response.writeHead(500).end("Unexpected Google request")
@@ -111,4 +127,4 @@ module.exports = function startGoogleServer(record) {
   return new Promise(resolve => server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${server.address().port}`)))
 }
 
-Object.assign(module.exports, { REMOVED_EVENT_ID, RENAMED_EVENT_ID, RENAMED_TITLE, CLIENT_ID, CLIENT_SECRET, CODE, REFRESH_TOKEN, ACCESS_TOKEN, EMAIL, CONFLICT_EVENT_ID })
+Object.assign(module.exports, { REMOVED_EVENT_ID, RENAMED_EVENT_ID, RENAMED_TITLE, CLIENT_ID, CLIENT_SECRET, CODE, REFRESH_TOKEN, ACCESS_TOKEN, EMAIL, CONFLICT_EVENT_ID, GOOGLE_TITLE })

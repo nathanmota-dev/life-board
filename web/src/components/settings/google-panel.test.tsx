@@ -10,6 +10,7 @@ const CLIENT_ID = "1234-abc.apps.googleusercontent.com"
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?state=synthetic"
 const empty: GoogleStatus = {
   connected: false, email: null, hasCredentials: false, pending: false, reauthRequired: false, lastSyncAt: null, lastSyncError: null,
+  pendingChanges: 0, lastConflict: null,
 }
 const openExternal = vi.fn()
 let current: GoogleStatus
@@ -95,6 +96,26 @@ describe("GooglePanel", () => {
     expect(screen.getByText("Connected")).toBeInTheDocument()
     expect(screen.getByText("Never")).toBeInTheDocument()
     expect(calls.filter((call) => call.path === "/google/status").length).toBeGreaterThan(1)
+  })
+
+  it("shows the changes waiting for Google and the last conflict", async () => {
+    current = { ...empty, hasCredentials: true, connected: true, email: "someone@gmail.com", pendingChanges: 2 }
+    mockGoogle()
+    renderWithProviders(<GooglePanel />)
+    expect(await screen.findByText("Waiting to send")).toBeInTheDocument()
+    expect(screen.getByText("2 changes")).toBeInTheDocument()
+    expect(screen.queryByTestId("google-conflict")).not.toBeInTheDocument()
+  })
+
+  it("says when the Google version of an event was kept", async () => {
+    current = {
+      ...empty, hasCredentials: true, connected: true, email: "someone@gmail.com", pendingChanges: 1,
+      lastConflict: { title: "Dentist", at: "2026-10-21T12:00:00.000Z" },
+    }
+    mockGoogle()
+    renderWithProviders(<GooglePanel />)
+    expect(await screen.findByText("1 change")).toBeInTheDocument()
+    expect(screen.getByTestId("google-conflict")).toHaveTextContent("The Google version of “Dentist” was kept because it changed there too.")
   })
 
   it("disconnects and keeps the credentials", async () => {

@@ -51,7 +51,7 @@ async fn reports_the_status_without_any_secret() {
     assert_eq!(empty.status(), 200);
     assert_eq!(
         empty.json(),
-        json!({ "connected": false, "email": null, "hasCredentials": false, "pending": false, "reauthRequired": false, "lastSyncAt": null, "lastSyncError": null })
+        json!({ "connected": false, "email": null, "hasCredentials": false, "pending": false, "reauthRequired": false, "lastSyncAt": null, "lastSyncError": null, "pendingChanges": 0, "lastConflict": null })
     );
 
     let saved = ctx
@@ -220,15 +220,26 @@ async fn syncs_through_the_route_and_needs_a_connected_account() {
     let state = start(&ctx).await;
     assert_page(&ctx.get(&format!("/api/google/oauth/callback?code=c&state={state}")).await, 200, "Conectado.");
     // The callback starts the first import in the background.
-    for _ in 0..100 {
-        if ctx.get("/api/google/status").await.json()["lastSyncAt"].is_string() {
+    for _ in 0..250 {
+        if ctx.get("/api/calendar/events?limit=10").await.json()["items"]
+            .as_array()
+            .is_some_and(|items| !items.is_empty())
+        {
             break;
         }
         tokio::time::sleep(std::time::Duration::from_millis(20)).await;
     }
     assert_eq!(calendar.listings().len(), 1);
 
-    let synced = ctx.post_empty("/api/google/sync").await;
+    // A sync that starts while the callback's import is still finishing shares its answer,
+    // so ask again until one runs on its own.
+    let mut synced = ctx.post_empty("/api/google/sync").await;
+    for _ in 0..5 {
+        if synced.json() == json!({ "imported": 0, "updated": 0, "removed": 0 }) {
+            break;
+        }
+        synced = ctx.post_empty("/api/google/sync").await;
+    }
     assert_eq!(synced.status(), 200, "{}", synced.text());
     assert_eq!(synced.json(), json!({ "imported": 0, "updated": 0, "removed": 0 }));
     let listed = ctx.get("/api/calendar/events?limit=10").await.json();

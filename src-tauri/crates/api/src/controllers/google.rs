@@ -30,7 +30,7 @@ pub fn public_routes(table: RouteTable) -> RouteTable {
 }
 
 async fn sync(State(state): State<AppState>) -> ApiResult<Json<SyncResult>> {
-    Ok(Json(state.google_calendar.sync().await?))
+    Ok(Json(state.google_calendar.sync_now().await?))
 }
 
 async fn status(State(state): State<AppState>) -> ApiResult<Json<GoogleStatus>> {

@@ -506,6 +506,13 @@ export interface DetailedCalendarEvent extends CalendarEvent {
    * that opens it there (an event imported from Google Calendar)
    */
   externalLink?: EventExternalLink;
+  /**
+   * Life Board: set while a change to the event hasn't reached Google; its
+   * text ("Not synced yet") shows next to the title and in the details
+   */
+  unsyncedLabel?: string;
+  /** Life Board: a note shown in the details (changes apply to one occurrence only) */
+  detailHint?: string;
   /** Calendar ID this event belongs to */
   calendarId?: string;
   /**

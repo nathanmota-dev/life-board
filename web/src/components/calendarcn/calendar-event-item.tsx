@@ -11,6 +11,7 @@ import {
   useIsEventInSelection,
 } from "./calendar-provider";
 import { SeriesChangeDot } from "./event-series-scope-dialog";
+import { EventSyncMark } from "./event-sync-mark";
 import {
   formatTime,
   formatTimeRange,
@@ -443,6 +444,7 @@ export function CalendarEventItem({
                 )}
               >
                 <SeriesChangeDot eventId={event.id} />
+<EventSyncMark event={event} />
                 {event.title}
               </span>
               {!isCompact && (
@@ -543,6 +545,7 @@ export function CalendarEventItem({
             >
               <span className="font-medium text-[0.625rem] leading-tight break-words text-white dark:text-white flex items-center gap-0.5">
                 <SeriesChangeDot eventId={event.id} />
+<EventSyncMark event={event} />
                 {event.title}
               </span>
               {heightPx >= 40 && (
@@ -717,6 +720,7 @@ export function CalendarEventItem({
               )}
             >
               <SeriesChangeDot eventId={event.id} />
+<EventSyncMark event={event} />
               {event.title}
             </span>
             {!isCompact && (
@@ -954,6 +958,7 @@ export function AllDayEventItem({
               )}
             >
               <SeriesChangeDot eventId={event.id} />
+<EventSyncMark event={event} />
               {event.title}
             </span>
           }
@@ -1008,6 +1013,7 @@ export function AllDayEventItem({
               )}
             >
               <SeriesChangeDot eventId={event.id} />
+<EventSyncMark event={event} />
               {event.title}
             </span>
           }
@@ -1168,6 +1174,7 @@ export function AllDayEventItem({
               )}
             >
               <SeriesChangeDot eventId={event.id} />
+<EventSyncMark event={event} />
               {event.title}
             </span>
             {hasStartTime && (

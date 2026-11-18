@@ -39,6 +39,7 @@ function imported(id: string, title: string, start: Date, end: Date): CalendarEv
 
 const connected: GoogleStatus = {
   connected: true, email: "me@gmail.com", hasCredentials: true, pending: false, reauthRequired: false, lastSyncAt: null, lastSyncError: null,
+  pendingChanges: 0, lastConflict: null,
 }
 
 afterEach(() => {
@@ -103,28 +104,77 @@ describe("CalendarPage", () => {
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument()
   })
 
-  it("shows a Google event read-only, with its source and a link back to Google", async () => {
+  it("lets a Google event be edited, with its source and a link back to Google", async () => {
     const openExternal = vi.fn()
     window.desktop = { getVersion: vi.fn(), getApiBaseUrl: vi.fn(), openExternal }
     const { calls } = mockApi({
       "GET /calendar/events": () => ({
-        items: [imported("g1", "Standup", todayAt(10), todayAt(11)), stored("l1", "Dentist", todayAt(13), todayAt(14))],
+        items: [imported("g1", "Standup", todayAt(10), todayAt(11))],
         nextCursor: null,
       }),
-      "DELETE /calendar/events/l1": () => ({ ok: true }),
+      "PATCH /calendar/events/g1": ({ body }) => ({ ...imported("g1", "Standup", todayAt(10), todayAt(11)), ...(body as object) }),
     })
     renderWithProviders(<CalendarPage />)
 
     fireEvent.click(await screen.findByRole("button", { name: /^Standup,/ }))
     const details = await screen.findByRole("dialog", { name: "Event details" })
-    expect(within(details).getByRole("textbox", { name: "Title" })).toHaveAttribute("readonly")
+    const title = within(details).getByRole("textbox", { name: "Title" })
+    expect(title).not.toHaveAttribute("readonly")
     expect(within(details).getByText("Google Calendar")).toBeInTheDocument()
     fireEvent.click(within(details).getByRole("button", { name: /Open in Google Calendar/ }))
     expect(openExternal).toHaveBeenCalledWith(GOOGLE_URL)
-    fireEvent.pointerDown(within(details).getByRole("button", { name: "More actions" }), { button: 0, ctrlKey: false })
-    expect(await screen.findByRole("menuitem", { name: /Delete/ })).toHaveAttribute("aria-disabled", "true")
-    fireEvent.keyDown(document.body, { key: "Escape" })
-    expect(calls.some((call) => call.method === "DELETE" || call.method === "PATCH")).toBe(false)
+    act(() => {
+      fireEvent.change(title, { target: { value: "Daily" } })
+    })
+    await waitFor(() => expect(calls.find((call) => call.method === "PATCH")?.body).toMatchObject({ title: "Daily" }))
+  })
+
+  it("marks an event that Google doesn't have yet, until it is sent", async () => {
+    let pending: CalendarEvent["syncState"] = "pending_create"
+    mockApi({
+      "GET /calendar/events": () => ({
+        items: [{ ...stored("l1", "Dentist", todayAt(13), todayAt(14)), syncState: pending }],
+        nextCursor: null,
+      }),
+    })
+    const { queryClient } = renderWithProviders(<CalendarPage />)
+    expect(await screen.findByTestId("event-sync-mark")).toHaveAttribute("aria-label", "Not synced yet")
+
+    pending = null
+    await queryClient.refetchQueries({ queryKey: ["calendar"] })
+    await waitFor(() => expect(screen.queryByTestId("event-sync-mark")).not.toBeInTheDocument())
+  })
+
+  it("says in the details that an occurrence changes alone and that it isn't synced yet", async () => {
+    mockApi({
+      "GET /calendar/events": () => ({
+        items: [{ ...imported("g1_20261012", "Standup", todayAt(10), todayAt(11)), recurringEventId: "g1", syncState: "pending_update" as const }],
+        nextCursor: null,
+      }),
+    })
+    renderWithProviders(<CalendarPage />)
+
+    fireEvent.click(await screen.findByRole("button", { name: /^Standup,/ }))
+    const details = await screen.findByRole("dialog", { name: "Event details" })
+    expect(within(details).getByTestId("event-not-synced")).toHaveTextContent("Not synced yet")
+    expect(within(details).getByTestId("event-occurrence-hint")).toHaveTextContent("Changes apply to this occurrence only.")
+  })
+
+  it("announces a conflict once, and not the one that was already there", async () => {
+    let status: GoogleStatus = { ...connected, lastConflict: { title: "Old", at: "2026-10-21T10:00:00.000Z" } }
+    mockApi({
+      "GET /calendar/events": () => ({ items: [], nextCursor: null }),
+      "GET /google/status": () => status,
+    })
+    const { queryClient } = renderWithProviders(<CalendarPage />)
+    await screen.findByRole("button", { name: "Week" })
+    await waitFor(() => expect(queryClient.getQueryData(["google", "status"])).toBeDefined())
+    await queryClient.refetchQueries({ queryKey: ["google"] })
+    expect(screen.queryByText(/Google had a newer version/)).not.toBeInTheDocument()
+
+    status = { ...status, lastConflict: { title: "Dentist", at: "2026-10-21T12:00:00.000Z" } }
+    await queryClient.refetchQueries({ queryKey: ["google"] })
+    expect(await screen.findByText("Google had a newer version of “Dentist”, so it was kept.")).toBeInTheDocument()
   })
 
   it("keeps local events editable and without a source", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { GOOGLE_POLL_INTERVAL_MS, googleStatusInterval, googleSyncProblem, isGoogleClientId } from "@/lib/google"
+import { GOOGLE_POLL_INTERVAL_MS, googleStatusInterval, googleSyncProblem, hasPendingSync, isGoogleClientId } from "@/lib/google"
 import type { GoogleStatus } from "@/types/google"
 
 describe("isGoogleClientId", () => {
@@ -22,6 +22,7 @@ describe("googleStatusInterval", () => {
 describe("googleSyncProblem", () => {
   const status: GoogleStatus = {
     connected: true, email: "me@gmail.com", hasCredentials: true, pending: false, reauthRequired: false, lastSyncAt: null, lastSyncError: null,
+    pendingChanges: 0, lastConflict: null,
   }
 
   it("tells a refused authorization from a failed sync", () => {
@@ -33,5 +34,13 @@ describe("googleSyncProblem", () => {
     expect(googleSyncProblem(status)).toBeNull()
     expect(googleSyncProblem(undefined)).toBeNull()
     expect(googleSyncProblem({ ...status, connected: false, lastSyncError: "left over" })).toBeNull()
+  })
+})
+
+describe("hasPendingSync", () => {
+  it("is true while some event waits for Google", () => {
+    expect(hasPendingSync([{ syncState: null }, { syncState: "pending_update" }])).toBe(true)
+    expect(hasPendingSync([{ syncState: null }])).toBe(false)
+    expect(hasPendingSync(undefined)).toBe(false)
   })
 })

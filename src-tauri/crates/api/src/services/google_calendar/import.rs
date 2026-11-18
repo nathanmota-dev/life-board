@@ -53,7 +53,7 @@ pub fn apply(
     Ok(result)
 }
 
-fn new_row(calendar_id: &str, fields: &GoogleEventFields, now: Timestamp) -> Option<NewCalendarEvent> {
+pub(super) fn new_row(calendar_id: &str, fields: &GoogleEventFields, now: Timestamp) -> Option<NewCalendarEvent> {
     Some(NewCalendarEvent {
         id: crate::db::columns::new_id(),
         title: fields.title.clone().unwrap_or_default(),
@@ -95,7 +95,7 @@ fn soft_delete(conn: &Connection, id: &str, now: Timestamp) -> rusqlite::Result<
     Ok(())
 }
 
-/// Soft-deletes the Google events that start in `window` and weren't in the listing.
+/// Soft-deletes the linked events (imported, or created here and sent) that start in `window` and weren't in the listing.
 fn remove_missing(
     conn: &Connection,
     calendar_id: &str,
@@ -104,7 +104,7 @@ fn remove_missing(
     returned: &HashSet<String>,
 ) -> rusqlite::Result<usize> {
     let mut statement = conn.prepare(
-        "SELECT * FROM calendar_events WHERE source = 'google' AND deleted_at IS NULL AND sync_state IS NULL AND external_calendar_id = ?1 AND start_at >= ?2 AND start_at < ?3",
+        "SELECT * FROM calendar_events WHERE external_id IS NOT NULL AND deleted_at IS NULL AND sync_state IS NULL AND external_calendar_id = ?1 AND start_at >= ?2 AND start_at < ?3",
     )?;
     let stale = statement
         .query_map(

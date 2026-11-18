@@ -129,7 +129,7 @@ impl AppState {
             thoughts: ThoughtsService::new(db.clone()),
             links: LinksService::new(db.clone()),
             goals: GoalsService::new(db.clone()),
-            calendar: CalendarService::new(db.clone()),
+            calendar: CalendarService::with_wake(db.clone(), google_calendar.wake()),
             mood: MoodService::new(db.clone()),
             habits: HabitsService::new(db.clone()),
             projects: ProjectsService::new(db.clone()),

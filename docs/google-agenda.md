@@ -165,16 +165,19 @@ falha no meio não apaga o que já estava salvo.
   `deleted_at`.
 - **Sem título**: o evento é guardado com título vazio, e o calendário mostra "Sem
   título"/"No title".
-- **Pendências**: linhas com `sync_state` preenchido são ignoradas pela importação;
-  só existem depois que os eventos do Life Board forem enviados ao Google.
+- **Pendências**: antes de ler a agenda, cada sincronização envia as mudanças
+  pendentes (veja "Envio dos eventos"). As linhas que ainda têm `sync_state` depois
+  disso (o Google falhou, ou a linha está esperando) são ignoradas pela importação e
+  não são removidas por "o Google não devolveu".
+- **Vinculados**: eventos criados no Life Board e já enviados também são atualizados
+  e removidos pela importação, como os importados.
 - **Erros**: `401` renova o token uma vez (`GoogleService::access_token()`) e repete;
   autorização recusada (`ReauthRequired`) interrompe e as Configurações passam a
   oferecer **Reconectar**; limite de requisições ou falha de rede interrompem,
   gravam `last_sync_error` e esperam o próximo intervalo.
-- **Somente leitura**: `PATCH` e `DELETE` de um evento `source = 'google'` respondem
-  `409 read_only_event`, e o calendário não oferece arrastar, redimensionar, editar,
-  recortar nem excluir esses eventos. Os detalhes mostram "Google Agenda" e **Abrir
-  no Google Agenda** (`externalUrl`, liberado em `app:open-external` para
+- **Editáveis**: eventos do Google podem ser movidos, redimensionados, editados e
+  excluídos no Life Board (não existe mais `409 read_only_event`). Os detalhes
+  mostram "Google Agenda" e **Abrir no Google Agenda** (`externalUrl`, liberado em `app:open-external` para
   `https://www.google.com/calendar/` e `https://calendar.google.com/`).
 - **Desconectar** (e `reset_secrets`) apaga de verdade as linhas `google` e limpa os
   campos de vínculo e o `sync_state` das linhas `local`.
@@ -182,3 +185,51 @@ falha no meio não apaga o que já estava salvo.
   e recarrega os eventos quando `lastSyncAt` muda. Um aviso com atalho para as
   Configurações aparece quando `reauthRequired` ou `lastSyncError` estão preenchidos.
 - **Dashboard**: eventos importados contam no painel e nas estatísticas como os locais.
+
+## Envio dos eventos
+
+Com a conta conectada, o que você faz no Life Board chega ao Google em segundos.
+
+- **Primeiro o local**: `POST`, `PATCH` e `DELETE /api/calendar/events` gravam na hora,
+  marcam `sync_state` e respondem **sem esperar o Google**. A tela não trava nem falha
+  sem rede.
+- **O que vai**: eventos criados **depois de conectar** (`pending_create`) e todo
+  evento vinculado (`pending_update`, `pending_delete`). Eventos criados antes de
+  conectar ficam só locais, e editá-los não os envia. Campos enviados: título,
+  descrição, local, início, fim, dia inteiro e cor (`to_google`). Tarefas e
+  pensamentos vinculados ficam só no Life Board, e mudar só eles não envia nada.
+- **O trabalhador** (`google_calendar/export.rs`): é acordado a cada mudança (um
+  `Notify` compartilhado entre o serviço de calendário e o de sincronização) e também
+  roda no começo de toda sincronização, antes da importação. Divide a trava de
+  "uma sincronização por vez", então enviar e importar nunca se sobrepõem. Envia por
+  ordem de alteração.
+- **Junção de edições**: várias edições do mesmo evento antes do envio viram um só
+  `PATCH` com os últimos valores; editar um `pending_create` continua
+  `pending_create`; excluir um `pending_create` descarta o evento sem chamar o Google.
+- **Sem sobrescrever o mais novo**: o resultado de um envio só é gravado na linha se
+  ela não mudou durante o pedido (`updated_at`, `deleted_at` e `sync_state`). Se mudou,
+  a linha continua pendente e o resultado útil (o vínculo de um evento recém-criado ou
+  o novo `etag`) é guardado, para não duplicar nem tomar `412` à toa.
+- **Conflitos**: o `PATCH` leva `If-Match` com o `external_etag`. No `412`, o evento é
+  buscado no Google (`GET`), sobrescreve a linha local, `sync_state` é limpo e
+  `GET /api/google/status` passa a trazer `lastConflict` (`title`, `at`): **o Google
+  vence**. O aviso fica só em memória e some ao reiniciar.
+- **Apagado do outro lado**: `404`/`410` no `PATCH` apaga o evento localmente; no
+  `DELETE`, conta como sucesso.
+- **Falhas**: `401` renova o token uma vez. Limite de requisições, rede e `5xx` mantêm
+  o `sync_state` e tentam de novo com espera de 1, 5 e 15 minutos por evento (em
+  memória; zera ao reiniciar); limite de requisições e rede interrompem a rodada.
+  **Sincronizar agora** ignora essa espera. Um `4xx` de corpo inválido limpa o
+  `sync_state` e grava em `last_sync_error` o título do evento, em vez de repetir
+  para sempre.
+- **Ocorrências**: o id guardado é o da ocorrência, então editar ou excluir uma
+  ocorrência muda só ela (o Google guarda uma exceção). "Esta e as seguintes" e a
+  edição da série não existem; os detalhes dizem "As alterações valem só para esta
+  ocorrência."
+- **Desconectar** descarta as pendências: os eventos locais continuam, desvinculados.
+- **Na tela**: eventos com `syncState` mostram uma marca "Ainda não sincronizado" e a
+  agenda recarrega a cada 3 segundos enquanto houver pendência. Configurações mostra
+  quantas mudanças aguardam envio e, quando o Google venceu, qual evento; um aviso
+  também aparece uma vez no calendário.
+- Com a feature `e2e`, `LIFE_BOARD_E2E_GOOGLE_SYNC=off` desliga só a sincronização
+  periódica: o envio de mudanças continua.

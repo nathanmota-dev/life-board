@@ -5,6 +5,7 @@
 //! transaction, so a failure halfway keeps the previous events. One sync runs at
 //! a time: a second caller waits for the running one and returns its result.
 
+mod export;
 mod import;
 mod scheduler;
 mod types;
@@ -14,7 +15,7 @@ pub use types::*;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Notify};
 
 use crate::clock;
 use crate::db::Db;
@@ -52,6 +53,10 @@ pub struct GoogleCalendarService {
     flight: Arc<Mutex<Flight>>,
     /// Syncs finished so far: a caller that saw a newer count after waiting took part in a finished one.
     finished: Arc<AtomicU64>,
+    /// Rung by the calendar after each change that has to reach Google; the worker listens.
+    wake: Arc<Notify>,
+    /// When a failed event may be tried again; it resets with the app.
+    backoff: Arc<std::sync::Mutex<std::collections::HashMap<String, export::Backoff>>>,
 }
 
 impl GoogleCalendarService {
@@ -60,7 +65,21 @@ impl GoogleCalendarService {
     }
 
     pub fn with_clock(db: Db, google: GoogleService, api: Arc<dyn GoogleCalendarApi>, now: Now) -> Self {
-        Self { db, google, api, now, flight: Arc::default(), finished: Arc::default() }
+        Self {
+            db,
+            google,
+            api,
+            now,
+            flight: Arc::default(),
+            finished: Arc::default(),
+            wake: Arc::default(),
+            backoff: Arc::default(),
+        }
+    }
+
+    /// What the calendar rings after a change, so the worker sends it.
+    pub fn wake(&self) -> Arc<Notify> {
+        self.wake.clone()
     }
 
     /// Whether an account is connected, so the scheduler has something to do.
@@ -93,6 +112,8 @@ impl GoogleCalendarService {
         let calendar_id = self.google.calendar_id().await.map_err(SyncFailure::from_token)?;
         let now = (self.now)();
         let window = sync_window(now);
+        // Changes made here go first, so the listing already has them.
+        let rejected = self.export(&calendar_id).await?;
         let events = self.list(&calendar_id, window).await?;
         let result = self
             .db
@@ -100,14 +121,13 @@ impl GoogleCalendarService {
                 let tx = conn.transaction()?;
                 let result = import::apply(&tx, &calendar_id, window, now, &events)?;
                 tx.execute(
-                    "UPDATE google_settings SET last_sync_at = ?1, last_sync_error = NULL, updated_at = ?1 WHERE id = ?2",
-                    rusqlite::params![crate::db::columns::to_millis(now), SETTINGS_ID],
+                    "UPDATE google_settings SET last_sync_at = ?1, last_sync_error = ?2, updated_at = ?1 WHERE id = ?3",
+                    rusqlite::params![crate::db::columns::to_millis(now), rejected, SETTINGS_ID],
                 )?;
                 tx.commit()?;
                 Ok(result)
             })
-            .await
-            .map_err(|error| SyncFailure::Internal(error.to_string()))?;
+            .await?;
         Ok(result)
     }
 

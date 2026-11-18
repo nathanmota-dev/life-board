@@ -114,15 +114,29 @@ describe("toCalendarItem and Google events", () => {
     externalUrl: "https://www.google.com/calendar/event?eid=g1",
   }
 
-  it("marks Google events read-only and links them back to Google", () => {
+  it("links Google events back to Google and keeps them editable", () => {
     const item = toCalendarItem(imported)
-    expect(item.readOnly).toBe(true)
+    expect(item.readOnly).toBeUndefined()
     expect(item.externalLink).toEqual({
       label: "Google Calendar",
       openLabel: "Open in Google Calendar",
       url: "https://www.google.com/calendar/event?eid=g1",
     })
     expect(toCalendarItem({ ...imported, externalUrl: null }).externalLink?.url).toBeNull()
+  })
+
+  it("links a local event once Google has it", () => {
+    const sent = { ...imported, source: "local" as const }
+    expect(toCalendarItem(sent).externalLink?.url).toBe(imported.externalUrl)
+  })
+
+  it("marks the events that haven't reached Google and the occurrences of a series", () => {
+    expect(toCalendarItem({ ...imported, syncState: "pending_update" }).unsyncedLabel).toBe("Not synced yet")
+    expect(toCalendarItem(imported).unsyncedLabel).toBeUndefined()
+    expect(toCalendarItem({ ...imported, recurringEventId: "series" }).detailHint).toBe(
+      "Changes apply to this occurrence only.",
+    )
+    expect(toCalendarItem(imported).detailHint).toBeUndefined()
   })
 
   it("leaves local events editable", () => {

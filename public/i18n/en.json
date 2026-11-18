@@ -128,7 +128,11 @@
       "syncNow": "Sync now",
       "syncing": "Syncing…",
       "syncError": "Last sync failed",
-      "syncDescription": "Events from your primary calendar, from 30 days ago to a year ahead, are imported every 15 minutes. They are read-only in Life Board."
+      "syncDescription": "Events from your primary calendar, from 30 days ago to a year ahead, are imported every 15 minutes. Events you create or change in Life Board while connected are sent to Google within seconds. If the same event changed in both places, the Google version is kept.",
+      "pendingChanges": "Waiting to send",
+      "pendingChangesValue_one": "{{count}} change",
+      "pendingChangesValue_other": "{{count}} changes",
+      "conflict": "The Google version of “{{title}}” was kept because it changed there too."
     },
     "updates": {
       "title": "Updates",
@@ -263,6 +267,9 @@
     "noTitle": "No title",
     "googleCalendar": "Google Calendar",
     "openInGoogle": "Open in Google Calendar",
+    "notSynced": "Not synced yet",
+    "occurrenceOnly": "Changes apply to this occurrence only.",
+    "conflictKept": "Google had a newer version of “{{title}}”, so it was kept.",
     "syncReauth": "Google Calendar needs to be reconnected. Imported events may be out of date.",
     "syncFailed": "Google Calendar could not sync. Events may be out of date.",
     "openSettings": "Open Settings"

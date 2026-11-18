@@ -42,8 +42,8 @@ is under `/api`. `GET` routes also answer `HEAD`.
 | | `DELETE /api/goals/:goalId/milestones/:milestoneId` | — | `200 { ok: true }` |
 | calendar | `GET /api/calendar/events` | `ListEventsQuery` | `200 { items }` |
 | | `POST /api/calendar/events` | `CreateEventBody` | `201 CalendarEvent` |
-| | `PATCH /api/calendar/events/:id` | `UpdateEventBody` | `200 CalendarEvent`; `409 read_only_event` for a Google event |
-| | `DELETE /api/calendar/events/:id` | — | `200 { ok: true }`; `409 read_only_event` for a Google event |
+| | `PATCH /api/calendar/events/:id` | `UpdateEventBody` | `200 CalendarEvent`; `syncState` is set for a linked event while the change waits for Google |
+| | `DELETE /api/calendar/events/:id` | — | `200 { ok: true }`; a linked event is soft deleted and deleted in Google afterwards |
 | mood | `GET /api/mood/today` | — | `200 { day, entry, nextAvailableAt }` |
 | | `GET /api/mood/entries` | `ListMoodQuery` | `200 { items }` |
 | | `POST /api/mood/entries` | `UpsertMoodBody` | `201` created / `200` updated, `MoodEntry` |
@@ -73,7 +73,7 @@ is under `/api`. `GET` routes also answer `HEAD`.
 | | `GET /api/github/repos/recent` | `RecentReposQuery` | `200 { items }` |
 | | `GET /api/github/prs` | `ListPrsQuery` | `200 { items }` |
 | | `GET /api/github/issues` | `ListIssuesQuery` | `200 { items }` |
-| google | `GET /api/google/status` | — | `200 { connected, email, hasCredentials, pending, reauthRequired, lastSyncAt, lastSyncError }` |
+| google | `GET /api/google/status` | — | `200 { connected, email, hasCredentials, pending, reauthRequired, lastSyncAt, lastSyncError, pendingChanges, lastConflict }` |
 | | `PUT /api/google/credentials` | `SaveGoogleCredentialsBody` | `200` the status |
 | | `DELETE /api/google/credentials` | — | `200 { ok: true }` |
 | | `POST /api/google/connect` | — | `200 { authUrl }` |
@@ -128,7 +128,7 @@ one by one (see `tests/suite/dto.rs`):
   `missing_file`, `relative_dir`, `invalid_dir`, `not_connected`,
   `invalid_token`, `missing_credentials`, `invalid_credentials`, `invalid_grant`,
   `no_pending_flow`, `invalid_state`, `flow_expired`, `google_not_connected`,
-  `reauth_required`, `409 read_only_event`, `500 move_failed`, `502 sync_failed`, `github_unavailable`,
+  `reauth_required`, `500 move_failed`, `502 sync_failed`, `github_unavailable`,
   `google_unavailable`.
 - Body errors keep the codes of the Node API: `400 FST_ERR_CTP_EMPTY_JSON_BODY`,
   `400 FST_ERR_CTP_INVALID_JSON_BODY`, `415 FST_ERR_CTP_INVALID_MEDIA_TYPE`,

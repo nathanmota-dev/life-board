@@ -10,6 +10,7 @@ mod goals;
 mod google;
 mod google_auth_client;
 mod google_calendar_client;
+mod google_calendar_export;
 mod google_calendar_import;
 mod google_calendar_mapping;
 mod habits;

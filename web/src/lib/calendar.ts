@@ -58,9 +58,8 @@ export function toCalendarItem(event: CalendarEvent, id = event.id): CalendarIte
     color: colorName(event.color),
     description: event.description ?? undefined,
     location: event.location ?? undefined,
-    ...(event.source === "google"
+    ...(event.source === "google" || event.externalUrl
       ? {
-          readOnly: true,
           externalLink: {
             label: i18n.t("calendar.googleCalendar"),
             openLabel: i18n.t("calendar.openInGoogle"),
@@ -68,6 +67,8 @@ export function toCalendarItem(event: CalendarEvent, id = event.id): CalendarIte
           },
         }
       : {}),
+    ...(event.syncState ? { unsyncedLabel: i18n.t("calendar.notSynced") } : {}),
+    ...(event.recurringEventId ? { detailHint: i18n.t("calendar.occurrenceOnly") } : {}),
   }
 }
 
