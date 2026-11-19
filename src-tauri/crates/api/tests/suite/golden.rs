@@ -172,6 +172,11 @@ async fn settings_answer_like_node() {
         assert_eq!(actual[key], uploads, "{key}");
         actual[key] = "<data>/uploads".into();
     }
+    // The pages folders were added after the Node API.
+    let pages = ctx.data_dir.join("pages").to_string_lossy().into_owned();
+    for key in ["pagesDir", "defaultPagesDir"] {
+        assert_eq!(actual.as_object_mut().unwrap().remove(key), Some(pages.clone().into()), "{key}");
+    }
     assert_eq!(actual, expected.body);
 }
 

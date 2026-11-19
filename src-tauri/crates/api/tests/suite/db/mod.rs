@@ -6,6 +6,7 @@ mod goals_migration;
 mod google_migration;
 mod habits_migration;
 mod migrator;
+mod pages_migration;
 mod projects_migration;
 mod seeds;
 mod tasks_migration;

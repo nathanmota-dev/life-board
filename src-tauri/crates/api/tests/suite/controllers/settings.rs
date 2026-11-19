@@ -11,9 +11,16 @@ async fn reads_and_changes_the_uploads_folder() {
     let ctx = TestApp::new().await;
     let default_uploads_dir = display(&ctx.data_dir.join("uploads"));
     let initial = ctx.get("/api/settings/files").await;
+    let default_pages_dir = display(&ctx.data_dir.join("pages"));
     assert_eq!(
         initial.json(),
-        json!({ "baseDir": null, "uploadsDir": default_uploads_dir, "defaultUploadsDir": default_uploads_dir })
+        json!({
+            "baseDir": null,
+            "uploadsDir": default_uploads_dir,
+            "defaultUploadsDir": default_uploads_dir,
+            "pagesDir": default_pages_dir,
+            "defaultPagesDir": default_pages_dir,
+        })
     );
 
     let apps = ctx.data_dir.join("apps");
@@ -21,7 +28,12 @@ async fn reads_and_changes_the_uploads_folder() {
     let changed = ctx.put("/api/settings/files", json!({ "baseDir": display(&apps) })).await;
     assert_match(
         &changed.json(),
-        &json!({ "baseDir": display(&apps), "uploadsDir": display(&apps.join("life-board-app").join("uploads")) }),
+        &json!({
+            "baseDir": display(&apps),
+            "uploadsDir": display(&apps.join("life-board-app").join("uploads")),
+            "pagesDir": display(&apps.join("life-board-app").join("pages")),
+            "defaultPagesDir": default_pages_dir,
+        }),
     );
 
     let reset = ctx.put("/api/settings/files", json!({ "baseDir": null })).await;

@@ -17,6 +17,7 @@ pub mod google_calendar_client;
 pub mod habits;
 pub mod links;
 pub mod mood;
+pub mod pages;
 pub mod projects;
 pub mod query;
 pub mod stats;

@@ -14,6 +14,7 @@ use serde_json::{Map, Value};
 
 use crate::dto::Dto;
 use crate::dto::file_boards::{MAX_UPLOAD_BYTES, UploadItemFields};
+use crate::dto::pages::ImportPageFields;
 use crate::error::ApiError;
 use crate::services::file_boards::UploadedFile;
 
@@ -45,9 +46,9 @@ fn content_type(headers: &HeaderMap) -> Option<String> {
 }
 
 /// What Fastify's content-type parsers leave in `request.body`.
-async fn read_body(request: Request) -> Result<Value, ApiError> {
+async fn read_body(request: Request, limit: usize) -> Result<Value, ApiError> {
     let content_type = content_type(request.headers());
-    let bytes = to_bytes(request.into_body(), JSON_BODY_LIMIT).await.map_err(|_| {
+    let bytes = to_bytes(request.into_body(), limit).await.map_err(|_| {
         ApiError::client(StatusCode::PAYLOAD_TOO_LARGE, Some("FST_ERR_CTP_BODY_TOO_LARGE"), "Request body is too large")
     })?;
     match content_type.as_deref() {
@@ -81,7 +82,7 @@ impl<T: Dto, S: Send + Sync> FromRequest<S> for ValidatedJson<T> {
     type Rejection = ApiError;
 
     async fn from_request(request: Request, _state: &S) -> Result<Self, Self::Rejection> {
-        validate(&read_body(request).await?).map(Self)
+        validate(&read_body(request, T::BODY_LIMIT).await?).map(Self)
     }
 }
 
@@ -128,9 +129,21 @@ impl<T: Dto, S: Send + Sync> FromRequestParts<S> for ValidatedPath<T> {
 /// (`400 missing_file` without one), metadata in plain fields
 /// (`400 validation_error`), and `413` past `MAX_UPLOAD_BYTES`.
 #[derive(Debug, Clone)]
-pub struct UploadForm {
+pub struct UploadForm<F = UploadItemFields> {
     pub file: UploadedFile,
-    pub fields: UploadItemFields,
+    pub fields: F,
+}
+
+/// The plain fields that travel with an upload, and the size limit of its file.
+pub trait UploadFields: Dto {
+    const MAX_FILE_BYTES: usize = MAX_UPLOAD_BYTES;
+}
+
+impl UploadFields for UploadItemFields {}
+
+/// A markdown import is text, so it has the same limit as a page.
+impl UploadFields for ImportPageFields {
+    const MAX_FILE_BYTES: usize = crate::dto::file_boards::MAX_TEXT_CONTENT_BYTES;
 }
 
 /// Limits of the multipart parser, unchanged since the Node API.
@@ -191,10 +204,10 @@ fn is_form_data(part: &Field<'_>) -> bool {
         .is_some_and(|kind| kind.trim_ascii().eq_ignore_ascii_case(b"form-data"))
 }
 
-async fn read_file(part: &mut Field<'_>) -> Result<Vec<u8>, ApiError> {
+async fn read_file(part: &mut Field<'_>, limit: usize) -> Result<Vec<u8>, ApiError> {
     let mut bytes = Vec::new();
     while let Some(chunk) = part.chunk().await.map_err(unreadable)? {
-        if bytes.len() + chunk.len() > MAX_UPLOAD_BYTES {
+        if bytes.len() + chunk.len() > limit {
             return Err(too_large("FST_REQ_FILE_TOO_LARGE", "request file too large"));
         }
         bytes.extend_from_slice(&chunk);
@@ -236,12 +249,12 @@ struct ReceivedFile {
     mime: String,
 }
 
-impl<S: Send + Sync> FromRequest<S> for UploadForm {
+impl<F: UploadFields, S: Send + Sync> FromRequest<S> for UploadForm<F> {
     type Rejection = ApiError;
 
     async fn from_request(request: Request, state: &S) -> Result<Self, Self::Rejection> {
         if content_type(request.headers()).as_deref() != Some("multipart/form-data") {
-            read_body(request).await?;
+            read_body(request, JSON_BODY_LIMIT).await?;
             return Err(missing_file());
         }
         let empty_body = request.body().is_end_stream();
@@ -287,7 +300,7 @@ impl<S: Send + Sync> FromRequest<S> for UploadForm {
                     deferred = Some(prototype_violation());
                     continue;
                 }
-                let bytes = read_file(&mut part).await?;
+                let bytes = read_file(&mut part, F::MAX_FILE_BYTES).await?;
                 if let Some(name) = name {
                     fields.add(name, None);
                 }
@@ -323,7 +336,7 @@ impl<S: Send + Sync> FromRequest<S> for UploadForm {
         let Some(ReceivedFile { bytes, filename, mime }) = file else {
             return Err(deferred.unwrap_or_else(missing_file));
         };
-        let fields = UploadItemFields::parse(&fields.into_json()).map_err(|issues| {
+        let fields = F::parse(&fields.into_json()).map_err(|issues| {
             let message: Vec<String> = issues.iter().map(|issue| format!("{} {}", issue.path, issue.message)).collect();
             ApiError::bad_request("validation_error", message.join(", "))
         })?;

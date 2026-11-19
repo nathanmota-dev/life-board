@@ -7,6 +7,7 @@ mod habits;
 mod health;
 mod links;
 mod mood;
+mod pages;
 mod projects;
 mod settings;
 mod stats;

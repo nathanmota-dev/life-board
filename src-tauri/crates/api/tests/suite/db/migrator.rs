@@ -10,7 +10,7 @@ use crate::common::{NODE_PROFILE, fixture, migrations_before, temp_dir};
 /// The first migration written after the Node API, which the Node profile lacks.
 const FIRST_RUST_MIGRATION: &str = "0009";
 /// Tables those migrations created.
-const RUST_TABLES: [&str; 1] = ["google_settings"];
+const RUST_TABLES: [&str; 2] = ["google_settings", "pages"];
 /// Objects those migrations added to Node-era tables: `calendar_events` gained columns
 /// (so its `CREATE TABLE` text differs) and two indexes.
 const RUST_ALTERED_OBJECTS: [&str; 3] =

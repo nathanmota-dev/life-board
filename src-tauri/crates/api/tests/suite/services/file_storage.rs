@@ -171,3 +171,55 @@ async fn checks_that_a_folder_accepts_new_files_and_leaves_nothing_behind() {
         std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
     }
 }
+
+#[tokio::test]
+async fn writes_at_an_exact_path_through_a_temporary_file_and_reads_it_back() {
+    let (dir, storage) = setup();
+    let root = dir.path().join("uploads");
+
+    storage.write_at("page.md", b"one\r\n").await.unwrap();
+    storage.write_at("page.md", "two é".as_bytes()).await.unwrap();
+
+    assert_eq!(list_dir(&root), ["page.md"]);
+    assert_eq!(read(root.join("page.md")), "two é");
+    assert_eq!(storage.read_to_string("page.md").await.unwrap(), "two é");
+    assert_eq!(storage.list().await.unwrap(), ["page.md"]);
+    assert_eq!(storage.read_to_string("missing.md").await.unwrap_err().kind(), ErrorKind::NotFound);
+    std::fs::write(root.join("binary.md"), [0xff, 0xfe]).unwrap();
+    assert_eq!(storage.read_to_string("binary.md").await.unwrap_err().kind(), ErrorKind::InvalidData);
+}
+
+#[tokio::test]
+async fn lists_an_empty_list_while_the_root_does_not_exist_yet() {
+    let (_dir, storage) = setup();
+    assert!(storage.list().await.unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn write_at_and_read_to_string_refuse_paths_outside_the_root() {
+    let (dir, storage) = setup();
+    for path in ["../escape.md", "/etc/passwd", "a/../../escape.md", "", "."] {
+        let write = storage.write_at(path, b"x").await.unwrap_err();
+        assert_eq!(
+            (write.kind(), write.to_string()),
+            (ErrorKind::InvalidInput, "Invalid storage path.".into()),
+            "{path}"
+        );
+        assert_eq!(storage.read_to_string(path).await.unwrap_err().kind(), ErrorKind::InvalidInput, "{path}");
+    }
+    assert!(!dir.path().join("escape.md").exists());
+}
+
+#[tokio::test]
+async fn real_disk_renames_over_an_existing_file_and_lists_names() {
+    let dir = temp_dir("life-board-disk-");
+    let (from, to) = (dir.path().join("a.tmp"), dir.path().join("a.md"));
+    std::fs::write(&from, "new").unwrap();
+    std::fs::write(&to, "old").unwrap();
+
+    RealDisk.rename(&from, &to).await.unwrap();
+
+    assert_eq!(read(to), "new");
+    assert_eq!(RealDisk.list(dir.path()).await.unwrap(), ["a.md"]);
+    assert_eq!(RealDisk.list(&dir.path().join("none")).await.unwrap_err().kind(), ErrorKind::NotFound);
+}

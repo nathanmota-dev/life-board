@@ -19,6 +19,7 @@ use crate::services::google_calendar_client::{GoogleCalendarApi, GoogleCalendarC
 use crate::services::habits::HabitsService;
 use crate::services::links::LinksService;
 use crate::services::mood::MoodService;
+use crate::services::pages::PagesService;
 use crate::services::projects::ProjectsService;
 use crate::services::stats::StatsService;
 use crate::services::tasks::TasksService;
@@ -72,6 +73,8 @@ pub struct AppState {
     pub crypto: CryptoService,
     /// Shared with `file_boards` and `files_settings`, so a folder change applies to the next upload.
     pub storage: FileStorageService,
+    /// Holds the pages' `.md` files; shared with `pages` and `files_settings`.
+    pub pages_storage: FileStorageService,
     pub authenticator: Arc<dyn Authenticator>,
     pub tasks: TasksService,
     pub thoughts: ThoughtsService,
@@ -89,10 +92,12 @@ pub struct AppState {
     pub server_url: Option<String>,
     pub file_boards: FileBoardsService,
     pub files_settings: FilesSettingsService,
+    pub pages: PagesService,
 }
 
 impl AppState {
-    /// Builds the services, then runs `files_settings.load()` and `file_boards.purge_deleted()`.
+    /// Builds the services, then runs `files_settings.load()`, `file_boards.purge_deleted()` and
+    /// `pages.purge_temp_files()`.
     pub async fn new(options: AppOptions) -> ApiResult<Self> {
         let AppOptions {
             db,
@@ -108,6 +113,7 @@ impl AppState {
         } = options;
         let disk = disk.unwrap_or_else(|| Arc::new(RealDisk));
         let storage = FileStorageService::with_disk(data_dir.join("uploads"), disk);
+        let pages_storage = storage.at(data_dir.join("pages"));
         let github = GithubService::new(
             db.clone(),
             github_client.unwrap_or_else(|| Arc::new(GithubClient::new())),
@@ -139,7 +145,14 @@ impl AppState {
             google_calendar,
             server_url,
             file_boards: FileBoardsService::new(db.clone(), storage.clone()),
-            files_settings: FilesSettingsService::new(db.clone(), storage.clone(), storage.root()),
+            files_settings: FilesSettingsService::new(
+                db.clone(),
+                storage.clone(),
+                storage.root(),
+                pages_storage.clone(),
+            ),
+            pages: PagesService::new(db.clone(), pages_storage.clone()),
+            pages_storage,
             authenticator: authenticator.unwrap_or_else(|| Arc::new(AllowAll)),
             storage,
             crypto,
@@ -147,6 +160,7 @@ impl AppState {
         };
         state.files_settings.load().await?;
         state.file_boards.purge_deleted().await?;
+        state.pages.purge_temp_files().await;
         Ok(state)
     }
 }

@@ -10,6 +10,7 @@ pub mod goals;
 pub mod google;
 pub mod habits;
 pub mod mood;
+pub mod pages;
 pub mod projects;
 pub mod tasks;
 pub mod thoughts;
