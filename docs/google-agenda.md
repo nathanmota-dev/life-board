@@ -9,7 +9,8 @@ disso vai para o repositório ou para o binário.
 
 Depois de conectada, os eventos da agenda principal aparecem no Calendário do Life
 Board e se mantêm atualizados (veja [Importação dos eventos](#importação-dos-eventos)).
-Por enquanto eles são **somente leitura** no Life Board.
+Eles podem ser editados no Life Board, e as mudanças voltam para o Google (veja
+[Envio dos eventos](#envio-dos-eventos)).
 
 ## Criar as credenciais no Google Cloud
 
