@@ -54,6 +54,25 @@ impl PagesService {
         Self { db, storage }
     }
 
+    /// Runs `work` in one transaction, committed only when it accepts the change.
+    async fn in_transaction<T, F>(&self, work: F) -> ApiResult<Result<T, Reject>>
+    where
+        F: FnOnce(&rusqlite::Transaction) -> rusqlite::Result<Result<T, Reject>> + Send + 'static,
+        T: Send + 'static,
+    {
+        Ok(self
+            .db
+            .call(move |conn| {
+                let tx = conn.transaction()?;
+                let outcome = work(&tx)?;
+                if outcome.is_ok() {
+                    tx.commit()?;
+                }
+                Ok(outcome)
+            })
+            .await?)
+    }
+
     /// Every item without content, flat, in tree order: folders first, then pages, each sorted by
     /// title ignoring case. Grouped by `parent_id`, the list gives every folder's children in order.
     pub async fn list(&self) -> ApiResult<Vec<Page>> {
@@ -76,10 +95,8 @@ impl PagesService {
     pub async fn update(&self, id: &str, input: UpdatePageBody) -> ApiResult<Page> {
         let id = id.to_owned();
         let outcome = self
-            .db
-            .call(move |conn| {
-                let tx = conn.transaction()?;
-                let Some(page) = find(&tx, &id)? else { return Ok(Err(Reject::NotFound)) };
+            .in_transaction(move |tx| {
+                let Some(page) = find(tx, &id)? else { return Ok(Err(Reject::NotFound)) };
                 if input.title.is_none() && input.parent_id.is_none() {
                     return Ok(Ok(page));
                 }
@@ -87,22 +104,21 @@ impl PagesService {
                 let title = input.title.unwrap_or_else(|| page.title.clone());
                 let parent_id = input.parent_id.unwrap_or_else(|| page.parent_id.clone());
                 if moving {
-                    if !is_folder_or_root(&tx, parent_id.as_deref())? {
+                    if !is_folder_or_root(tx, parent_id.as_deref())? {
                         return Ok(Err(Reject::InvalidParent));
                     }
                     if let Some(parent) = parent_id.as_deref()
-                        && is_in_tree(&tx, &id, parent)?
+                        && is_in_tree(tx, &id, parent)?
                     {
                         return Ok(Err(Reject::InvalidParent));
                     }
                 }
                 let updated = query_first(
-                    &tx,
+                    tx,
                     "UPDATE pages SET title = ?, parent_id = ?, updated_at = ? WHERE id = ? RETURNING *",
                     &[Value::Text(title), nullable(parent_id), time_value(clock::now()), Value::Text(id)],
                     Page::from_row,
                 )?;
-                tx.commit()?;
                 Ok(updated.ok_or(Reject::NotFound))
             })
             .await?;
@@ -114,21 +130,18 @@ impl PagesService {
     pub async fn remove(&self, id: &str) -> ApiResult<()> {
         let id = id.to_owned();
         let outcome = self
-            .db
-            .call(move |conn| {
-                let tx = conn.transaction()?;
-                if find(&tx, &id)?.is_none() {
+            .in_transaction(move |tx| {
+                if find(tx, &id)?.is_none() {
                     return Ok(Err(Reject::NotFound));
                 }
                 // The paths are read first: rows removed by the cascade aren't part of `RETURNING`.
                 let paths = query_all(
-                    &tx,
+                    tx,
                     &format!("{TREE} SELECT storage_path FROM pages WHERE id IN tree AND storage_path IS NOT NULL"),
                     &[Value::Text(id.clone())],
                     |row| row.get::<_, String>(0),
                 )?;
                 tx.execute(&format!("{TREE} DELETE FROM pages WHERE id IN tree"), [id])?;
-                tx.commit()?;
                 Ok(Ok(paths))
             })
             .await?;
@@ -234,24 +247,20 @@ impl PagesService {
             ..Default::default()
         };
         let outcome = self
-            .db
-            .call(move |conn| {
-                let tx = conn.transaction()?;
-                if !is_folder_or_root(&tx, parent_id.as_deref())? {
+            .in_transaction(move |tx| {
+                if !is_folder_or_root(tx, parent_id.as_deref())? {
                     return Ok(Err(Reject::InvalidParent));
                 }
                 let parent_id = folders
                     .iter()
-                    .try_fold(parent_id, |parent, title| find_or_create_folder(&tx, parent, title).map(Some))?;
-                let page = insert_page(&tx, NewPage { parent_id, ..row })?;
-                tx.commit()?;
-                Ok(Ok(page))
+                    .try_fold(parent_id, |parent, title| find_or_create_folder(tx, parent, title).map(Some))?;
+                Ok(Ok(insert_page(tx, NewPage { parent_id, ..row })?))
             })
             .await;
         let failure = match outcome {
             Ok(Ok(page)) => return Ok(page),
             Ok(Err(reject)) => ApiError::from(reject),
-            Err(error) => ApiError::from(error),
+            Err(error) => error,
         };
         if let Some(path) = storage_path {
             let _ = self.storage.remove(&path).await;

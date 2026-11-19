@@ -42,8 +42,6 @@ pub struct ImportPageFields {
 }
 
 impl Dto for CreatePageBody {
-    const BODY_LIMIT: usize = CONTENT_BODY_LIMIT;
-
     fn parse(input: &Value) -> Result<Self, Vec<Issue>> {
         let mut ctx = Ctx::new();
         let fields = object(&mut ctx, input, "");
@@ -56,6 +54,8 @@ impl Dto for CreatePageBody {
         }
         ctx.finish(Self { kind: kind.unwrap_or_default(), title: title.unwrap_or_default(), parent_id, content })
     }
+
+    const BODY_LIMIT: usize = CONTENT_BODY_LIMIT;
 }
 
 impl Dto for UpdatePageBody {
@@ -73,8 +73,7 @@ impl Dto for ReplacePageContentBody {
 
     fn parse(input: &Value) -> Result<Self, Vec<Issue>> {
         let mut ctx = Ctx::new();
-        let fields = object(&mut ctx, input, "");
-        let content = fields.required(&mut ctx, "content", text());
+        let content = object(&mut ctx, input, "").required(&mut ctx, "content", text());
         ctx.finish(Self { content: content.unwrap_or_default() })
     }
 }
