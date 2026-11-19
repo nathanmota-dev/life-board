@@ -571,24 +571,33 @@ async fn round_trips_timed_and_all_day_events() {
     let timed = ctx.calendar.create(new_event(&ctx, "Gym")).await.unwrap();
     ctx.sync.flush().await.unwrap();
 
+    // Both rows share the frozen clock's `updated_at`, so the send order follows their random ids.
     let sent = ctx.api.sent();
-    let Sent::Insert { body, .. } = &sent[0] else { panic!("no insert") };
+    let insert = |summary: &str| {
+        let at = sent
+            .iter()
+            .position(|sent| matches!(sent, Sent::Insert { body, .. } if body.summary.as_deref() == Some(summary)))
+            .expect("no insert");
+        let Sent::Insert { body, .. } = &sent[at] else { unreachable!() };
+        (format!("created-{at}"), body)
+    };
+    let (holiday_id, body) = insert("Holiday");
     let next = day + TimeDelta::days(1);
     let date = |day: chrono::NaiveDate| Some(GoogleEventTimeBody { date: Some(day.to_string()), date_time: None });
     assert_eq!((&body.start, &body.end), (&date(day), &date(next)));
-    let Sent::Insert { body, .. } = &sent[1] else { panic!("no insert") };
+    let (gym_id, body) = insert("Gym");
     let start = body.start.clone().and_then(|start| start.date_time).unwrap();
     assert_eq!(chrono::DateTime::parse_from_rfc3339(&start).unwrap(), ctx.clock.now()() + TimeDelta::hours(2));
 
     // Google's listing gives the same days and instants back: the rows don't move.
     ctx.api.lists(vec![
         serde_json::from_value(json!({
-            "id": "created-0", "summary": "Holiday",
+            "id": holiday_id, "summary": "Holiday",
             "start": { "date": day.to_string() }, "end": { "date": next.to_string() },
         }))
         .unwrap(),
         serde_json::from_value(json!({
-            "id": "created-1", "summary": "Gym",
+            "id": gym_id, "summary": "Gym",
             "start": { "dateTime": start }, "end": { "dateTime": body.end.clone().and_then(|end| end.date_time) },
         }))
         .unwrap(),

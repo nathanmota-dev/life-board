@@ -12,6 +12,7 @@ export const queryKeys = {
   github: ["github"],
   google: ["google"],
   fileBoards: ["file-boards"],
+  pages: ["pages"],
   projects: ["projects"],
   weather: ["weather"],
   settings: ["settings"],

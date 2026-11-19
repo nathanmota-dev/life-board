@@ -30,6 +30,42 @@ ocorrência." (`detailHint`, para ocorrências de eventos recorrentes). Enquanto
 mudança pendente, a lista de eventos é recarregada a cada 3 segundos.
 Veja [Google Agenda](google-agenda.md).
 
+## Páginas
+
+A tela **Páginas** (`/pages` e `/pages/$pageId`, `routes/pages.tsx` e
+`components/pages/`) tem a árvore de pastas e páginas à esquerda e a página
+selecionada à direita, como o explorador de arquivos do Obsidian. A árvore
+(`page-tree.tsx`) fica montada ao trocar de página; abaixo do breakpoint `md` ela
+passa para um `Sheet`. As pastas abertas ficam em `localStorage`
+(`life-board:pages-expanded`, sempre dentro de `try/catch`), e abrir uma página
+expande as pastas acima dela.
+
+- **Leitura é o padrão.** A página abre renderizada (`page-reader.tsx`, com
+  `react-markdown` e `remark-gfm`: tabelas, listas de tarefas, tachado e links
+  automáticos). O botão **Editar** (ou `Ctrl+E`) abre o editor; **Concluir** (ou
+  `Esc`, quando não há texto selecionado) volta à leitura.
+- **HTML nunca vira marcação.** O leitor não usa `rehype-raw`, então `<script>`,
+  `<img onerror>` e qualquer HTML cru aparecem como texto. Isso mantém o conteúdo
+  de uma nota, que pode vir de uma pasta importada, sem executar nada. Links não
+  navegam (o `app:open-external` só aceita GitHub e Google), imagens `http(s)`
+  carregam e caminhos relativos ou `file:` mostram o texto alternativo.
+- **Edição.** `page-editor.tsx` reúne o editor formatado, o markdown puro, a
+  alternância entre os dois e o aviso de origem (`roundTripsCleanly`): uma página
+  que o editor formatado reescreveria abre como markdown. O salvamento é o mesmo
+  de Arquivos, extraído em `hooks/use-autosaved-text.ts`: depois de uma pausa na
+  digitação, com `Ctrl+S` e ao sair da página ou trocar de página.
+- **Mover.** Arrastar com `@dnd-kit` (para uma pasta ou para a área da árvore, que
+  é a raiz) ou **Mover para…** no menu, que abre o diálogo com as pastas. A regra
+  que recusa mover para si mesmo, para um descendente ou para a pasta atual está em
+  `lib/pages.ts` e vale antes de chamar a API.
+- **Importar e baixar.** **Importar .md** e **Importar pasta** enviam os arquivos
+  um a um para `POST /pages/import`, com `folderPath` vindo de `webkitRelativePath`;
+  só `.md` e `.markdown` entram. **Baixar .md** salva `<título>.md` com o conteúdo
+  como está guardado.
+
+Arquivos não cria nem formata mais documentos `.md`: um `.md` enviado para lá abre
+no editor de texto simples, como um `.txt`.
+
 ## Idiomas
 
 O app usa i18next e react-i18next, com os dicionários em `public/i18n/pt.json`

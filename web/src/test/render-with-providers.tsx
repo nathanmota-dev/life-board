@@ -15,16 +15,17 @@ import { Toaster } from "@/components/ui/sonner"
 
 /**
  * Renders `ui` with the providers every page relies on (React Query, theme,
- * accent, toasts) inside a router, since several pages use `<Link>`.
+ * accent, toasts) inside a router, since several pages use `<Link>`. `at` puts it
+ * on a route with params, such as `{ route: "/pages/$pageId", url: "/pages/p1" }`.
  */
-export function renderWithProviders(ui: ReactElement) {
+export function renderWithProviders(ui: ReactElement, at: { route: string; url: string } = { route: "/", url: "/" }) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   const rootRoute = createRootRoute({ component: Outlet })
-  const pageRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: () => ui })
+  const pageRoute = createRoute({ getParentRoute: () => rootRoute, path: at.route, component: () => ui })
   const catchAll = createRoute({ getParentRoute: () => rootRoute, path: "$", component: () => null })
   const router = createRouter({
     routeTree: rootRoute.addChildren([pageRoute, catchAll]),
-    history: createMemoryHistory({ initialEntries: ["/"] }),
+    history: createMemoryHistory({ initialEntries: [at.url] }),
   })
 
   return {

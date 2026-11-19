@@ -1,24 +1,22 @@
 import { useTranslation } from "react-i18next"
 import { FileWarning } from "lucide-react"
-import { LazyMarkdownFileEditor } from "@/components/file-board/lazy-markdown-file-editor"
 import { TextFileEditor } from "@/components/file-board/text-file-editor"
 import { DataState } from "@/components/shared/data-state"
 import { EmptyState } from "@/components/shared/empty-state"
 import { Page, PageSection } from "@/components/workspace-ui"
 import { useFileText } from "@/hooks/queries/use-file-boards"
-import { previewKind, TEXT_PREVIEW_LIMIT_BYTES } from "@/lib/file-board"
+import { TEXT_PREVIEW_LIMIT_BYTES } from "@/lib/file-board"
 import { formatBytes } from "@/lib/format"
 import type { FileItemViewProps } from "@/types/file-board"
 
-/** Loads a `.txt`/`.md` file and opens it in its editor; files over the limit aren't loaded. */
+/** Loads a `.txt`/`.md` file and opens it in the plain text editor; files over the limit aren't loaded. */
 export function TextFileView({ item, header }: FileItemViewProps) {
   const { t } = useTranslation()
   const tooLarge = item.sizeBytes > TEXT_PREVIEW_LIMIT_BYTES
   const text = useFileText(item, !tooLarge)
-  const Editor = previewKind(item) === "markdown" ? LazyMarkdownFileEditor : TextFileEditor
 
   return !tooLarge && text.data !== undefined ? (
-    <Editor item={item} text={text.data} header={header} />
+    <TextFileEditor item={item} text={text.data} header={header} />
   ) : (
     <Page {...header}>
       <PageSection>

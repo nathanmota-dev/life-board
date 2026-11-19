@@ -1,4 +1,4 @@
-import { PlainTextArea } from "@/components/file-board/plain-text-area"
+import { PlainTextArea } from "@/components/pages/plain-text-area"
 import { SaveTextButton } from "@/components/file-board/save-text-button"
 import { Page, PageSection } from "@/components/workspace-ui"
 import { useTextFileEditor } from "@/hooks/use-text-file-editor"

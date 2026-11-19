@@ -20,6 +20,8 @@ export type FilesSettings = {
   baseDir: string | null
   uploadsDir: string
   defaultUploadsDir: string
+  pagesDir: string
+  defaultPagesDir: string
 }
 
 /** The tabs of Settings, also accepted as `?tab=` in its URL. */

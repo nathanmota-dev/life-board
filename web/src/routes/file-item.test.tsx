@@ -43,6 +43,18 @@ describe("FileItemContent", () => {
     expect(screen.queryByRole("tab", { name: "Formatted" })).not.toBeInTheDocument()
   })
 
+  it("opens a markdown file in the plain text editor, like a .txt", async () => {
+    const markdown = fileItemFixture({ title: "plan.md", mime: "text/markdown" })
+    routes([markdown])
+    renderWithProviders(<FileItemContent boardId="b1" itemId="f1" />)
+
+    const editor = (await screen.findByRole("textbox", { name: "Contents of plan.md" })) as HTMLTextAreaElement
+
+    expect(editor.tagName).toBe("TEXTAREA")
+    expect(editor.value).toBe("# Groceries\n- milk")
+    expect(screen.queryByRole("tab", { name: "Formatted" })).not.toBeInTheDocument()
+  })
+
   it("shows Save once the text changes and confirms the save", async () => {
     const { calls } = routes([note])
     const editor = await openEditor()

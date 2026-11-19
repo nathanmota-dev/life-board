@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { uploadsDirFor } from "@/lib/files-settings"
+import { pagesDirFor, uploadsDirFor } from "@/lib/files-settings"
 
 describe("uploadsDirFor", () => {
   it.each([
@@ -10,5 +10,15 @@ describe("uploadsDirFor", () => {
     ["D:\\Fotos\\", "D:\\Fotos\\life-board-app\\uploads"],
   ])("puts %s uploads in %s", (baseDir, expected) => {
     expect(uploadsDirFor(baseDir)).toBe(expected)
+  })
+})
+
+describe("pagesDirFor", () => {
+  it.each([
+    ["/mnt/linux-data/apps/", "/mnt/linux-data/apps/life-board-app/pages"],
+    ["/", "/life-board-app/pages"],
+    ["D:\\Fotos\\", "D:\\Fotos\\life-board-app\\pages"],
+  ])("puts %s pages in %s", (baseDir, expected) => {
+    expect(pagesDirFor(baseDir)).toBe(expected)
   })
 })

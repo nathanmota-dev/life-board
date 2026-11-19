@@ -7,6 +7,7 @@ import {
   Lightbulb,
   ListChecks,
   ListTodo,
+  NotebookText,
   Rocket,
   Smile,
   Tags,
@@ -21,6 +22,7 @@ import { GoalsPage } from "@/routes/goals"
 import { HabitsPage } from "@/routes/habits"
 import { InboxPage } from "@/routes/inbox"
 import { MoodPage } from "@/routes/mood"
+import { PagesRoute } from "@/routes/pages"
 import { PomodoroPage } from "@/routes/pomodoro"
 import { ProjectsPage } from "@/routes/projects"
 import { TagsPage } from "@/routes/tags"
@@ -39,6 +41,7 @@ export const workspacePages = [
   { path: "habits", titleKey: "navigation.habits", icon: ListChecks, component: HabitsPage },
   { path: "pomodoro", titleKey: "navigation.pomodoro", icon: Timer, component: PomodoroPage },
   { path: "github", titleKey: "navigation.github", icon: GitPullRequest, component: GitHubPage },
+  { path: "pages", titleKey: "navigation.pages", icon: NotebookText, component: PagesRoute },
   { path: "file-board", titleKey: "navigation.file-board", icon: FolderKanban, component: FileBoardPage },
   { path: "mood", titleKey: "navigation.mood", icon: Smile, component: MoodPage },
 ] as const

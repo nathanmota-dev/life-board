@@ -44,11 +44,11 @@ describe("SettingsPage", () => {
 
   it("shows the uploads folder in the Files tab", async () => {
     mockApi({
-      "GET /settings/files": () => ({ baseDir: null, uploadsDir: "/data/uploads", defaultUploadsDir: "/data/uploads" }),
+      "GET /settings/files": () => ({ baseDir: null, uploadsDir: "/data/uploads", defaultUploadsDir: "/data/uploads", pagesDir: "/data/pages", defaultPagesDir: "/data/pages" }),
     })
     renderWithProviders(<SettingsPage />)
     fireEvent.mouseDown(await screen.findByRole("tab", { name: "Files" }))
-    expect(await screen.findByRole("heading", { name: "Upload folder" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Storage folder" })).toBeInTheDocument()
     expect(await screen.findByLabelText("Current folder")).toHaveTextContent("/data/uploads")
   })
 

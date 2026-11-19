@@ -1,6 +1,6 @@
 import { isSaveShortcut } from "@/lib/keyboard"
 import { cn } from "@/lib/utils"
-import type { PlainTextAreaProps } from "@/types/file-board"
+import type { PlainTextAreaProps } from "@/types/page"
 
 /** The raw text of a file in a plain editor; Ctrl+S saves it. */
 export function PlainTextArea({ value, label, onChange, onSaveShortcut, className }: PlainTextAreaProps) {

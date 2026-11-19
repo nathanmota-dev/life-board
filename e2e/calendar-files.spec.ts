@@ -113,10 +113,11 @@ test("file board: preview and edit text, open PDF pages, expand images and go ba
   expect(await workspace.list(`file-boards/${board.id}/items`)).toHaveLength(2)
 })
 
-test("file board: format markdown as it is typed, show its source and keep files the editor would rewrite", async ({ workspace, page }) => {
+test("file board: a markdown file opens as plain text and saves like a text file", async ({ workspace, page }) => {
   const board = await workspace.create<{ id: string }>("file-boards", { name: "Notes" })
   await workspace.go("Arquivos")
   await page.getByRole("button", { name: /^Notes/ }).click()
+  await expect(page.getByRole("button", { name: "Novo documento", exact: true })).toHaveCount(0)
   const table = "| item | qty |\n|---|---|\n| milk | 1 |\n"
   await page.getByLabel("Arquivos para enviar").setInputFiles([
     { name: "plan.md", mimeType: "application/octet-stream", buffer: Buffer.from("# Plan\n\n- milk\n") },
@@ -126,75 +127,21 @@ test("file board: format markdown as it is typed, show its source and keep files
 
   await page.getByRole("button", { name: "Abrir plan.md", exact: true }).click()
   const editor = page.getByRole("textbox", { name: "Conteúdo de plan.md", exact: true })
-  await expect(editor).toHaveAttribute("contenteditable", "true")
-  await expect(editor.getByRole("heading", { name: "Plan", level: 1 })).toBeVisible()
-  await expect(page.getByRole("tab", { name: "Formatado", exact: true })).toHaveAttribute("aria-selected", "true")
-  await expect(page.getByRole("button", { name: "Salvar", exact: true })).toHaveCount(0)
+  await expect(editor).toHaveValue("# Plan\n\n- milk\n")
+  expect(await editor.evaluate(element => element.tagName)).toBe("TEXTAREA")
+  await expect(page.getByRole("tab", { name: "Formatado", exact: true })).toHaveCount(0)
 
-  await editor.click()
-  // The editor keeps an empty paragraph after a trailing list, where Control+End lands.
-  await editor.press("Control+End")
-  await editor.pressSequentially("## Later")
-  await editor.press("Enter")
-  await editor.pressSequentially("[ ] call the bank")
-  await editor.press("Enter")
-  await editor.press("Enter")
-  await editor.pressSequentially("Buy **oat** milk")
-  await expect(editor.getByRole("heading", { name: "Later", level: 2 })).toBeVisible()
-  await expect(editor.getByRole("checkbox")).toHaveCount(1)
-  await expect(editor.locator("strong")).toHaveText("oat")
+  await editor.fill("# Plan\n\n- milk\n- bread\n")
   await editor.press("Control+s")
   await expect(page.getByText("Arquivo salvo", { exact: true })).toBeVisible()
-
-  const expected = "# Plan\n\n- milk\n\n## Later\n\n- [ ] call the bank\n\nBuy **oat** milk\n"
   const items = await workspace.list<{ id: string; title: string }>(`file-boards/${board.id}/items`)
   const plan = items.find(item => item.title === "plan.md")!
-  expect(await workspace.api.get(`file-items/${plan.id}/file`).then(response => response.text())).toBe(expected)
+  expect(await workspace.api.get(`file-items/${plan.id}/file`).then(response => response.text())).toBe("# Plan\n\n- milk\n- bread\n")
 
-  await page.getByRole("tab", { name: "Markdown", exact: true }).click()
-  await expect(editor).toHaveValue(expected)
-  await page.reload()
-  await expect(editor.getByRole("heading", { name: "Later", level: 2 })).toBeVisible()
   await page.getByRole("button", { name: "Voltar", exact: true }).click()
-
   await page.getByRole("button", { name: "Abrir table.md", exact: true }).click()
-  const source = page.getByRole("textbox", { name: "Conteúdo de table.md", exact: true })
-  await expect(source).toHaveValue(table)
-  await expect(page.getByRole("status").filter({ hasText: "abriu como markdown" })).toBeVisible()
-  await page.getByRole("button", { name: "Editar formatado mesmo assim", exact: true }).click()
-  await expect(source).toHaveAttribute("contenteditable", "true")
-  await expect(page.getByRole("button", { name: "Salvar", exact: true })).toHaveCount(0)
-  const tableFile = items.find(item => item.title === "table.md")!
-  expect(await workspace.api.get(`file-items/${tableFile.id}/file`).then(response => response.text())).toBe(table)
-})
-
-test("file board: create a markdown document, write it and number the next one", async ({ workspace, page }) => {
-  const board = await workspace.create<{ id: string }>("file-boards", { name: "Journal" })
-  await workspace.go("Arquivos")
-  await page.getByRole("button", { name: /^Journal/ }).click()
-
-  await page.getByRole("button", { name: "Novo documento", exact: true }).click()
-  await expect(page).toHaveURL(new RegExp(`#/file-board/${board.id}/[^/?]+$`))
-  const editor = page.getByRole("textbox", { name: "Conteúdo de Sem título.md", exact: true })
-  await expect(editor).toHaveAttribute("contenteditable", "true")
-  await expect(page.getByRole("tab", { name: "Formatado", exact: true })).toHaveAttribute("aria-selected", "true")
-
-  await editor.click()
-  await editor.pressSequentially("# Ideas")
-  await editor.press("Enter")
-  await editor.pressSequentially("Plant basil")
-  await expect(editor.getByRole("heading", { name: "Ideas", level: 1 })).toBeVisible()
-  const [created] = await workspace.list<{ id: string; title: string; kind: string }>(`file-boards/${board.id}/items`)
-  expect(created).toMatchObject({ title: "Sem título.md", kind: "note" })
-  // Autosave writes the text after a pause in typing, without pressing save.
-  await expect.poll(() => workspace.api.get(`file-items/${created.id}/file`).then(response => response.text()))
-    .toBe("# Ideas\n\nPlant basil")
-
-  await page.getByRole("button", { name: "Voltar", exact: true }).click()
-  await expect(page.getByRole("button", { name: "Abrir Sem título.md", exact: true })).toBeVisible()
-  await page.getByRole("button", { name: "Novo documento", exact: true }).click()
-  await expect(page.getByRole("textbox", { name: "Conteúdo de Sem título 2.md", exact: true })).toBeVisible()
-  expect(await workspace.list(`file-boards/${board.id}/items`)).toHaveLength(2)
+  await expect(page.getByRole("textbox", { name: "Conteúdo de table.md", exact: true })).toHaveValue(table)
+  await expect(page.getByRole("status")).toHaveCount(0)
 })
 
 test("calendar: grid creation, drag, overlapping events, views, week navigation and dashboard editing", async ({ workspace, page }) => {
