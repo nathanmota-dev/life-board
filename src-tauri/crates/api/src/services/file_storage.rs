@@ -20,6 +20,10 @@ pub trait Disk: Send + Sync + 'static {
     async fn size(&self, path: &Path) -> io::Result<u64>;
     async fn open(&self, path: &Path) -> io::Result<tokio::fs::File>;
     async fn remove_file(&self, path: &Path) -> io::Result<()>;
+    /// Moves `from` over `to` (replacing it), atomically when both are in the same folder.
+    async fn rename(&self, from: &Path, to: &Path) -> io::Result<()>;
+    /// The names (not paths) of the entries of a folder.
+    async fn list(&self, dir: &Path) -> io::Result<Vec<String>>;
     /// The folder exists, is a directory and accepts new files.
     async fn check_writable_dir(&self, path: &Path) -> io::Result<()>;
 }
@@ -55,6 +59,19 @@ impl Disk for RealDisk {
         tokio::fs::remove_file(path).await
     }
 
+    async fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
+        tokio::fs::rename(from, to).await
+    }
+
+    async fn list(&self, dir: &Path) -> io::Result<Vec<String>> {
+        let mut entries = tokio::fs::read_dir(dir).await?;
+        let mut names = Vec::new();
+        while let Some(entry) = entries.next_entry().await? {
+            names.push(entry.file_name().to_string_lossy().into_owned());
+        }
+        Ok(names)
+    }
+
     /// Node calls `access(dir, W_OK)`. Rust has no safe equivalent, so this
     /// creates and removes an empty file, which is what the folder is needed for.
     async fn check_writable_dir(&self, path: &Path) -> io::Result<()> {
@@ -66,6 +83,9 @@ impl Disk for RealDisk {
         tokio::fs::remove_file(&probe).await
     }
 }
+
+/// Appended to a path while [`FileStorageService::write_at`] writes it.
+pub const TEMP_SUFFIX: &str = ".tmp";
 
 /// `SavedBlob`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -120,6 +140,40 @@ impl FileStorageService {
         self.disk.create_dir_all(&self.root()).await?;
         self.disk.write(&full_path, bytes).await?;
         Ok(SavedBlob { storage_path, size_bytes: i64::try_from(bytes.len()).unwrap_or(i64::MAX) })
+    }
+
+    /// Stores the bytes at exactly `storage_path`, replacing what is there. The bytes go to
+    /// `<storage_path>.tmp` first and are renamed over the file, so an interrupted write never
+    /// leaves a half-written file; a failed write or rename removes the temporary file.
+    pub async fn write_at(&self, storage_path: &str, bytes: &[u8]) -> io::Result<()> {
+        let full_path = self.resolve(storage_path)?;
+        let temp_path = self.resolve(&format!("{storage_path}{TEMP_SUFFIX}"))?;
+        self.disk.create_dir_all(&self.root()).await?;
+        let written = match self.disk.write(&temp_path, bytes).await {
+            Ok(()) => self.disk.rename(&temp_path, &full_path).await,
+            Err(error) => Err(error),
+        };
+        if written.is_err() {
+            let _ = self.disk.remove_file(&temp_path).await;
+        }
+        written
+    }
+
+    /// The whole file as UTF-8 text (`InvalidData` when it isn't).
+    pub async fn read_to_string(&self, storage_path: &str) -> io::Result<String> {
+        use tokio::io::AsyncReadExt;
+        let mut file = self.disk.open(&self.resolve(storage_path)?).await?;
+        let mut text = String::new();
+        file.read_to_string(&mut text).await?;
+        Ok(text)
+    }
+
+    /// The names of the files in the root; empty while the folder doesn't exist yet.
+    pub async fn list(&self) -> io::Result<Vec<String>> {
+        match self.disk.list(&self.root()).await {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(Vec::new()),
+            other => other,
+        }
     }
 
     /// Copies a stored file to the same `storage_path` under another storage's root.

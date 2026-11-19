@@ -19,6 +19,9 @@ pub const SETTINGS_ID: &str = "default";
 /// `UPLOADS_SUBDIR`: created inside the picked folder so uploads never mix with the user's files.
 pub const UPLOADS_SUBDIR: [&str; 2] = ["life-board-app", "uploads"];
 
+/// Created inside the picked folder, next to `uploads`.
+pub const PAGES_SUBDIR: [&str; 2] = ["life-board-app", "pages"];
+
 /// `GET`/`PUT /settings/files` body. Paths are absolute, in the OS's own format.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -26,25 +29,45 @@ pub struct FilesSettings {
     pub base_dir: Option<String>,
     pub uploads_dir: String,
     pub default_uploads_dir: String,
+    pub pages_dir: String,
+    pub default_pages_dir: String,
 }
 
 #[derive(Clone)]
 pub struct FilesSettingsService {
     db: Db,
     storage: FileStorageService,
+    pages_storage: FileStorageService,
     default_root: PathBuf,
+    default_pages_root: PathBuf,
 }
 
 impl FilesSettingsService {
-    pub fn new(db: Db, storage: FileStorageService, default_root: impl Into<PathBuf>) -> Self {
-        Self { db, storage, default_root: default_root.into() }
+    /// The pages storage's root at this point is its default one.
+    pub fn new(
+        db: Db,
+        storage: FileStorageService,
+        default_root: impl Into<PathBuf>,
+        pages_storage: FileStorageService,
+    ) -> Self {
+        let default_pages_root = pages_storage.root();
+        Self { db, storage, pages_storage, default_root: default_root.into(), default_pages_root }
     }
 
-    /// Points the shared storage at the saved folder. Runs once at startup.
+    /// Points the shared storages at the saved folder. Runs once at startup.
     pub async fn load(&self) -> ApiResult<()> {
         let base_dir = self.saved_base_dir().await?;
         self.storage.set_root(self.uploads_dir(base_dir.as_deref()));
+        self.pages_storage.set_root(self.pages_dir(base_dir.as_deref()));
         Ok(())
+    }
+
+    /// `<base>/life-board-app/pages`, or the default root without a base.
+    fn pages_dir(&self, base_dir: Option<&str>) -> PathBuf {
+        match base_dir.filter(|base| !base.is_empty()) {
+            Some(base) => PAGES_SUBDIR.iter().fold(PathBuf::from(base), |path, part| path.join(part)),
+            None => absolute(&self.default_pages_root),
+        }
     }
 
     /// `<base>/life-board-app/uploads`, or the default root without a base.
@@ -73,10 +96,12 @@ impl FilesSettingsService {
             base_dir: self.saved_base_dir().await?,
             uploads_dir: display(&self.storage.root()),
             default_uploads_dir: display(&absolute(&self.default_root)),
+            pages_dir: display(&self.pages_storage.root()),
+            default_pages_dir: display(&absolute(&self.default_pages_root)),
         })
     }
 
-    /// Copies every upload under `base_dir` (or back to the default for `None`),
+    /// Copies every upload and page under `base_dir` (or back to the default for `None`),
     /// saves the choice, switches to it, then removes the old files.
     /// `400 relative_dir`/`invalid_dir`; `500 move_failed` after rolling back the copies.
     pub async fn update(&self, base_dir: Option<String>) -> ApiResult<FilesSettings> {
@@ -84,18 +109,23 @@ impl FilesSettingsService {
             Some(input) => Some(self.writable_dir(&input).await?),
             None => None,
         };
-        let previous = self.storage.at(self.storage.root());
-        let target = self.storage.at(self.uploads_dir(next_base.as_deref()));
-        self.storage.disk().create_dir_all(&target.root()).await?;
-
-        let paths = if target.root() == previous.root() { Vec::new() } else { self.storage_paths().await? };
-        copy_all(&previous, &target, &paths).await?;
+        let moves = [
+            Move::new(&self.storage, self.uploads_dir(next_base.as_deref()), self.storage_paths().await?),
+            Move::new(&self.pages_storage, self.pages_dir(next_base.as_deref()), self.page_paths().await?),
+        ];
+        for step in &moves {
+            self.storage.disk().create_dir_all(&step.to.root()).await?;
+        }
+        copy_all(&moves).await?;
 
         self.save_base_dir(next_base).await?;
-        self.storage.set_root(target.root());
+        self.storage.set_root(moves[0].to.root());
+        self.pages_storage.set_root(moves[1].to.root());
         // Best effort: every file already lives in the new folder.
-        for path in &paths {
-            let _ = previous.remove(path).await;
+        for step in &moves {
+            for path in &step.paths {
+                let _ = step.from.remove(path).await;
+            }
         }
         self.get().await
     }
@@ -128,6 +158,14 @@ impl FilesSettingsService {
         Ok(())
     }
 
+    /// The `storage_path` of every page (folders have none).
+    async fn page_paths(&self) -> ApiResult<Vec<String>> {
+        Ok(self
+            .db
+            .call(|conn| query_all(conn, "SELECT storage_path FROM pages WHERE kind = 'page'", &[], |row| row.get(0)))
+            .await?)
+    }
+
     async fn storage_paths(&self) -> ApiResult<Vec<String>> {
         Ok(self.db.call(|conn| query_all(conn, "SELECT storage_path FROM file_items", &[], |row| row.get(0))).await?)
     }
@@ -147,19 +185,38 @@ fn expand_home(input: &str) -> String {
     }
 }
 
-/// Copies every file or none: on failure, removes the copies already made.
-async fn copy_all(from: &FileStorageService, to: &FileStorageService, paths: &[String]) -> ApiResult<()> {
-    let mut copied = Vec::new();
-    for path in paths {
-        match from.copy_to(path, to).await {
-            Ok(()) => copied.push(path),
-            // A file already missing from disk can't be moved; don't let it block the switch.
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-            Err(error) => {
-                for path in copied {
-                    let _ = to.remove(path).await;
+/// One root's files and where they go.
+struct Move {
+    from: FileStorageService,
+    to: FileStorageService,
+    paths: Vec<String>,
+}
+
+impl Move {
+    /// Nothing to copy when the target is the folder already in use.
+    fn new(storage: &FileStorageService, target: PathBuf, paths: Vec<String>) -> Self {
+        let from = storage.at(storage.root());
+        let to = storage.at(target);
+        let paths = if from.root() == to.root() { Vec::new() } else { paths };
+        Self { from, to, paths }
+    }
+}
+
+/// Copies every file of every move or none: on failure, removes the copies already made in all roots.
+async fn copy_all(moves: &[Move]) -> ApiResult<()> {
+    let mut copied: Vec<(&FileStorageService, &String)> = Vec::new();
+    for step in moves {
+        for path in &step.paths {
+            match step.from.copy_to(path, &step.to).await {
+                Ok(()) => copied.push((&step.to, path)),
+                // A file already missing from disk can't be moved; don't let it block the switch.
+                Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+                Err(error) => {
+                    for (target, path) in copied {
+                        let _ = target.remove(path).await;
+                    }
+                    return Err(ApiError::http(StatusCode::INTERNAL_SERVER_ERROR, "move_failed", error.to_string()));
                 }
-                return Err(ApiError::http(StatusCode::INTERNAL_SERVER_ERROR, "move_failed", error.to_string()));
             }
         }
     }

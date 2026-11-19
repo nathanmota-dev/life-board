@@ -15,6 +15,7 @@ pub mod habits;
 pub mod health;
 pub mod links;
 pub mod mood;
+pub mod pages;
 pub mod projects;
 pub mod settings;
 pub mod stats;
@@ -103,6 +104,7 @@ pub fn protected() -> RouteTable {
         github::routes,
         google::routes,
         file_boards::routes,
+        pages::routes,
         settings::routes,
     ]
     .into_iter()

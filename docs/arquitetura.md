@@ -31,6 +31,25 @@ O React não acessa o Node diretamente. Para novas funcionalidades, exponha
 métodos específicos no preload e registre os handlers no processo principal.
 Como exemplo, `window.desktop.getVersion()` retorna a versão do app.
 
+## Pages: onde ficam as páginas
+
+A API `/api/pages` guarda uma árvore de pastas e páginas em markdown. O SQLite
+(tabela `pages`) guarda só os metadados: título, pasta pai, tamanho e o
+`storage_path`, como um app guarda a chave de um objeto no S3. O texto de cada
+página é o arquivo `<id da página>.md`, num diretório plano:
+`<pasta de dados>/pages` por padrão, ou `<pasta escolhida>/life-board-app/pages`
+quando há uma pasta em Settings → Files, ao lado de `uploads`. Trocar essa pasta
+move uploads e páginas juntos, tudo ou nada.
+
+A árvore **não** é espelhada em disco. Pastas existem só no SQLite, e renomear
+ou mover uma página ou pasta só altera o banco, então um título nunca precisa
+ser um nome de arquivo válido e nenhum título ou `folderPath` forma um caminho.
+Todo caminho em disco passa por `FileStorageService::resolve`.
+
+Salvar escreve `<id>.md.tmp` e renomeia sobre `<id>.md`, para que uma queda não
+deixe uma página pela metade. Na inicialização, os `*.md.tmp` que sobraram são
+removidos. Excluir é permanente: a pasta, tudo dentro dela e os arquivos.
+
 ## Inicialização e segundo plano
 
 Em Settings → General → Inicialização e segundo plano, as duas opções começam

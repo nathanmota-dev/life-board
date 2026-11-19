@@ -52,6 +52,13 @@ fn registers_the_routes_added_after_the_node_api() {
         ("GET", "/api/google/oauth/callback"),
         ("DELETE", "/api/google/disconnect"),
         ("POST", "/api/google/sync"),
+        ("GET", "/api/pages"),
+        ("POST", "/api/pages"),
+        ("POST", "/api/pages/import"),
+        ("PATCH", "/api/pages/:param"),
+        ("DELETE", "/api/pages/:param"),
+        ("GET", "/api/pages/:param/content"),
+        ("PUT", "/api/pages/:param/content"),
     ];
     for (method, path) in added {
         assert!(

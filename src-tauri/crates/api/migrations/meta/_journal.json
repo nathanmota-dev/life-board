@@ -78,6 +78,13 @@
       "when": 1795092000000,
       "tag": "0010_calendar_event_source",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1795178400000,
+      "tag": "0011_pages",
+      "breakpoints": true
     }
   ]
 }

@@ -3,10 +3,13 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use life_board_api::db::schema::file_boards::FileItem;
+use life_board_api::db::schema::pages::{Page, PageKind};
 use life_board_api::dto::file_boards::{CreateBoardBody, UploadItemFields};
+use life_board_api::dto::pages::CreatePageBody;
 use life_board_api::services::file_boards::{FileBoardsService, UploadedFile};
 use life_board_api::services::file_storage::FileStorageService;
 use life_board_api::services::files_settings::{FilesSettings, FilesSettingsService};
+use life_board_api::services::pages::PagesService;
 use serde_json::json;
 
 use crate::common::{DiskOp, FaultyDisk, TestDb, assert_code, assert_error, assert_match, list_dir, test_db, to_json};
@@ -16,6 +19,7 @@ struct Ctx {
     disk: Arc<FaultyDisk>,
     default_root: PathBuf,
     storage: FileStorageService,
+    pages_storage: FileStorageService,
     boards: FileBoardsService,
     settings: FilesSettingsService,
 }
@@ -26,9 +30,10 @@ async fn setup() -> Ctx {
     let disk = FaultyDisk::new();
     let storage = FileStorageService::with_disk(&default_root, disk.clone());
     let boards = FileBoardsService::new(db.db.clone(), storage.clone());
-    let settings = FilesSettingsService::new(db.db.clone(), storage.clone(), &default_root);
+    let pages_storage = storage.at(db.path().join("pages"));
+    let settings = FilesSettingsService::new(db.db.clone(), storage.clone(), &default_root, pages_storage.clone());
     std::fs::create_dir(db.path().join("apps")).unwrap();
-    Ctx { db, disk, default_root, storage, boards, settings }
+    Ctx { db, disk, default_root, storage, pages_storage, boards, settings }
 }
 
 impl Ctx {
@@ -38,6 +43,25 @@ impl Ctx {
 
     fn picked_root(&self) -> PathBuf {
         self.apps().join("life-board-app").join("uploads")
+    }
+
+    fn default_pages_root(&self) -> PathBuf {
+        self.db.path().join("pages")
+    }
+
+    fn picked_pages_root(&self) -> PathBuf {
+        self.apps().join("life-board-app").join("pages")
+    }
+
+    async fn page(&self, title: &str, content: &str) -> Page {
+        let pages = PagesService::new(self.db.db.clone(), self.pages_storage.clone());
+        let body = CreatePageBody {
+            kind: PageKind::Page,
+            title: title.into(),
+            content: Some(content.into()),
+            ..Default::default()
+        };
+        pages.create(body).await.unwrap()
     }
 
     async fn upload(&self) -> FileItem {
@@ -65,7 +89,9 @@ async fn defaults_to_the_data_directory() {
         FilesSettings {
             base_dir: None,
             uploads_dir: display(&ctx.default_root),
-            default_uploads_dir: display(&ctx.default_root)
+            default_uploads_dir: display(&ctx.default_root),
+            pages_dir: display(&ctx.default_pages_root()),
+            default_pages_dir: display(&ctx.default_pages_root()),
         }
     );
 }
@@ -83,6 +109,8 @@ async fn moves_existing_uploads_under_folder_life_board_app_uploads_and_saves_ne
             base_dir: Some(display(&ctx.apps())),
             uploads_dir: display(&ctx.picked_root()),
             default_uploads_dir: display(&ctx.default_root),
+            pages_dir: display(&ctx.picked_pages_root()),
+            default_pages_dir: display(&ctx.default_pages_root()),
         }
     );
     assert_eq!(read(ctx.picked_root().join(&item.storage_path)), "png-bytes");
@@ -100,7 +128,10 @@ async fn keeps_the_picked_folder_across_restarts_and_can_go_back_to_the_default(
     ctx.settings.update(Some(display(&ctx.apps()))).await.unwrap();
 
     let restarted = FileStorageService::new(&ctx.default_root);
-    FilesSettingsService::new(ctx.db.db.clone(), restarted.clone(), &ctx.default_root).load().await.unwrap();
+    FilesSettingsService::new(ctx.db.db.clone(), restarted.clone(), &ctx.default_root, ctx.pages_storage.clone())
+        .load()
+        .await
+        .unwrap();
     assert_eq!(restarted.root(), ctx.picked_root());
 
     assert_eq!(ctx.settings.update(None).await.unwrap().uploads_dir, display(&ctx.default_root));
@@ -170,4 +201,63 @@ async fn skips_rows_whose_file_is_already_gone_from_disk() {
     ctx.settings.update(Some(display(&ctx.apps()))).await.unwrap();
 
     assert_eq!(list_dir(&ctx.picked_root()), [kept.storage_path]);
+}
+
+#[tokio::test]
+async fn moves_pages_along_with_uploads_and_back() {
+    let ctx = setup().await;
+    let item = ctx.upload().await;
+    let page = ctx.page("Doc", "# text\r\n").await;
+    let file = format!("{}.md", page.id);
+
+    let moved = ctx.settings.update(Some(display(&ctx.apps()))).await.unwrap();
+
+    assert_eq!(moved.pages_dir, display(&ctx.picked_pages_root()));
+    assert_eq!(read(ctx.picked_pages_root().join(&file)), "# text\r\n");
+    assert_eq!(read(ctx.picked_root().join(&item.storage_path)), "png-bytes");
+    assert!(list_dir(&ctx.default_pages_root()).is_empty());
+    assert_eq!(ctx.pages_storage.root(), ctx.picked_pages_root());
+
+    // Saves and later pages land in the new folder.
+    let next = ctx.page("Next", "two").await;
+    assert!(list_dir(&ctx.picked_pages_root()).contains(&format!("{}.md", next.id)));
+
+    let back = ctx.settings.update(None).await.unwrap();
+    assert_eq!(back.pages_dir, display(&ctx.default_pages_root()));
+    assert_eq!(read(ctx.default_pages_root().join(&file)), "# text\r\n");
+    assert!(list_dir(&ctx.picked_pages_root()).is_empty());
+}
+
+#[tokio::test]
+async fn keeps_the_picked_pages_folder_across_restarts() {
+    let ctx = setup().await;
+    ctx.settings.update(Some(display(&ctx.apps()))).await.unwrap();
+
+    let restarted = ctx.storage.at(&ctx.default_root);
+    let pages = ctx.pages_storage.at(ctx.default_pages_root());
+    FilesSettingsService::new(ctx.db.db.clone(), restarted, &ctx.default_root, pages.clone()).load().await.unwrap();
+
+    assert_eq!(pages.root(), ctx.picked_pages_root());
+}
+
+#[tokio::test]
+async fn rolls_back_the_copies_of_both_roots_when_a_page_fails_to_move() {
+    let ctx = setup().await;
+    let item = ctx.upload().await;
+    let first = ctx.page("One", "1").await;
+    let second = ctx.page("Two", "2").await;
+    let failing = format!("{}.md", second.id);
+    ctx.disk.fail_when(DiskOp::Copy, move |from| {
+        from.ends_with(&failing).then(|| io::Error::new(ErrorKind::StorageFull, "disk full"))
+    });
+
+    assert_error(ctx.settings.update(Some(display(&ctx.apps()))).await, 500, "move_failed");
+
+    assert!(list_dir(&ctx.picked_root()).is_empty());
+    assert!(list_dir(&ctx.picked_pages_root()).is_empty());
+    assert_eq!(read(ctx.default_root.join(&item.storage_path)), "png-bytes");
+    assert_eq!(read(ctx.default_pages_root().join(format!("{}.md", first.id))), "1");
+    let settings = ctx.settings.get().await.unwrap();
+    assert_eq!((settings.base_dir, settings.pages_dir), (None, display(&ctx.default_pages_root())));
+    assert_eq!(ctx.pages_storage.root(), ctx.default_pages_root());
 }

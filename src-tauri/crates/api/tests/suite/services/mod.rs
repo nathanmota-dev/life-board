@@ -16,6 +16,7 @@ mod google_calendar_mapping;
 mod habits;
 mod links;
 mod mood;
+mod pages;
 mod projects;
 mod stats;
 mod tasks;

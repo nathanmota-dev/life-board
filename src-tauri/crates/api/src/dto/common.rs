@@ -17,6 +17,9 @@ use crate::error::Issue;
 /// A request DTO: built from the JSON body, or from the query string or path
 /// parameters, which arrive as an object of strings.
 pub trait Dto: Sized {
+    /// The most bytes of JSON body this DTO accepts (Fastify's default `bodyLimit`, 1 MiB).
+    const BODY_LIMIT: usize = 1024 * 1024;
+
     fn parse(input: &Value) -> Result<Self, Vec<Issue>>;
 }
 

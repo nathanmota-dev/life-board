@@ -13,6 +13,7 @@ pub mod google;
 pub mod habits;
 pub mod links;
 pub mod mood;
+pub mod pages;
 pub mod projects;
 pub mod settings;
 pub mod tasks;

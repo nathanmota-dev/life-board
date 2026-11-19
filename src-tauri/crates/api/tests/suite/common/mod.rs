@@ -499,6 +499,8 @@ pub enum DiskOp {
     Size,
     Open,
     RemoveFile,
+    Rename,
+    List,
     CheckWritableDir,
 }
 
@@ -581,6 +583,16 @@ impl Disk for FaultyDisk {
     async fn remove_file(&self, path: &Path) -> io::Result<()> {
         self.check(DiskOp::RemoveFile, path)?;
         RealDisk.remove_file(path).await
+    }
+
+    async fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
+        self.check(DiskOp::Rename, to)?;
+        RealDisk.rename(from, to).await
+    }
+
+    async fn list(&self, dir: &Path) -> io::Result<Vec<String>> {
+        self.check(DiskOp::List, dir)?;
+        RealDisk.list(dir).await
     }
 
     async fn check_writable_dir(&self, path: &Path) -> io::Result<()> {
