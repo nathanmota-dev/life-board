@@ -8,6 +8,18 @@ import type { FilesSettings } from "@/types/settings"
 
 const originalDesktop = window.desktop
 const defaultUploadsDir = "/home/me/.config/life-board-app/uploads"
+const defaultPagesDir = "/home/me/.config/life-board-app/pages"
+
+/** The settings the API returns: pages live next to the uploads. */
+function settingsFor(baseDir: string | null): FilesSettings {
+  return {
+    baseDir,
+    uploadsDir: baseDir ? `${baseDir}/life-board-app/uploads` : defaultUploadsDir,
+    defaultUploadsDir,
+    pagesDir: baseDir ? `${baseDir}/life-board-app/pages` : defaultPagesDir,
+    defaultPagesDir,
+  }
+}
 let current: FilesSettings
 
 function mockSettings(update?: (baseDir: string | null) => unknown) {
@@ -16,14 +28,14 @@ function mockSettings(update?: (baseDir: string | null) => unknown) {
     "PUT /settings/files": ({ body }) => {
       const { baseDir } = body as { baseDir: string | null }
       if (update) return update(baseDir)
-      current = { baseDir, uploadsDir: baseDir ? `${baseDir}/life-board-app/uploads` : defaultUploadsDir, defaultUploadsDir }
+      current = settingsFor(baseDir)
       return current
     },
   })
 }
 
 beforeEach(() => {
-  current = { baseDir: null, uploadsDir: defaultUploadsDir, defaultUploadsDir }
+  current = settingsFor(null)
 })
 afterEach(() => {
   resetApiMock()
@@ -36,22 +48,26 @@ describe("FilesPanel", () => {
     renderWithProviders(<FilesPanel />)
 
     await waitFor(() => expect(screen.getByLabelText("Current folder")).toHaveTextContent(defaultUploadsDir))
+    expect(screen.getByLabelText("Pages folder")).toHaveTextContent(defaultPagesDir)
     expect(screen.getByText("Default")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Restore default" })).toBeDisabled()
     expect(screen.queryByRole("button", { name: "Choose folder…" })).not.toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText("New location"), { target: { value: "/mnt/linux-data/apps" } })
-    expect(screen.getByText("Files will be saved in /mnt/linux-data/apps/life-board-app/uploads")).toBeInTheDocument()
+    expect(screen.getByText(/Files will be saved in \/mnt\/linux-data\/apps\/life-board-app\/uploads/)).toHaveTextContent(
+      "Pages will be saved in /mnt/linux-data/apps/life-board-app/pages",
+    )
     fireEvent.click(screen.getByRole("button", { name: "Save and move files" }))
 
     await waitFor(() => expect(screen.getByLabelText("Current folder")).toHaveTextContent("/mnt/linux-data/apps/life-board-app/uploads"))
+    expect(screen.getByLabelText("Pages folder")).toHaveTextContent("/mnt/linux-data/apps/life-board-app/pages")
     expect(calls.find((call) => call.method === "PUT")?.body).toEqual({ baseDir: "/mnt/linux-data/apps" })
     expect(screen.queryByText("Default")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Save and move files" })).toBeDisabled()
   })
 
   it("restores the default folder", async () => {
-    current = { baseDir: "/mnt/linux-data/apps", uploadsDir: "/mnt/linux-data/apps/life-board-app/uploads", defaultUploadsDir }
+    current = settingsFor("/mnt/linux-data/apps")
     const { calls } = mockSettings()
     renderWithProviders(<FilesPanel />)
 
@@ -100,8 +116,9 @@ describe("FilesPanel", () => {
     renderWithProviders(<FilesPanel />)
     await waitFor(() => expect(screen.getByLabelText("Current folder")).toHaveTextContent(defaultUploadsDir))
     await act(async () => { await i18n.changeLanguage("pt") })
-    expect(screen.getByRole("heading", { name: "Pasta de uploads" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Pasta de armazenamento" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Salvar e mover arquivos" })).toBeInTheDocument()
+    expect(screen.getByLabelText("Pasta das páginas")).toHaveTextContent(defaultPagesDir)
     await act(async () => { await i18n.changeLanguage("en") })
   })
 })

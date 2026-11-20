@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Panel } from "@/components/workspace-ui"
 import { useFilesSettings, useUpdateFilesSettings } from "@/hooks/queries/use-files-settings"
-import { uploadsDirFor } from "@/lib/files-settings"
+import { pagesDirFor, uploadsDirFor } from "@/lib/files-settings"
 import { errorMessage } from "@/lib/format"
 
 export function FilesPanel() {
@@ -41,10 +41,20 @@ export function FilesPanel() {
             {settings?.uploadsDir ?? "…"}
           </code>
         </div>
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">{t("settings.files.pagesCurrent")}</span>
+          <code className="break-all rounded-md bg-muted px-2 py-1.5 text-sm" aria-label={t("settings.files.pagesCurrent")}>
+            {settings?.pagesDir ?? "…"}
+          </code>
+        </div>
         <FormField
           label={t("settings.files.location")}
           htmlFor="files-location"
-          hint={location ? t("settings.files.preview", { path: uploadsDirFor(location) }) : undefined}
+          hint={
+            location
+              ? `${t("settings.files.preview", { path: uploadsDirFor(location) })} ${t("settings.files.previewPages", { path: pagesDirFor(location) })}`
+              : undefined
+          }
         >
           <div className="flex min-w-0 gap-2">
             <Input

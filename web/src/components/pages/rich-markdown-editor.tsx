@@ -4,7 +4,7 @@ import { EditorContent, useEditor } from "@tiptap/react"
 import { isSaveShortcut } from "@/lib/keyboard"
 import { markdownExtensions, matchFileEnding } from "@/lib/markdown-editor"
 import { cn } from "@/lib/utils"
-import type { RichMarkdownEditorProps } from "@/types/file-board"
+import type { RichMarkdownEditorProps } from "@/types/page"
 
 /**
  * A `.md` file formatted as it's typed (`# ` makes a heading, `- ` a list, `**bold**` bold),
@@ -19,7 +19,7 @@ export function RichMarkdownEditor({ value, label, onChange, onSaveShortcut, cla
   }, [onChange, onSaveShortcut])
 
   const editor = useEditor({
-    extensions: markdownExtensions(t("fileBoard.markdownPlaceholder")),
+    extensions: markdownExtensions(t("pages.markdownPlaceholder")),
     content: original,
     contentType: "markdown",
     immediatelyRender: true,

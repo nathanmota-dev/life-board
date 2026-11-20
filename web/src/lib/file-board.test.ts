@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { fileExtension, hasPreviewPage, newDocumentTitle, newMarkdownFile, previewKind } from "@/lib/file-board"
+import { fileExtension, hasPreviewPage, previewKind } from "@/lib/file-board"
 import { fileItemFixture } from "@/test/file-board-fixtures"
 
 describe("previewKind", () => {
@@ -45,23 +45,5 @@ describe("hasPreviewPage", () => {
     expect(hasPreviewPage(fileItemFixture({ mime: "application/pdf", title: "a.pdf" }))).toBe(true)
     expect(hasPreviewPage(fileItemFixture({ mime: "image/jpeg", title: "a.jpg" }))).toBe(false)
     expect(hasPreviewPage(fileItemFixture({ mime: "application/zip", title: "a.zip" }))).toBe(false)
-  })
-})
-
-describe("newDocumentTitle", () => {
-  it("uses the base name when the board has no file with it", () => {
-    expect(newDocumentTitle("Untitled", [fileItemFixture({ title: "notes.txt" })])).toBe("Untitled.md")
-  })
-
-  it("numbers the name past the ones already taken, ignoring case", () => {
-    const items = [fileItemFixture({ title: "untitled.md" }), fileItemFixture({ title: "Untitled 2.md" }), fileItemFixture({ title: null })]
-    expect(newDocumentTitle("Untitled", items)).toBe("Untitled 3.md")
-  })
-})
-
-describe("newMarkdownFile", () => {
-  it("is an empty markdown file with the given name", () => {
-    const file = newMarkdownFile("Untitled.md")
-    expect(file).toMatchObject({ name: "Untitled.md", type: "text/markdown", size: 0 })
   })
 })

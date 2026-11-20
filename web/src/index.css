@@ -325,6 +325,31 @@
     @apply text-primary underline underline-offset-2;
   }
 
+  .markdown-content ul.contains-task-list {
+    @apply list-none pl-0.5;
+  }
+
+  .markdown-content li.task-list-item input[type="checkbox"] {
+    @apply mr-2 size-4 align-middle accent-primary;
+  }
+
+  .markdown-content table {
+    @apply block w-full max-w-full overflow-x-auto border-collapse text-sm;
+  }
+
+  .markdown-content th,
+  .markdown-content td {
+    @apply border px-3 py-1.5 text-left align-top;
+  }
+
+  .markdown-content th {
+    @apply bg-muted font-medium;
+  }
+
+  .markdown-content img {
+    @apply h-auto max-w-full;
+  }
+
   .markdown-content hr {
     @apply my-6 border-border;
   }

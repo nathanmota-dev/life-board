@@ -1,4 +1,5 @@
 import {
+  type AnyRoute,
   createHashHistory,
   createRootRoute,
   createRoute,
@@ -11,10 +12,38 @@ import { CapturePage } from "@/routes/capture"
 import { Dashboard } from "@/routes/dashboard"
 import { FileBoardPage } from "@/routes/file-board"
 import { FileItemPage } from "@/routes/file-item"
+import { PageRoute, PagesIndexRoute, PagesRoute } from "@/routes/pages"
 import { SettingsPage } from "@/routes/settings"
 import { workspacePages } from "@/routes/workspace-pages"
 import type { NavigationTitleKey } from "@/types/i18n"
 import { SETTINGS_TABS, type SettingsTab } from "@/types/settings"
+
+/** Pages keeps its tree mounted while the page on the right changes, so it is built here instead of in the flat workspace list. */
+function createPagesRoute<TParent extends AnyRoute>(parent: TParent) {
+  const pagesRoute = createRoute({
+    getParentRoute: () => parent,
+    path: "pages",
+    component: PagesRoute,
+    staticData: { titleKey: "navigation.pages" },
+  })
+
+  const pagesIndexRoute = createRoute({
+    getParentRoute: () => pagesRoute,
+    path: "/",
+    component: PagesIndexRoute,
+  })
+
+  const pageRoute = createRoute({
+    getParentRoute: () => pagesRoute,
+    path: "$pageId",
+    component: PageRoute,
+    validateSearch: (search: Record<string, unknown>): { edit?: boolean } => ({
+      edit: search.edit === true || search.edit === "true" ? true : undefined,
+    }),
+  })
+
+  return pagesRoute.addChildren([pagesIndexRoute, pageRoute])
+}
 
 export function createAppRouter(sidebarLayout: RouteComponent) {
   const rootRoute = createRootRoute({ component: Outlet })
@@ -95,8 +124,9 @@ export function createAppRouter(sidebarLayout: RouteComponent) {
       dashboardRoute.addChildren([dashboardIndexRoute]),
       settingsRoute,
       fileBoardRoute.addChildren([fileBoardIndexRoute, fileItemRoute]),
+      createPagesRoute(sidebarRoute),
       ...workspacePages
-        .filter((page) => page.path !== "file-board")
+        .filter((page) => page.path !== "file-board" && page.path !== "pages")
         .map((page) =>
           createRoute({
             getParentRoute: () => sidebarRoute,
