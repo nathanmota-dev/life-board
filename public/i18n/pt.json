@@ -43,7 +43,11 @@
       "title": "Idioma",
       "description": "Escolha o idioma usado no app. Por padrão, usamos o idioma do navegador ou sistema.",
       "label": "Idioma do app",
-      "switch": "Trocar idioma"
+      "switch": "Trocar idioma",
+      "dateFormat": "Formato de data",
+      "dateFormatDescription": "Ordem do dia e do mês nas datas de todo o app.",
+      "dateFormatDmy": "DD/MM/AAAA",
+      "dateFormatMdy": "MM/DD/AAAA"
     },
     "appearance": {
       "title": "Aparência",
