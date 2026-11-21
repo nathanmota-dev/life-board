@@ -159,3 +159,10 @@ o novo arquivo a um comentário de issue e troque a URL no README:
 ```bash
 gh issue comment <número> --attach web/src/public/life-board-demo.mp4
 ```
+
+`npm run demo:record:landing` grava o vídeo curto da landing page
+(`landing/assets/life-board-demo.mp4`, com o poster
+`landing/assets/life-board-demo-poster.jpg`) com o roteiro de
+`e2e/demo/landing.record.ts`: só as funcionalidades principais, no tema escuro,
+começando e terminando no Painel para o loop emendar. Os dois roteiros usam os
+dados de exemplo e a captura de `e2e/demo/recording.ts`.

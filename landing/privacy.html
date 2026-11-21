@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Política de privacidade · Life Board</title>
+  <meta name="description" content="Como o app Life Board e este site tratam os seus dados, incluindo os dados do Google Agenda." />
+  <meta name="theme-color" content="#161616" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body data-title-key="legal.privacyTitle">
+  <a class="skip-link" href="#conteudo" data-i18n="skip">Pular para o conteúdo</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="index.html">
+        <span class="brand-mark" aria-hidden="true"><svg class="icon"><use href="#i-layout-dashboard" /></svg></span>
+        <span>Life Board</span>
+      </a>
+      <div class="header-actions">
+        <a class="btn btn-ghost btn-icon" href="https://github.com/nathanmota-dev/life-board" target="_blank" rel="noopener" aria-label="Life Board no GitHub" data-i18n-attr="aria-label:nav.github"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-github" /></svg></a>
+        <div class="seg lang-toggle" role="group" aria-label="Idioma" data-i18n-attr="aria-label:lang.label">
+          <button type="button" data-set-lang="pt" aria-pressed="true">PT</button>
+          <button type="button" data-set-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="conteudo" class="legal">
+    <div class="container">
+      <a class="legal-back" href="index.html"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-right" /></svg><span data-i18n="legal.back">Voltar ao início</span></a>
+
+      <article data-lang-block="pt" lang="pt-BR">
+        <h1>Política de privacidade</h1>
+        <p class="updated">Última atualização: 21 de novembro de 2026</p>
+
+        <p>Esta política explica como o <strong>Life Board</strong>, um aplicativo desktop de código aberto para organizar tarefas, agenda, metas e hábitos, e este site tratam as suas informações. O Life Board é mantido por <a href="https://github.com/nathanmota-dev">nathanmota-dev</a> e distribuído pelo <a href="https://github.com/nathanmota-dev/life-board">GitHub</a>.</p>
+
+        <div class="callout">
+          <p><strong>Resumo:</strong> o Life Board roda inteiro no seu computador. Não temos servidores, não pedimos que você crie uma conta e não coletamos, vendemos ou compartilhamos os seus dados. As integrações com o Google e o GitHub são opcionais, e os dados delas ficam só no seu computador.</p>
+        </div>
+
+        <h2>1. Dados guardados pelo app</h2>
+        <p>Tudo o que você cria no Life Board (tarefas, eventos, metas, hábitos, registros de humor, ideias, projetos, páginas, arquivos enviados e preferências) fica no seu computador, num banco SQLite e em pastas dentro de <code>~/.config/life-board-app/</code>, ou na pasta de arquivos que você escolher nas Configurações. Esses dados não são enviados para nós nem para terceiros.</p>
+        <p>O app não tem anúncios, análise de uso, telemetria ou relatórios automáticos de erro.</p>
+
+        <h2>2. Google Agenda</h2>
+        <p>A integração com o Google Agenda é opcional e só é ativada quando você clica em <strong>Conectar Google Agenda</strong> nas Configurações e autoriza o acesso no seu navegador.</p>
+        <h3>Dados acessados</h3>
+        <p>O app pede apenas o escopo <code>https://www.googleapis.com/auth/calendar.events</code> e usa só a agenda <strong>principal</strong> da conta conectada. Ele acessa:</p>
+        <ul>
+          <li>os eventos da agenda principal, de 30 dias atrás até 365 dias à frente: título, descrição, local, início e fim, se é de dia inteiro, cor, status, identificadores, link para o Google Agenda e informações de recorrência;</li>
+          <li>o identificador da agenda principal, que é o endereço de e-mail da conta, para mostrar qual conta está conectada.</li>
+        </ul>
+        <p>Convidados, lembretes, anexos e videoconferências não são lidos.</p>
+        <h3>Como usamos esses dados</h3>
+        <ul>
+          <li>Para mostrar os seus eventos no Calendário e no Painel do Life Board.</li>
+          <li>Para enviar ao Google as mudanças que você fizer no Life Board: criar, editar, mover ou excluir eventos.</li>
+        </ul>
+        <p>Os dados do Google não são usados para nenhuma outra finalidade: não são usados para publicidade, não são vendidos, não são usados para treinar modelos de inteligência artificial e não são transferidos para terceiros. Nenhuma pessoa lê esses dados, porque eles nunca saem do seu computador, a não ser para voltar ao próprio Google.</p>
+        <h3>Armazenamento e proteção</h3>
+        <p>Os eventos ficam no banco local do app. O token de atualização (refresh token) e as credenciais do cliente OAuth são cifrados com AES-256-GCM, e a chave de cifragem é protegida pelo chaveiro do sistema (GNOME Keyring ou KWallet). O token de acesso fica só na memória enquanto o app está aberto. A comunicação com o Google usa HTTPS, e o login acontece no seu navegador, nunca dentro do app.</p>
+        <h3>Desconectar e apagar</h3>
+        <p>Em <strong>Configurações → Google Agenda → Desconectar</strong>, o app revoga o acesso no Google e apaga o token, o e-mail da conta e os eventos importados. Você também pode revogar o acesso a qualquer momento em <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
+        <h3>Uso limitado</h3>
+        <p>O uso e a transferência, para qualquer outro app, de informações recebidas das APIs do Google seguem a <a href="https://developers.google.com/terms/api-services-user-data-policy">Política de Dados do Usuário dos Serviços de API do Google</a>, incluindo os requisitos de Uso Limitado.</p>
+
+        <h2>3. GitHub</h2>
+        <p>A integração com o GitHub é opcional. Se você colar um token de acesso pessoal nas Configurações, ele é cifrado e guardado só no seu computador e usado para buscar na API do GitHub os seus pull requests, issues, repositórios e contribuições. Esses dados ficam no banco local. O uso do GitHub segue a <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">declaração de privacidade do GitHub</a>.</p>
+
+        <h2>4. Outros serviços que o app acessa</h2>
+        <ul>
+          <li><strong>Atualizações:</strong> uma vez por dia, enquanto está aberto, o app consulta as releases públicas do Life Board no GitHub para saber se há uma versão nova. Nenhum dado seu é enviado; como em qualquer acesso à internet, o GitHub recebe o endereço IP.</li>
+          <li><strong>Clima:</strong> para mostrar o clima na barra de status do Pomodoro, o app estima a sua localização aproximada a partir do endereço IP, usando <a href="https://ipwho.is/">ipwho.is</a> ou <a href="https://ipapi.co/">ipapi.co</a>, e busca a previsão no <a href="https://open-meteo.com/">Open-Meteo</a> com essas coordenadas aproximadas. A localização não é guardada nem enviada para nós.</li>
+        </ul>
+
+        <h2>5. Este site</h2>
+        <p>Este site é estático. Ele não usa cookies, não tem análise de uso e não coleta dados pessoais. Ele guarda no armazenamento local do seu navegador o idioma e a cor de destaque escolhidos e, por uma hora, a versão mais recente do app. Para mostrar essa versão, o seu navegador consulta a API pública do GitHub, que recebe o seu endereço IP. O provedor de hospedagem do site pode registrar dados técnicos de acesso, como IP e navegador, para operar o serviço.</p>
+
+        <h2>6. Retenção e exclusão</h2>
+        <p>Os dados ficam no seu computador até você apagá-los no app. Desinstalar o app não apaga os dados; para removê-los, apague a pasta <code>~/.config/life-board-app/</code> (e a pasta de arquivos, se você escolheu outra). Como não guardamos dados seus, não há nada a apagar do nosso lado.</p>
+
+        <h2>7. Crianças</h2>
+        <p>O Life Board não é direcionado a menores de 13 anos e não coleta dados de ninguém intencionalmente.</p>
+
+        <h2>8. Mudanças nesta política</h2>
+        <p>Se esta política mudar, a nova versão será publicada nesta página com a data de atualização. Mudanças que afetem o uso de dados do Google também serão descritas nas notas da versão do app.</p>
+
+        <h2>9. Contato</h2>
+        <p>Dúvidas ou pedidos sobre privacidade podem ser enviados <a href="https://github.com/nathanmota-dev/life-board/issues">abrindo uma issue no repositório do Life Board</a>.</p>
+      </article>
+
+      <article data-lang-block="en" lang="en" hidden>
+        <h1>Privacy policy</h1>
+        <p class="updated">Last updated: November 21, 2026</p>
+
+        <p>This policy explains how <strong>Life Board</strong>, an open source desktop app for organizing tasks, calendar, goals and habits, and this website handle your information. Life Board is maintained by <a href="https://github.com/nathanmota-dev">nathanmota-dev</a> and distributed through <a href="https://github.com/nathanmota-dev/life-board">GitHub</a>.</p>
+
+        <div class="callout">
+          <p><strong>Summary:</strong> Life Board runs entirely on your computer. We have no servers, we don't ask you to create an account, and we don't collect, sell or share your data. The Google and GitHub integrations are optional, and their data stays on your computer only.</p>
+        </div>
+
+        <h2>1. Data stored by the app</h2>
+        <p>Everything you create in Life Board (tasks, events, goals, habits, mood entries, thoughts, projects, pages, uploaded files and preferences) stays on your computer, in a SQLite database and folders inside <code>~/.config/life-board-app/</code>, or in the files folder you pick in Settings. This data is not sent to us or to third parties.</p>
+        <p>The app has no ads, no usage analytics, no telemetry and no automatic error reports.</p>
+
+        <h2>2. Google Calendar</h2>
+        <p>The Google Calendar integration is optional. It only turns on when you click <strong>Connect Google Calendar</strong> in Settings and authorize access in your browser.</p>
+        <h3>Data accessed</h3>
+        <p>The app requests only the <code>https://www.googleapis.com/auth/calendar.events</code> scope and uses only the <strong>primary</strong> calendar of the connected account. It accesses:</p>
+        <ul>
+          <li>the events of the primary calendar, from 30 days ago to 365 days ahead: title, description, location, start and end, whether it lasts all day, color, status, identifiers, the link to Google Calendar and recurrence information;</li>
+          <li>the identifier of the primary calendar, which is the account's email address, to show which account is connected.</li>
+        </ul>
+        <p>Attendees, reminders, attachments and video conferences are not read.</p>
+        <h3>How we use this data</h3>
+        <ul>
+          <li>To show your events on the Life Board Calendar and Dashboard.</li>
+          <li>To send to Google the changes you make in Life Board: creating, editing, moving or deleting events.</li>
+        </ul>
+        <p>Google data is not used for any other purpose: it is not used for advertising, it is not sold, it is not used to train artificial intelligence models, and it is not transferred to third parties. No person reads this data, because it never leaves your computer except to go back to Google itself.</p>
+        <h3>Storage and protection</h3>
+        <p>Events are stored in the app's local database. The refresh token and the OAuth client credentials are encrypted with AES-256-GCM, and the encryption key is protected by the system keyring (GNOME Keyring or KWallet). The access token is kept only in memory while the app is open. Communication with Google uses HTTPS, and sign-in happens in your browser, never inside the app.</p>
+        <h3>Disconnecting and deleting</h3>
+        <p>In <strong>Settings → Google Calendar → Disconnect</strong>, the app revokes access with Google and deletes the token, the account email and the imported events. You can also revoke access at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
+        <h3>Limited Use</h3>
+        <p>Life Board's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+        <h2>3. GitHub</h2>
+        <p>The GitHub integration is optional. If you paste a personal access token in Settings, it is encrypted, stored only on your computer and used to fetch your pull requests, issues, repositories and contributions from the GitHub API. This data stays in the local database. Your use of GitHub is covered by the <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">GitHub privacy statement</a>.</p>
+
+        <h2>4. Other services the app contacts</h2>
+        <ul>
+          <li><strong>Updates:</strong> once a day, while open, the app checks Life Board's public releases on GitHub for a new version. None of your data is sent; as with any internet request, GitHub receives your IP address.</li>
+          <li><strong>Weather:</strong> to show the weather in the Pomodoro status bar, the app estimates your approximate location from your IP address, using <a href="https://ipwho.is/">ipwho.is</a> or <a href="https://ipapi.co/">ipapi.co</a>, and fetches the forecast from <a href="https://open-meteo.com/">Open-Meteo</a> with those approximate coordinates. The location is not stored or sent to us.</li>
+        </ul>
+
+        <h2>5. This website</h2>
+        <p>This website is static. It uses no cookies, has no analytics and collects no personal data. It keeps the language and accent color you pick, and for one hour the app's latest version, in your browser's local storage. To show that version, your browser queries the public GitHub API, which receives your IP address. The site's hosting provider may log technical access data, such as IP address and browser, to operate the service.</p>
+
+        <h2>6. Retention and deletion</h2>
+        <p>Your data stays on your computer until you delete it in the app. Uninstalling the app does not delete it; to remove it, delete the <code>~/.config/life-board-app/</code> folder (and your files folder, if you picked another one). Since we keep none of your data, there is nothing to delete on our side.</p>
+
+        <h2>7. Children</h2>
+        <p>Life Board is not directed at children under 13 and does not knowingly collect data from anyone.</p>
+
+        <h2>8. Changes to this policy</h2>
+        <p>If this policy changes, the new version will be published on this page with its update date. Changes that affect the use of Google data will also be described in the app's release notes.</p>
+
+        <h2>9. Contact</h2>
+        <p>Privacy questions or requests can be sent by <a href="https://github.com/nathanmota-dev/life-board/issues">opening an issue in the Life Board repository</a>.</p>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-bottom" style="margin-top: 0; padding-top: 0; border-top: 0">
+        <span>© <span data-year>2026</span> Life Board · <span data-i18n="footer.license">Licença MIT</span></span>
+        <span style="display: flex; gap: 16px">
+          <a href="privacy.html" data-i18n="footer.privacy">Política de privacidade</a>
+          <a href="terms.html" data-i18n="footer.terms">Termos de uso</a>
+          <a href="https://github.com/nathanmota-dev/life-board" target="_blank" rel="noopener">GitHub</a>
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/icons.js"></script>
+  <script src="assets/main.js"></script>
+</body>
+</html>

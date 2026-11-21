@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test"
 
-// Records the README demo video. It is not part of the E2E suite.
+// Records the demo videos (README and landing page). It is not part of the E2E suite.
 export default defineConfig({
   testDir: "./e2e/demo",
   testMatch: "**/*.record.ts",
