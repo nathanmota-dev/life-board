@@ -1,5 +1,8 @@
-import { getLocale } from "@/lib/i18n"
+import { getLocale, i18n } from "@/lib/i18n"
+import type { DateFormat } from "@/types/i18n"
 import type { Period } from "@/types/ui"
+
+export const DATE_FORMAT_STORAGE_KEY = "life-board-date-format"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -65,12 +68,47 @@ export function periodDays(period: Period, from: string, to: string) {
   return period === "custom" ? dayRange(from, to) : lastDays(period === "week" ? 7 : 30)
 }
 
-export function formatDate(value: string | Date, options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }) {
-  return new Intl.DateTimeFormat(getLocale(), options).format(new Date(value))
+/** The chosen date format, or the language's own order when none was chosen. */
+export function getDateFormat(): DateFormat {
+  try {
+    const stored = localStorage.getItem(DATE_FORMAT_STORAGE_KEY)
+    if (stored === "dmy" || stored === "mdy") return stored
+  } catch { /* storage unavailable: fall back to the language */ }
+  return getLocale() === "pt-BR" ? "dmy" : "mdy"
+}
+
+export function setDateFormat(format: DateFormat) {
+  try { localStorage.setItem(DATE_FORMAT_STORAGE_KEY, format) } catch { /* keeps the language default */ }
+  // Every translated component re-renders on languageChanged, so dates update app-wide.
+  void i18n.changeLanguage(i18n.resolvedLanguage)
+}
+
+/** English follows the format with en-GB/en-US; Portuguese has no month-first locale. */
+export function getDateLocale() {
+  if (getLocale() === "pt-BR") return "pt-BR"
+  return getDateFormat() === "dmy" ? "en-GB" : "en-US"
+}
+
+/** Formats dates for display everywhere in the app, in the language and date format from Settings. */
+export function formatDate(value: string | Date | number, options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }) {
+  const date = new Date(value)
+  const formatter = new Intl.DateTimeFormat(getDateLocale(), options)
+  if (getLocale() !== "pt-BR" || getDateFormat() === "dmy") return formatter.format(date)
+  // Portuguese with month first: swap the numeric day and month, keeping month names as they are.
+  const parts = formatter.formatToParts(date)
+  const day = parts.find((part) => part.type === "day")
+  const month = parts.find((part) => part.type === "month")
+  if (day && month && /^\d+$/.test(month.value)) [day.value, month.value] = [month.value, day.value]
+  return parts.map((part) => part.value).join("")
+}
+
+/** Date and time with numeric day, month and year, like 21/11/2026, 05:42. */
+export function formatDateTime(value: string | Date | number) {
+  return formatDate(value, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
 }
 
 export function formatTime(value: string | Date) {
-  return new Intl.DateTimeFormat(getLocale(), { hour: "2-digit", minute: "2-digit" }).format(new Date(value))
+  return new Intl.DateTimeFormat(getDateLocale(), { hour: "2-digit", minute: "2-digit" }).format(new Date(value))
 }
 
 /** "today", "tomorrow", "3 days ago"… relative to the current local day. */

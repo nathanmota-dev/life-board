@@ -43,7 +43,11 @@
       "title": "Language",
       "description": "Choose the language used in the app. Your browser or system language is used by default.",
       "label": "App language",
-      "switch": "Switch language"
+      "switch": "Switch language",
+      "dateFormat": "Date format",
+      "dateFormatDescription": "Order of day and month in dates across the app.",
+      "dateFormatDmy": "DD/MM/YYYY",
+      "dateFormatMdy": "MM/DD/YYYY"
     },
     "appearance": {
       "title": "Appearance",

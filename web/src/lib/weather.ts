@@ -1,5 +1,5 @@
 import { Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Moon, Sun } from "lucide-react"
-import { getLocale } from "@/lib/i18n"
+import { getDateLocale } from "@/lib/dates"
 import type { OpenMeteoResponse, Weather, WeatherConditionInfo } from "@/types/weather"
 
 const HOURLY_COUNT = 5
@@ -45,5 +45,5 @@ export function formatTemperature(value: number) {
 // Open-Meteo returns wall-clock times of the forecast location ("2026-10-19T15:00");
 // reading them as UTC and formatting in UTC keeps them in that location's time.
 export function formatLocalTime(value: string, options: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" }) {
-  return new Intl.DateTimeFormat(getLocale(), { ...options, timeZone: "UTC" }).format(new Date(`${value}Z`))
+  return new Intl.DateTimeFormat(getDateLocale(), { ...options, timeZone: "UTC" }).format(new Date(`${value}Z`))
 }

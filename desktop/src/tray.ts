@@ -17,6 +17,7 @@ let tray: Tray | null = null
 let ticker: NodeJS.Timeout | undefined
 let iconKey = ""
 let menuKey = ""
+let toolTip = ""
 
 function formatTime(ms: number) {
   const total = Math.ceil(ms / 1000)
@@ -43,6 +44,15 @@ function updateIcon(state: PomodoroState, remaining: number, iconPath: string) {
       ? appTrayIcon(iconPath)
       : ringIcon(step / RING_STEPS, state.phase === "focus" ? FOCUS_COLOR : BREAK_COLOR, state.status === "paused"),
   )
+}
+
+// On Linux every tooltip change also republishes the whole menu over D-Bus, which
+// makes an open menu flash. There the tooltip uses the menu's minutes, so both
+// change together once a minute instead of every second.
+function updateToolTip(text: string) {
+  if (!tray || text === toolTip) return
+  toolTip = text
+  tray.setToolTip(text)
 }
 
 // Linux only picks up menu changes through a new menu, so it's rebuilt when its text changes.
@@ -75,7 +85,7 @@ export function createTray(iconPath: string, openRoute: (route?: string) => void
   const render = () => {
     const state = getPomodoroState()
     const remaining = remainingAt(state, Date.now())
-    tray?.setToolTip(state.status === "idle" ? "Life Board" : statusLabel(state, remaining, false))
+    updateToolTip(state.status === "idle" ? "Life Board" : statusLabel(state, remaining, process.platform === "linux"))
     updateIcon(state, remaining, iconPath)
     updateMenu(state, remaining, openRoute)
   }
@@ -89,6 +99,7 @@ export function createTray(iconPath: string, openRoute: (route?: string) => void
   onPomodoroChange(sync)
   onLanguageChange(() => {
     menuKey = ""
+    toolTip = ""
     render()
   })
   // Windows opens the app on a click; Linux and macOS show the menu instead.

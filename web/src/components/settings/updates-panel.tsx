@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Panel } from "@/components/workspace-ui"
 import { useAppUpdates } from "@/hooks/use-app-updates"
-import { getLocale } from "@/lib/i18n"
+import { formatDateTime } from "@/lib/dates"
 import { renderReleaseNotes } from "@/lib/release-notes"
 
 export function UpdatesPanel() {
@@ -14,7 +14,7 @@ export function UpdatesPanel() {
   const busy = ["checking", "downloading", "installing"].includes(state.status)
   const ready = state.status === "ready" || (state.status === "error" && state.retryAction === "install")
   const downloadable = state.status === "available" || (state.status === "error" && state.retryAction === "download")
-  const date = (value: number | string | null) => value === null ? t("settings.updates.never") : new Date(value).toLocaleString(getLocale())
+  const date = (value: number | string | null) => value === null ? t("settings.updates.never") : formatDateTime(value)
 
   return (
     <Panel title={t("settings.updates.title")}>
