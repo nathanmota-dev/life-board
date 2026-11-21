@@ -38,7 +38,12 @@ export function registerUpdates() {
     },
     cancel() { cancelUpdateQuit(); cancelPomodoroUpdate() },
     restart(executable) {
-      app.relaunch({ ...(executable ? { execPath: executable } : {}), args: process.argv.slice(1).filter((arg) => arg !== "--hidden") })
+      const args = process.argv.slice(1).filter((arg) => arg !== "--hidden")
+      // Electron's relauncher starts the program with stdin closed, and the AppImage
+      // runtime then fails to mount ("Cannot mount AppImage"). Reopen it first.
+      app.relaunch(executable
+        ? { execPath: "/bin/sh", args: ["-c", 'exec "$0" "$@" </dev/null', executable, ...args] }
+        : { args })
       app.quit()
     },
   }) : null

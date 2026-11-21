@@ -109,7 +109,9 @@ describe("updater main wiring", () => {
     lifecycle.prepare()
     lifecycle.restart("/stable/life-board.AppImage")
     expect(mocks.preserve).toHaveBeenCalledOnce()
-    expect(app.relaunch).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ execPath: "/stable/life-board.AppImage" }))
+    // The AppImage runtime cannot mount with stdin closed, so the shell reopens it.
+    expect(app.relaunch).toHaveBeenCalledExactlyOnceWith({ execPath: "/bin/sh",
+      args: ["-c", 'exec "$0" "$@" </dev/null', "/stable/life-board.AppImage", ...process.argv.slice(1).filter((arg) => arg !== "--hidden")] })
     expect(app.quit).toHaveBeenCalledOnce()
     expect(mocks.preserve.mock.invocationCallOrder[0]).toBeLessThan(app.quit.mock.invocationCallOrder[0])
   })
